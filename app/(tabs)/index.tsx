@@ -1,98 +1,155 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useEffect } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Dimensions,
+  StyleSheet,
+  Platform,
+} from 'react-native';
+import Animated, {
+  useSharedValue,
+  withRepeat,
+  withTiming,
+  withDelay,
+  useAnimatedStyle,
+  Easing,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+const { width, height } = Dimensions.get('window');
+
+function CloudShape({ scale = 1 }: { scale?: number }) {
+  const s = scale;
+  return (
+    <View style={{ position: 'relative', width: 100 * s, height: 50 * s }}>
+      <View style={[styles.cloudBody, { width: 60 * s, height: 30 * s, left: 20 * s, top: 20 * s, borderRadius: 15 * s }]} />
+      <View style={[styles.cloudPuff, { width: 40 * s, height: 40 * s, left: 10 * s, top: 8 * s }]} />
+      <View style={[styles.cloudPuff, { width: 35 * s, height: 35 * s, left: 47 * s, top: 10 * s }]} />
+      <View style={[styles.cloudPuffSm, { width: 28 * s, height: 28 * s, left: 0, top: 18 * s }]} />
+    </View>
+  );
+}
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools!
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const insets = useSafeAreaInsets();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const cloud1X = useSharedValue(-120);
+  const cloud2X = useSharedValue(-200);
+
+  useEffect(() => {
+    cloud1X.value = withRepeat(
+      withTiming(width + 120, { duration: 8000, easing: Easing.linear }),
+      -1,
+      false
+    );
+    cloud2X.value = withDelay(
+      3000,
+      withRepeat(
+        withTiming(width + 200, { duration: 6000, easing: Easing.linear }),
+        -1,
+        false
+      )
+    );
+  }, [cloud1X, cloud2X]);
+
+  const cloud1Style = useAnimatedStyle(() => ({
+    transform: [{ translateX: cloud1X.value }],
+  }));
+  const cloud2Style = useAnimatedStyle(() => ({
+    transform: [{ translateX: cloud2X.value }],
+  }));
+
+  return (
+    <View style={styles.container}>
+      <Text style={[styles.title, { top: insets.top + 20 }]}>
+        Knock Knock
+      </Text>
+
+      <Animated.View style={[styles.cloud1, cloud1Style]}>
+        <CloudShape scale={1.2} />
+      </Animated.View>
+      <Animated.View style={[styles.cloud2, cloud2Style]}>
+        <CloudShape scale={0.9} />
+      </Animated.View>
+
+      <View style={[styles.checkinContainer, { bottom: insets.bottom + height * 0.15 }]}>
+        <TouchableOpacity style={styles.checkinButton} activeOpacity={0.8}>
+          <Text style={styles.plusText}>+</Text>
+        </TouchableOpacity>
+        <Text style={styles.checkinLabel}>Check in</Text>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: '#000000',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
+  title: {
     position: 'absolute',
+    right: 28,
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontFamily: Platform.select({ ios: 'ui-serif', default: 'serif' }),
+    fontWeight: '300',
+    letterSpacing: 2,
+  },
+  cloud1: {
+    position: 'absolute',
+    top: height * 0.28,
+  },
+  cloud2: {
+    position: 'absolute',
+    top: height * 0.38,
+  },
+  checkinContainer: {
+    position: 'absolute',
+    alignSelf: 'center',
+    alignItems: 'center',
+  },
+  checkinButton: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  plusText: {
+    color: '#FFFFFF',
+    fontSize: 32,
+    fontWeight: '200',
+    lineHeight: 36,
+    marginTop: -2,
+  },
+  checkinLabel: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    letterSpacing: 1.5,
+    marginTop: 10,
+    fontWeight: '300',
+    textTransform: 'uppercase',
+  },
+  cloudBody: {
+    position: 'absolute',
+    backgroundColor: 'white',
+    opacity: 0.9,
+  },
+  cloudPuff: {
+    position: 'absolute',
+    backgroundColor: 'white',
+    borderRadius: 999,
+    opacity: 0.9,
+  },
+  cloudPuffSm: {
+    position: 'absolute',
+    backgroundColor: 'white',
+    borderRadius: 999,
+    opacity: 0.85,
   },
 });
