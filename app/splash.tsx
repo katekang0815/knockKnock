@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
 import { Dimensions, StyleSheet } from 'react-native';
-import Animated, { useSharedValue, withTiming, withDelay, runOnJS, Easing, useAnimatedStyle } from 'react-native-reanimated';
+import Animated, {
+  useSharedValue, withTiming, withDelay, runOnJS, Easing,
+  useAnimatedStyle, useDerivedValue,
+} from 'react-native-reanimated';
 import {
   Canvas,
   Path,
@@ -12,15 +15,12 @@ import {
   Skia,
   FillType,
   vec,
-  useDerivedValue as useSkiaValue,
 } from '@shopify/react-native-skia';
 import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { markSplashShown } from '@/utils/session';
 
 const { width, height } = Dimensions.get('window');
 
-// Door geometry
 const DOOR_WIDTH = 160;
 const DOOR_HEIGHT = 240;
 const ARCH_RADIUS = DOOR_WIDTH / 2;
@@ -32,8 +32,8 @@ const STRAIGHT_TOP_Y = CY - DOOR_HEIGHT / 2 + ARCH_RADIUS;
 const ARCH_TOP_Y = STRAIGHT_TOP_Y - ARCH_RADIUS;
 const WALL_DEPTH = 18;
 
-// Pre-build static paths
-function buildArchOpeningPath(): ReturnType<typeof Skia.Path.Make> {
+// All paths are static — animation is done via transforms and opacity
+function buildArchOpeningPath() {
   const p = Skia.Path.Make();
   p.moveTo(HINGE_X, BOTTOM_Y);
   p.lineTo(HINGE_X, STRAIGHT_TOP_Y);
@@ -46,11 +46,9 @@ function buildArchOpeningPath(): ReturnType<typeof Skia.Path.Make> {
   return p;
 }
 
-function buildWallMaskPath(): ReturnType<typeof Skia.Path.Make> {
+function buildWallMaskPath() {
   const p = Skia.Path.Make();
-  // Outer rect
   p.addRect({ x: 0, y: 0, width, height });
-  // Inner arch cutout (same winding as above)
   p.moveTo(HINGE_X, BOTTOM_Y);
   p.lineTo(HINGE_X, STRAIGHT_TOP_Y);
   p.arcTo(
@@ -62,6 +60,42 @@ function buildWallMaskPath(): ReturnType<typeof Skia.Path.Make> {
   p.setFillType(FillType.EvenOdd);
   return p;
 }
+
+function buildDoorPanelPath() {
+  const p = Skia.Path.Make();
+  p.moveTo(HINGE_X, STRAIGHT_TOP_Y);
+  p.lineTo(HINGE_X + DOOR_WIDTH, STRAIGHT_TOP_Y);
+  p.lineTo(HINGE_X + DOOR_WIDTH, BOTTOM_Y);
+  p.lineTo(HINGE_X, BOTTOM_Y);
+  p.close();
+  return p;
+}
+
+function buildSideWallPath() {
+  const p = Skia.Path.Make();
+  p.moveTo(HINGE_X - WALL_DEPTH, STRAIGHT_TOP_Y - 8);
+  p.lineTo(HINGE_X, STRAIGHT_TOP_Y);
+  p.lineTo(HINGE_X, BOTTOM_Y);
+  p.lineTo(HINGE_X - WALL_DEPTH, BOTTOM_Y + 4);
+  p.close();
+  return p;
+}
+
+function buildFullFloorPath() {
+  const fanHalfWidth = width * 0.45;
+  const p = Skia.Path.Make();
+  p.moveTo(CX, BOTTOM_Y);
+  p.lineTo(CX - fanHalfWidth, height);
+  p.lineTo(CX + fanHalfWidth, height);
+  p.close();
+  return p;
+}
+
+const archOpeningPath = buildArchOpeningPath();
+const wallMaskPath = buildWallMaskPath();
+const doorPanelPath = buildDoorPanelPath();
+const sideWallPath = buildSideWallPath();
+const fullFloorPath = buildFullFloorPath();
 
 function navigateToHome() {
   markSplashShown();
@@ -85,48 +119,18 @@ export default function SplashScreen() {
     }));
   }, []);
 
-  // --- Skia derived values ---
+  // Reanimated-only derived values (no Skia useDerivedValue)
+  const doorTransform = useDerivedValue(() => [
+    { scaleX: Math.cos(doorOpenProgress.value * Math.PI / 2) },
+  ]);
 
-  const doorPanelPath = useSkiaValue(() => {
-    const cosA = Math.cos(doorOpenProgress.value * Math.PI / 2);
-    const panelWidth = DOOR_WIDTH * cosA;
-    const pf = panelWidth * 0.15;
-    const p = Skia.Path.Make();
-    p.moveTo(HINGE_X, STRAIGHT_TOP_Y + pf);
-    p.lineTo(HINGE_X + panelWidth, STRAIGHT_TOP_Y - pf);
-    p.lineTo(HINGE_X + panelWidth, BOTTOM_Y + pf * 0.5);
-    p.lineTo(HINGE_X, BOTTOM_Y - pf * 0.5);
-    p.close();
-    return p;
-  }, [doorOpenProgress]);
+  const floorTransform = useDerivedValue(() => [
+    { scaleX: floorLightProgress.value },
+  ]);
 
-  const floorTrianglePath = useSkiaValue(() => {
-    const spread = floorLightProgress.value;
-    const fanHalfWidth = width * 0.45 * spread;
-    const p = Skia.Path.Make();
-    p.moveTo(CX, BOTTOM_Y);
-    p.lineTo(CX - fanHalfWidth, height);
-    p.lineTo(CX + fanHalfWidth, height);
-    p.close();
-    return p;
-  }, [floorLightProgress]);
-
-  const sideWallPath = useSkiaValue(() => {
-    const p = Skia.Path.Make();
-    p.moveTo(HINGE_X - WALL_DEPTH, STRAIGHT_TOP_Y - 8);
-    p.lineTo(HINGE_X, STRAIGHT_TOP_Y);
-    p.lineTo(HINGE_X, BOTTOM_Y);
-    p.lineTo(HINGE_X - WALL_DEPTH, BOTTOM_Y + 4);
-    p.close();
-    return p;
-  }, []);
-
-  const sideWallOpacity = useSkiaValue(() => doorOpenProgress.value, [doorOpenProgress]);
-  const glowOpacity = useSkiaValue(() => glowIntensity.value, [glowIntensity]);
-  const cloudAlpha = useSkiaValue(() => cloudOpacity.value, [cloudOpacity]);
-
-  const archOpeningPath = buildArchOpeningPath();
-  const wallMaskPath = buildWallMaskPath();
+  const sideWallOpacity = useDerivedValue(() => doorOpenProgress.value);
+  const glowOpacity = useDerivedValue(() => glowIntensity.value);
+  const cloudAlpha = useDerivedValue(() => cloudOpacity.value);
 
   const fadeStyle = useAnimatedStyle(() => ({ opacity: screenOpacity.value }));
 
@@ -134,14 +138,16 @@ export default function SplashScreen() {
     <Animated.View style={[StyleSheet.absoluteFill, fadeStyle]}>
       <Canvas style={{ flex: 1, backgroundColor: '#000000' }}>
 
-        {/* 1. Floor triangle fan */}
-        <Path path={floorTrianglePath}>
-          <LinearGradient
-            start={vec(CX, BOTTOM_Y)}
-            end={vec(CX, height)}
-            colors={['#00E5CC', 'rgba(0,229,204,0.25)', 'rgba(0,0,0,0)']}
-          />
-        </Path>
+        {/* 1. Floor triangle fan — scales out from bottom center */}
+        <Group transform={floorTransform} origin={vec(CX, BOTTOM_Y)}>
+          <Path path={fullFloorPath}>
+            <LinearGradient
+              start={vec(CX, BOTTOM_Y)}
+              end={vec(CX, height)}
+              colors={['#00E5CC', 'rgba(0,229,204,0.25)', 'rgba(0,0,0,0)']}
+            />
+          </Path>
+        </Group>
 
         {/* 2. Interior arch glow */}
         <Group opacity={glowOpacity} clip={archOpeningPath}>
@@ -155,8 +161,10 @@ export default function SplashScreen() {
           </Path>
         </Group>
 
-        {/* 3. Door panel (trapezoid) */}
-        <Path path={doorPanelPath} color="#050505" />
+        {/* 3. Door panel — collapses toward hinge via scaleX */}
+        <Group transform={doorTransform} origin={vec(HINGE_X, CY)}>
+          <Path path={doorPanelPath} color="#050505" />
+        </Group>
 
         {/* 4. Left side wall depth */}
         <Group opacity={sideWallOpacity}>
@@ -178,17 +186,14 @@ export default function SplashScreen() {
 
         {/* 7. Clouds */}
         <Group opacity={cloudAlpha}>
-          {/* Cloud 1 */}
           <Oval rect={{ x: CX - 42, y: CY - 44, width: 64, height: 32 }} color="white" opacity={0.9} />
           <Oval rect={{ x: CX - 56, y: CY - 36, width: 36, height: 22 }} color="white" opacity={0.9} />
           <Oval rect={{ x: CX - 10, y: CY - 36, width: 40, height: 24 }} color="white" opacity={0.9} />
 
-          {/* Cloud 2 */}
           <Oval rect={{ x: CX - 14, y: CY + 2, width: 48, height: 24 }} color="white" opacity={0.75} />
           <Oval rect={{ x: CX - 26, y: CY + 9, width: 28, height: 18 }} color="white" opacity={0.75} />
           <Oval rect={{ x: CX + 22, y: CY + 9, width: 32, height: 18 }} color="white" opacity={0.75} />
 
-          {/* Cloud 3 */}
           <Oval rect={{ x: CX - 54, y: CY + 32, width: 36, height: 18 }} color="white" opacity={0.6} />
           <Oval rect={{ x: CX - 64, y: CY + 39, width: 22, height: 14 }} color="white" opacity={0.6} />
           <Oval rect={{ x: CX - 34, y: CY + 39, width: 24, height: 14 }} color="white" opacity={0.6} />
