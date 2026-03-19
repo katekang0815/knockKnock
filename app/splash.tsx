@@ -37,9 +37,9 @@ function buildArchOpeningPath() {
   const p = Skia.Path.Make();
   p.moveTo(HINGE_X, BOTTOM_Y);
   p.lineTo(HINGE_X, STRAIGHT_TOP_Y);
-  p.arcTo(
+  p.addArc(
     { x: HINGE_X, y: ARCH_TOP_Y, width: DOOR_WIDTH, height: DOOR_WIDTH },
-    180, 180, false
+    180, 180
   );
   p.lineTo(HINGE_X + DOOR_WIDTH, BOTTOM_Y);
   p.close();
@@ -51,9 +51,9 @@ function buildWallMaskPath() {
   p.addRect({ x: 0, y: 0, width, height });
   p.moveTo(HINGE_X, BOTTOM_Y);
   p.lineTo(HINGE_X, STRAIGHT_TOP_Y);
-  p.arcTo(
+  p.addArc(
     { x: HINGE_X, y: ARCH_TOP_Y, width: DOOR_WIDTH, height: DOOR_WIDTH },
-    180, 180, false
+    180, 180
   );
   p.lineTo(HINGE_X + DOOR_WIDTH, BOTTOM_Y);
   p.close();

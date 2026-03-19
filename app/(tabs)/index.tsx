@@ -16,6 +16,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
 
@@ -62,6 +63,14 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity
+        style={[styles.backButton, { top: insets.top + 16 }]}
+        onPress={() => router.replace('/splash')}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.backText}>← Splash</Text>
+      </TouchableOpacity>
+
       <Text style={[styles.title, { top: insets.top + 20 }]}>
         Knock Knock
       </Text>
@@ -151,5 +160,21 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 999,
     opacity: 0.85,
+  },
+  backButton: {
+    position: 'absolute',
+    left: 20,
+    zIndex: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    borderRadius: 8,
+  },
+  backText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '300',
+    letterSpacing: 1,
   },
 });
