@@ -71,7 +71,7 @@ export default function HomeScreen() {
         <Text style={styles.backText}>← Splash</Text>
       </TouchableOpacity>
 
-      <Text style={[styles.title, { top: insets.top + 20 }]}>
+      <Text style={[styles.title, { top: insets.top + 20 + 96 }]}>
         Knock Knock
       </Text>
 
@@ -82,7 +82,7 @@ export default function HomeScreen() {
         <CloudShape scale={0.9} />
       </Animated.View>
 
-      <View style={[styles.checkinContainer, { bottom: insets.bottom + height * 0.15 }]}>
+      <View style={styles.checkinContainer}>
         <TouchableOpacity style={styles.checkinButton} activeOpacity={0.8}>
           <Text style={styles.plusText}>+</Text>
         </TouchableOpacity>
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   },
   title: {
     position: 'absolute',
-    right: 28,
+    alignSelf: 'center',
     color: '#FFFFFF',
     fontSize: 28,
     fontFamily: Platform.select({ ios: 'ui-serif', default: 'serif' }),
@@ -118,19 +118,21 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignSelf: 'center',
     alignItems: 'center',
+    top: '50%',
+    marginTop: -36,
   },
   checkinButton: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     borderWidth: 2,
     borderColor: '#FFFFFF',
-    backgroundColor: 'transparent',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   plusText: {
-    color: '#FFFFFF',
+    color: '#000000',
     fontSize: 32,
     fontWeight: '200',
     lineHeight: 36,
