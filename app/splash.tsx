@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
-import { Dimensions, StyleSheet } from 'react-native';
+import { useCallback, useEffect } from 'react';
+import { Dimensions, StyleSheet, TouchableOpacity, Text, View } from 'react-native';
 import Animated, {
-  useSharedValue, withTiming, withDelay, runOnJS, Easing,
+  useSharedValue, withTiming, withDelay, cancelAnimation, Easing,
   useAnimatedStyle, useDerivedValue,
 } from 'react-native-reanimated';
 import {
@@ -107,19 +107,34 @@ export default function SplashScreen() {
   const glowIntensity = useSharedValue(0);
   const floorLightProgress = useSharedValue(0);
   const cloudOpacity = useSharedValue(0);
-  const screenOpacity = useSharedValue(1);
+  const buttonsOpacity = useSharedValue(0);
 
-  useEffect(() => {
+  const runAnimation = useCallback(() => {
+    // Reset all values instantly
+    cancelAnimation(doorOpenProgress);
+    cancelAnimation(glowIntensity);
+    cancelAnimation(floorLightProgress);
+    cancelAnimation(cloudOpacity);
+    cancelAnimation(buttonsOpacity);
+
+    doorOpenProgress.value = 0;
+    glowIntensity.value = 0;
+    floorLightProgress.value = 0;
+    cloudOpacity.value = 0;
+    buttonsOpacity.value = 0;
+
+    // Run animation sequence
     doorOpenProgress.value = withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) });
     glowIntensity.value = withDelay(400, withTiming(1, { duration: 600 }));
     floorLightProgress.value = withDelay(400, withTiming(1, { duration: 800, easing: Easing.out(Easing.quad) }));
     cloudOpacity.value = withDelay(700, withTiming(1, { duration: 400 }));
-    screenOpacity.value = withDelay(2200, withTiming(0, { duration: 500 }, (finished) => {
-      if (finished) runOnJS(navigateToHome)();
-    }));
+    buttonsOpacity.value = withDelay(1400, withTiming(1, { duration: 400 }));
   }, []);
 
-  // Reanimated-only derived values (no Skia useDerivedValue)
+  useEffect(() => {
+    runAnimation();
+  }, []);
+
   const doorTransform = useDerivedValue(() => [
     { scaleX: Math.cos(doorOpenProgress.value * Math.PI / 2) },
   ]);
@@ -132,13 +147,17 @@ export default function SplashScreen() {
   const glowOpacity = useDerivedValue(() => glowIntensity.value);
   const cloudAlpha = useDerivedValue(() => cloudOpacity.value);
 
-  const fadeStyle = useAnimatedStyle(() => ({ opacity: screenOpacity.value }));
+  const buttonsStyle = useAnimatedStyle(() => ({ opacity: buttonsOpacity.value }));
+
+  const handleNext = () => {
+    navigateToHome();
+  };
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, fadeStyle]}>
+    <View style={StyleSheet.absoluteFill}>
       <Canvas style={{ flex: 1, backgroundColor: '#000000' }}>
 
-        {/* 1. Floor triangle fan — scales out from bottom center */}
+        {/* 1. Floor triangle fan */}
         <Group transform={floorTransform} origin={vec(CX, BOTTOM_Y)}>
           <Path path={fullFloorPath}>
             <LinearGradient
@@ -161,7 +180,7 @@ export default function SplashScreen() {
           </Path>
         </Group>
 
-        {/* 3. Door panel — collapses toward hinge via scaleX */}
+        {/* 3. Door panel */}
         <Group transform={doorTransform} origin={vec(HINGE_X, CY)}>
           <Path path={doorPanelPath} color="#050505" />
         </Group>
@@ -171,7 +190,7 @@ export default function SplashScreen() {
           <Path path={sideWallPath} color="#003330" />
         </Group>
 
-        {/* 5. Wall mask (black with arch cutout) */}
+        {/* 5. Wall mask */}
         <Path path={wallMaskPath} color="#000000" />
 
         {/* 6. Arch outline with glow */}
@@ -200,8 +219,46 @@ export default function SplashScreen() {
         </Group>
 
       </Canvas>
-    </Animated.View>
+
+      {/* Buttons overlay */}
+      <Animated.View style={[styles.buttonsContainer, buttonsStyle]}>
+        <TouchableOpacity style={styles.replayButton} onPress={runAnimation}>
+          <Text style={styles.buttonText}>Replay</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+          <Text style={styles.buttonText}>Next</Text>
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  buttonsContainer: {
+    position: 'absolute',
+    bottom: 80,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 24,
+  },
+  replayButton: {
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: '#00E5CC',
+  },
+  nextButton: {
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 30,
+    backgroundColor: '#00E5CC',
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
