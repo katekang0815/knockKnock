@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   Dimensions,
   StyleSheet,
-  Platform,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -121,7 +120,7 @@ export default function HomeScreen() {
         <TouchableOpacity style={styles.checkinButton} activeOpacity={0.8}>
           <Text style={styles.plusText}>+</Text>
         </TouchableOpacity>
-        <Text style={styles.checkinLabel}>Check in</Text>
+        <Text style={styles.checkinLabel}>Check In</Text>
       </View>
     </View>
   );
@@ -136,10 +135,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignSelf: 'center',
     color: '#FFFFFF',
-    fontSize: 28,
-    fontFamily: Platform.select({ ios: 'ui-serif', default: 'serif' }),
-    fontWeight: '300',
-    letterSpacing: 2,
+    fontSize: 36,
+    fontFamily: 'Jost_700Bold',
+    letterSpacing: 3,
   },
   cloud1: {
     position: 'absolute',
@@ -175,11 +173,10 @@ const styles = StyleSheet.create({
   },
   checkinLabel: {
     color: '#FFFFFF',
-    fontSize: 13,
-    letterSpacing: 1.5,
-    marginTop: 10,
-    fontWeight: '300',
-    textTransform: 'uppercase',
+    fontSize: 14,
+    fontFamily: 'Jost_400Regular',
+    letterSpacing: 2,
+    marginTop: 12,
   },
   backButton: {
     position: 'absolute',
