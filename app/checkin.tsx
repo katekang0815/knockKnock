@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
 import SunnyIcon from '@/components/SunnyIcon';
 import StormyIcon from '@/components/StormyIcon';
 import RainIcon from '@/components/RainIcon';
@@ -29,6 +30,7 @@ export default function CheckInScreen() {
               key={cat.label}
               style={styles.card}
               activeOpacity={0.7}
+              onPress={() => router.push({ pathname: '/subemotions', params: { category: cat.label } })}
             >
               {cat.label === 'Sunny' ? (
                 <SunnyIcon size={CARD_SIZE * 0.7} />

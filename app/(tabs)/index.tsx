@@ -98,11 +98,11 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={[styles.backButton, { top: insets.top + 16 }]}
+        style={[styles.backButton, { bottom: insets.bottom + 24 }]}
         onPress={() => router.replace('/splash')}
         activeOpacity={0.7}
       >
-        <Text style={styles.backText}>← Splash</Text>
+        <Text style={styles.backText}>Splash</Text>
       </TouchableOpacity>
 
       <Text style={[styles.title, { top: insets.top + 20 + 96 }]}>
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     alignItems: 'center',
     top: '50%',
-    marginTop: -36,
+    marginTop: -56,
   },
   checkinButton: {
     width: 48,
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    left: 20,
+    alignSelf: 'center',
     zIndex: 10,
     paddingVertical: 6,
     paddingHorizontal: 12,
