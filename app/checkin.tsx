@@ -1,6 +1,9 @@
 import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SunnyIcon from '@/components/SunnyIcon';
+import StormyIcon from '@/components/StormyIcon';
+import RainIcon from '@/components/RainIcon';
+import BreezeIcon from '@/components/BreezeIcon';
 
 const { width } = Dimensions.get('window');
 const CARD_GAP = 16;
@@ -34,8 +37,12 @@ export default function CheckInScreen() {
             >
               {cat.label === 'Sunny' ? (
                 <SunnyIcon size={CARD_SIZE * 0.7} />
+              ) : cat.label === 'Stormy' ? (
+                <StormyIcon size={CARD_SIZE * 0.7} />
+              ) : cat.label === 'Calm' ? (
+                <RainIcon size={CARD_SIZE * 0.7} />
               ) : (
-                <View style={[styles.placeholder, { backgroundColor: cat.color }]} />
+                <BreezeIcon size={CARD_SIZE * 0.7} />
               )}
             </TouchableOpacity>
           ))}
