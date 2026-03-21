@@ -60,7 +60,7 @@ export default function SunnyIcon({ size = 174 }: { size?: number }) {
   const scale = size / SIZE;
 
   return (
-    <View style={{ width: size, height: size, overflow: 'hidden' }}>
+    <View style={{ width: size, height: size, overflow: 'hidden', backgroundColor: '#000000' }}>
       <View style={{ width: SIZE, height: SIZE, transform: [{ scale }], transformOrigin: 'top left' }}>
         <SunBody />
         <Animated.View style={[StyleSheet.absoluteFill, raysStyle]}>

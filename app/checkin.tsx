@@ -1,12 +1,11 @@
 import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SunnyIcon from '@/components/SunnyIcon';
 import StormyIcon from '@/components/StormyIcon';
 import RainIcon from '@/components/RainIcon';
 import BreezeIcon from '@/components/BreezeIcon';
 
 const { width } = Dimensions.get('window');
-const CARD_GAP = 16;
+const CARD_GAP = 8;
 const CARD_SIZE = (width - 48 - CARD_GAP) / 2;
 
 const CATEGORIES = [
@@ -17,12 +16,8 @@ const CATEGORIES = [
 ];
 
 export default function CheckInScreen() {
-  const insets = useSafeAreaInsets();
-
   return (
     <View style={styles.container}>
-      <Text style={[styles.header, { top: insets.top + 12 }]}>MajorEmotions</Text>
-
       <View style={styles.content}>
         <Text style={styles.title}>
           Tap the weather of your{'\n'}mind at this moment
@@ -57,14 +52,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  header: {
-    position: 'absolute',
-    left: 20,
-    color: '#888888',
-    fontSize: 14,
-    fontFamily: 'Jost_400Regular',
-    letterSpacing: 1,
-  },
   content: {
     flex: 1,
     paddingHorizontal: 24,
@@ -75,7 +62,8 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: 'Jost_400Regular',
     lineHeight: 34,
-    marginBottom: 48,
+    marginBottom: 42,
+    textAlign: 'center',
   },
   grid: {
     flexDirection: 'row',
@@ -85,7 +73,6 @@ const styles = StyleSheet.create({
   card: {
     width: CARD_SIZE,
     height: CARD_SIZE,
-    backgroundColor: '#1A1A1A',
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
