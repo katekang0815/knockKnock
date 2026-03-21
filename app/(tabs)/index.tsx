@@ -117,7 +117,7 @@ export default function HomeScreen() {
       </Animated.View>
 
       <View style={styles.checkinContainer}>
-        <TouchableOpacity style={styles.checkinButton} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.checkinButton} activeOpacity={0.8} onPress={() => router.push('/checkin')}>
           <Text style={styles.plusText}>+</Text>
         </TouchableOpacity>
         <Text style={styles.checkinLabel}>Check In</Text>
