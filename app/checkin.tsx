@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import SunnyIcon from '@/components/SunnyIcon';
 
 const { width } = Dimensions.get('window');
 const CARD_GAP = 16;
@@ -31,7 +32,11 @@ export default function CheckInScreen() {
               style={styles.card}
               activeOpacity={0.7}
             >
-              <View style={[styles.placeholder, { backgroundColor: cat.color }]} />
+              {cat.label === 'Sunny' ? (
+                <SunnyIcon size={CARD_SIZE * 0.7} />
+              ) : (
+                <View style={[styles.placeholder, { backgroundColor: cat.color }]} />
+              )}
             </TouchableOpacity>
           ))}
         </View>
