@@ -6,29 +6,38 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import Svg, { Path } from 'react-native-svg';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.container}>
+      {/* Back arrow */}
       <TouchableOpacity
-        style={[styles.backButton, { bottom: insets.bottom + 24 }]}
+        style={[styles.backButton, { top: insets.top + 16 }]}
         onPress={() => router.replace('/splash')}
         activeOpacity={0.7}
       >
-        <Text style={styles.backText}>Splash</Text>
+        <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+          <Path
+            d="M19 12H5M12 19l-7-7 7-7"
+            stroke="#FFFFFF"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
       </TouchableOpacity>
 
       <Text style={[styles.title, { top: insets.top + 20 + 96 }]}>
-        How are you feeling{'\n'}right now?
+        Let{`'`}s check in your{'\n'}daily devotional!
       </Text>
 
       <View style={styles.checkinContainer}>
         <TouchableOpacity style={styles.checkinButton} activeOpacity={0.8} onPress={() => router.push('/checkin')}>
           <Text style={styles.plusText}>+</Text>
         </TouchableOpacity>
-        <Text style={styles.checkinLabel}>Check In</Text>
       </View>
     </View>
   );
@@ -72,27 +81,10 @@ const styles = StyleSheet.create({
     lineHeight: 36,
     marginTop: -2,
   },
-  checkinLabel: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontFamily: 'Jost_400Regular',
-    letterSpacing: 2,
-    marginTop: 12,
-  },
   backButton: {
     position: 'absolute',
-    alignSelf: 'center',
+    left: 20,
     zIndex: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-    borderRadius: 8,
-  },
-  backText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '300',
-    letterSpacing: 1,
+    padding: 8,
   },
 });
