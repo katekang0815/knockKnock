@@ -21,8 +21,8 @@ const RING_STROKE = 24;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
 const CENTER = RING_SIZE / 2;
 
-// Build fading arc segments
-const SEGMENT_COUNT = 16;
+// Build smooth fading arc
+const SEGMENT_COUNT = 80;
 const ARC_DEGREES = 270;
 const SEGMENT_SPAN = ARC_DEGREES / SEGMENT_COUNT;
 
@@ -38,13 +38,11 @@ function buildArcSegment(startAngle: number, endAngle: number) {
   return `M ${start.x} ${start.y} A ${RING_RADIUS} ${RING_RADIUS} 0 ${largeArc} 1 ${end.x} ${end.y}`;
 }
 
-// Pre-build segments: head is bright, tail fades to invisible
 const segments = Array.from({ length: SEGMENT_COUNT }, (_, i) => {
   const startAngle = i * SEGMENT_SPAN;
-  const endAngle = startAngle + SEGMENT_SPAN + 0.5; // tiny overlap to avoid gaps
-  const progress = i / (SEGMENT_COUNT - 1); // 0 = first (tail), 1 = last (head)
-  // Opacity: head (last segments) = full, tail (first segments) = nearly invisible
-  const opacity = Math.pow(progress, 2); // quadratic falloff
+  const endAngle = startAngle + SEGMENT_SPAN + 1; // overlap to prevent gaps
+  const progress = i / (SEGMENT_COUNT - 1);
+  const opacity = Math.pow(progress, 1.5); // smooth falloff
   return { d: buildArcSegment(startAngle, endAngle), opacity };
 });
 
@@ -96,9 +94,9 @@ export default function HomeScreen() {
               <Path
                 key={i}
                 d={seg.d}
-                stroke="#666666"
+                stroke="#555555"
                 strokeWidth={RING_STROKE}
-                strokeLinecap={i === SEGMENT_COUNT - 1 ? 'round' : 'butt'}
+                strokeLinecap={i === 0 || i === SEGMENT_COUNT - 1 ? 'round' : 'butt'}
                 strokeOpacity={seg.opacity}
                 fill="none"
               />

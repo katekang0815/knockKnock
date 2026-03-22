@@ -1,5 +1,7 @@
 import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import SunnyIcon from '@/components/SunnyIcon';
 import StormyIcon from '@/components/StormyIcon';
 import RainIcon from '@/components/RainIcon';
@@ -17,8 +19,26 @@ const CATEGORIES = [
 ];
 
 export default function CheckInScreen() {
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={styles.container}>
+      <TouchableOpacity
+        style={[styles.backArrow, { top: insets.top + 16 }]}
+        onPress={() => router.back()}
+        activeOpacity={0.7}
+      >
+        <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+          <Path
+            d="M19 12H5M12 19l-7-7 7-7"
+            stroke="#FFFFFF"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      </TouchableOpacity>
+
       <View style={styles.content}>
         <Text style={styles.title}>
           Tap the weather of your{'\n'}mind at this moment
@@ -84,5 +104,11 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     opacity: 0.85,
+  },
+  backArrow: {
+    position: 'absolute',
+    left: 20,
+    zIndex: 10,
+    padding: 8,
   },
 });
