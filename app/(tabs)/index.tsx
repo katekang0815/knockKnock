@@ -1,15 +1,69 @@
+import { useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 
+const RING_SIZE = 200;
+const RING_STROKE = 24;
+const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const CENTER = RING_SIZE / 2;
+
+// Build fading arc segments
+const SEGMENT_COUNT = 16;
+const ARC_DEGREES = 270;
+const SEGMENT_SPAN = ARC_DEGREES / SEGMENT_COUNT;
+
+function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
+  const rad = ((angleDeg - 90) * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function buildArcSegment(startAngle: number, endAngle: number) {
+  const start = polarToCartesian(CENTER, CENTER, RING_RADIUS, startAngle);
+  const end = polarToCartesian(CENTER, CENTER, RING_RADIUS, endAngle);
+  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+  return `M ${start.x} ${start.y} A ${RING_RADIUS} ${RING_RADIUS} 0 ${largeArc} 1 ${end.x} ${end.y}`;
+}
+
+// Pre-build segments: head is bright, tail fades to invisible
+const segments = Array.from({ length: SEGMENT_COUNT }, (_, i) => {
+  const startAngle = i * SEGMENT_SPAN;
+  const endAngle = startAngle + SEGMENT_SPAN + 0.5; // tiny overlap to avoid gaps
+  const progress = i / (SEGMENT_COUNT - 1); // 0 = first (tail), 1 = last (head)
+  // Opacity: head (last segments) = full, tail (first segments) = nearly invisible
+  const opacity = Math.pow(progress, 2); // quadratic falloff
+  return { d: buildArcSegment(startAngle, endAngle), opacity };
+});
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+
+  const rotation = useSharedValue(0);
+
+  useEffect(() => {
+    rotation.value = withRepeat(
+      withTiming(360, { duration: 8000, easing: Easing.linear }),
+      -1,
+      false,
+    );
+  }, []);
+
+  const rotateStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
 
   return (
     <View style={styles.container}>
@@ -35,6 +89,24 @@ export default function HomeScreen() {
       </Text>
 
       <View style={styles.checkinContainer}>
+        {/* Animated loading ring */}
+        <Animated.View style={[styles.ringContainer, rotateStyle]}>
+          <Svg width={RING_SIZE} height={RING_SIZE}>
+            {segments.map((seg, i) => (
+              <Path
+                key={i}
+                d={seg.d}
+                stroke="#666666"
+                strokeWidth={RING_STROKE}
+                strokeLinecap={i === SEGMENT_COUNT - 1 ? 'round' : 'butt'}
+                strokeOpacity={seg.opacity}
+                fill="none"
+              />
+            ))}
+          </Svg>
+        </Animated.View>
+
+        {/* Plus button centered on top of ring */}
         <TouchableOpacity style={styles.checkinButton} activeOpacity={0.8} onPress={() => router.push('/checkin')}>
           <Text style={styles.plusText}>+</Text>
         </TouchableOpacity>
@@ -52,8 +124,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignSelf: 'center',
     color: '#FFFFFF',
-    fontSize: 24,
-    fontFamily: 'Jost_400Regular',
+    fontSize: 32,
+    fontFamily: 'Jost_700Bold',
     lineHeight: 34,
     textAlign: 'center',
   },
@@ -61,8 +133,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignSelf: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     top: '50%',
-    marginTop: -56,
+    marginTop: -(RING_SIZE / 2),
+    width: RING_SIZE,
+    height: RING_SIZE,
+  },
+  ringContainer: {
+    position: 'absolute',
   },
   checkinButton: {
     width: 48,
