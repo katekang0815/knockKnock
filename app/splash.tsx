@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     position: 'absolute',
-    top: '15%',
+    bottom: '18%',
     left: 0,
     right: 0,
     alignItems: 'center',
