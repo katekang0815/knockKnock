@@ -41,7 +41,7 @@ export default function CheckInScreen() {
 
       <View style={styles.content}>
         <Text style={styles.title}>
-          Tap the weather of your{'\n'}mind at this moment
+          How are you feeling today?
         </Text>
 
         <View style={styles.grid}>

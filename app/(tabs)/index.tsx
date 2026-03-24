@@ -21,8 +21,8 @@ const RING_STROKE = 24;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
 const CENTER = RING_SIZE / 2;
 
-// Build smooth fading arc
-const SEGMENT_COUNT = 80;
+// Build smooth fading arc using many thin overlapping segments
+const SEGMENT_COUNT = 200;
 const ARC_DEGREES = 270;
 const SEGMENT_SPAN = ARC_DEGREES / SEGMENT_COUNT;
 
@@ -40,9 +40,10 @@ function buildArcSegment(startAngle: number, endAngle: number) {
 
 const segments = Array.from({ length: SEGMENT_COUNT }, (_, i) => {
   const startAngle = i * SEGMENT_SPAN;
-  const endAngle = startAngle + SEGMENT_SPAN + 1; // overlap to prevent gaps
+  const endAngle = startAngle + SEGMENT_SPAN + 2; // generous overlap
   const progress = i / (SEGMENT_COUNT - 1);
-  const opacity = Math.pow(progress, 1.5); // smooth falloff
+  // Smooth cubic falloff: tail is nearly invisible, head is full opacity
+  const opacity = progress * progress * progress;
   return { d: buildArcSegment(startAngle, endAngle), opacity };
 });
 
