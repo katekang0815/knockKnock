@@ -1,14 +1,14 @@
 import { View, Text, ScrollView, Dimensions, StyleSheet, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import EmotionCircle from '@/components/EmotionCircle';
+import BlobGrid from '@/components/BlobGrid';
 import { EMOTION_DATA, EmotionCategory } from '@/constants/emotions';
 
 const { width } = Dimensions.get('window');
 const COLUMNS = 6;
 const GAP = 6;
 const HORIZONTAL_PADDING = 24;
-const CIRCLE_SIZE = (width - HORIZONTAL_PADDING * 2 - GAP * (4 - 1)) / 4 + 4; // 4px larger than old 4-col size
+const CIRCLE_SIZE = (width - HORIZONTAL_PADDING * 2 - GAP * (4 - 1)) / 4 + 4;
 
 export default function SubEmotionsScreen() {
   const insets = useSafeAreaInsets();
@@ -23,12 +23,6 @@ export default function SubEmotionsScreen() {
         <Text style={styles.errorText}>Category not found</Text>
       </View>
     );
-  }
-
-  // Build rows of COLUMNS items each
-  const rows: string[][] = [];
-  for (let i = 0; i < data.subEmotions.length; i += COLUMNS) {
-    rows.push(data.subEmotions.slice(i, i + COLUMNS));
   }
 
   const gridWidth = COLUMNS * CIRCLE_SIZE + (COLUMNS - 1) * GAP;
@@ -55,25 +49,19 @@ export default function SubEmotionsScreen() {
             contentContainerStyle={{ paddingHorizontal: HORIZONTAL_PADDING }}
           >
             <View style={{ width: gridWidth }}>
-              {rows.map((row, rowIndex) => (
-                <View key={rowIndex} style={styles.row}>
-                  {row.map((emotion) => (
-                    <EmotionCircle
-                      key={emotion}
-                      label={emotion}
-                      gradientStart={data.gradientStart}
-                      gradientEnd={data.gradientEnd}
-                      size={CIRCLE_SIZE}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/emotionlog',
-                          params: { emotion, category: categoryKey },
-                        })
-                      }
-                    />
-                  ))}
-                </View>
-              ))}
+              <BlobGrid
+                emotions={data.subEmotions}
+                columns={COLUMNS}
+                cellSize={CIRCLE_SIZE}
+                gap={GAP}
+                colors={data.blobColors}
+                onPress={(emotion) =>
+                  router.push({
+                    pathname: '/emotionlog',
+                    params: { emotion, category: categoryKey },
+                  })
+                }
+              />
             </View>
           </ScrollView>
         </ScrollView>
@@ -104,11 +92,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '300',
     letterSpacing: 1,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: GAP,
-    marginBottom: GAP,
   },
   emptyText: {
     color: '#666666',
