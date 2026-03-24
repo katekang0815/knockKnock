@@ -97,7 +97,7 @@ export default function HomeScreen() {
                 d={seg.d}
                 stroke="#555555"
                 strokeWidth={RING_STROKE}
-                strokeLinecap={i === 0 || i === SEGMENT_COUNT - 1 ? 'round' : 'butt'}
+                strokeLinecap={i === SEGMENT_COUNT - 1 ? 'round' : 'butt'}
                 strokeOpacity={seg.opacity}
                 fill="none"
               />
