@@ -159,7 +159,7 @@ export default function EmotionLogScreen() {
   const [selectedWhere, setSelectedWhere] = useState<string[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([]);
-  const [editing, setEditing] = useState(false);
+  const [editingField, setEditingField] = useState<'doing' | 'with' | 'where' | null>(null);
 
   const allAnswered = selectedDoing.length > 0 && selectedWith.length > 0 && selectedWhere.length > 0;
 
@@ -279,8 +279,8 @@ export default function EmotionLogScreen() {
           </Text>
         </View>
 
-        {/* Questions OR Summary + Chat */}
-        {!allAnswered || editing ? (
+        {/* Questions (not all answered yet) */}
+        {!allAnswered && (
           <>
             <TagSection
               title="What are you doing?"
@@ -315,27 +315,84 @@ export default function EmotionLogScreen() {
               }}
               accentColor={accentColor}
             />
-            {allAnswered && editing && (
-              <TouchableOpacity
-                style={styles.doneEditingButton}
-                onPress={() => setEditing(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.doneEditingText}>Done</Text>
-              </TouchableOpacity>
-            )}
           </>
-        ) : (
+        )}
+
+        {/* Summary with tappable words + Chat */}
+        {allAnswered && (
           <>
-            {/* Summary text */}
-            <TouchableOpacity
-              onPress={() => setEditing(true)}
-              activeOpacity={0.7}
-              style={styles.summaryContainer}
-            >
-              <Text style={styles.summaryLine}>{summaryText}</Text>
-              <Text style={styles.editHint}>Tap to edit</Text>
-            </TouchableOpacity>
+            {/* Summary — tap each underlined word to edit */}
+            <View style={styles.summaryContainer}>
+              <Text style={styles.summaryLine}>
+                {'I am '}
+                <Text
+                  style={[styles.summaryHighlight, { color: accentColor }]}
+                  onPress={() => setEditingField(editingField === 'doing' ? null : 'doing')}
+                >
+                  {selectedDoing[0]?.toLowerCase()}
+                </Text>
+                {'\n'}
+                {'with '}
+                <Text
+                  style={[styles.summaryHighlight, { color: accentColor }]}
+                  onPress={() => setEditingField(editingField === 'with' ? null : 'with')}
+                >
+                  {selectedWith[0] === 'By Myself' ? 'myself' : selectedWith[0]?.toLowerCase()}
+                </Text>
+                {'\n'}
+                {'at '}
+                <Text
+                  style={[styles.summaryHighlight, { color: accentColor }]}
+                  onPress={() => setEditingField(editingField === 'where' ? null : 'where')}
+                >
+                  {selectedWhere[0]?.toLowerCase()}
+                </Text>
+              </Text>
+            </View>
+
+            {/* Inline dropdown for editing a field */}
+            {editingField === 'doing' && (
+              <TagSection
+                title="What are you doing?"
+                options={doingOptions}
+                selected={selectedDoing}
+                onSelect={(item) => { setSelectedDoing([item]); setEditingField(null); }}
+                onAdd={(item) => {
+                  setDoingOptions((prev) => [...prev, item]);
+                  setSelectedDoing([item]);
+                  setEditingField(null);
+                }}
+                accentColor={accentColor}
+              />
+            )}
+            {editingField === 'with' && (
+              <TagSection
+                title="Who are you with?"
+                options={withOptions}
+                selected={selectedWith}
+                onSelect={(item) => { setSelectedWith([item]); setEditingField(null); }}
+                onAdd={(item) => {
+                  setWithOptions((prev) => [...prev, item]);
+                  setSelectedWith([item]);
+                  setEditingField(null);
+                }}
+                accentColor={accentColor}
+              />
+            )}
+            {editingField === 'where' && (
+              <TagSection
+                title="Where are you?"
+                options={whereOptions}
+                selected={selectedWhere}
+                onSelect={(item) => { setSelectedWhere([item]); setEditingField(null); }}
+                onAdd={(item) => {
+                  setWhereOptions((prev) => [...prev, item]);
+                  setSelectedWhere([item]);
+                  setEditingField(null);
+                }}
+                accentColor={accentColor}
+              />
+            )}
 
             {/* AI Chat */}
             <View style={styles.chatSection}>
@@ -527,34 +584,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   summaryContainer: {
-    marginBottom: 8,
+    marginBottom: 16,
   },
   summaryLine: {
     color: '#FFFFFF',
     fontSize: 22,
     fontFamily: 'Jost_400Regular',
-    lineHeight: 32,
+    lineHeight: 36,
   },
-  editHint: {
-    color: '#555555',
-    fontSize: 12,
-    fontFamily: 'Jost_400Regular',
-    marginTop: 6,
-  },
-  doneEditingButton: {
-    alignSelf: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#444',
-    marginBottom: 16,
-  },
-  doneEditingText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontFamily: 'Jost_400Regular',
-    letterSpacing: 1,
+  summaryHighlight: {
+    textDecorationLine: 'underline',
+    fontFamily: 'Jost_700Bold',
   },
   chatSection: {
     marginTop: 8,
