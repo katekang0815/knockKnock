@@ -55,6 +55,7 @@ function TagSection({ title, options, selected, onSelect, onAdd, accentColor }: 
       onAdd(trimmed);
       setNewTag('');
       setAdding(false);
+      setExpanded(false);
     }
   };
 
