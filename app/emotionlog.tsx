@@ -156,6 +156,29 @@ export default function EmotionLogScreen() {
   const [selectedDoing, setSelectedDoing] = useState<string[]>([]);
   const [selectedWith, setSelectedWith] = useState<string[]>([]);
   const [selectedWhere, setSelectedWhere] = useState<string[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([]);
+
+  const allAnswered = selectedDoing.length > 0 && selectedWith.length > 0 && selectedWhere.length > 0;
+
+  // Placeholder AI question based on selections
+  const aiQuestion = allAnswered
+    ? `You're feeling ${emotion?.toLowerCase()} while ${selectedDoing[0]?.toLowerCase()} ${selectedWith[0] === 'By Myself' ? 'by yourself' : `with ${selectedWith[0]?.toLowerCase()}`} at ${selectedWhere[0]?.toLowerCase()}. What do you think is driving that feeling today?`
+    : '';
+
+  const handleSendChat = () => {
+    const trimmed = chatInput.trim();
+    if (!trimmed) return;
+    setChatMessages((prev) => [...prev, { role: 'user', text: trimmed }]);
+    setChatInput('');
+    // Placeholder AI response — will be replaced with real AI later
+    setTimeout(() => {
+      setChatMessages((prev) => [
+        ...prev,
+        { role: 'ai', text: 'Thank you for sharing. Take a moment to sit with that feeling — it tells you something important about what matters to you.' },
+      ]);
+    }, 1000);
+  };
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -289,6 +312,49 @@ export default function EmotionLogScreen() {
           }}
           accentColor={accentColor}
         />
+
+        {/* AI Reflection Chat — only visible when all 3 answered */}
+        {allAnswered && (
+          <View style={styles.chatSection}>
+            <View style={styles.chatDivider} />
+
+            {/* AI question */}
+            <View style={styles.aiMessageBubble}>
+              <Text style={styles.aiMessageText}>{aiQuestion}</Text>
+            </View>
+
+            {/* Chat history */}
+            {chatMessages.map((msg, i) => (
+              <View
+                key={i}
+                style={msg.role === 'ai' ? styles.aiMessageBubble : styles.userMessageBubble}
+              >
+                <Text style={msg.role === 'ai' ? styles.aiMessageText : styles.userMessageText}>
+                  {msg.text}
+                </Text>
+              </View>
+            ))}
+
+            {/* Chat input */}
+            <View style={styles.chatInputRow}>
+              <TextInput
+                style={styles.chatInput}
+                value={chatInput}
+                onChangeText={setChatInput}
+                placeholder="Share your thoughts..."
+                placeholderTextColor="#666"
+                multiline
+              />
+              <TouchableOpacity
+                style={[styles.sendButton, { backgroundColor: accentColor }]}
+                onPress={handleSendChat}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.sendButtonText}>↑</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* Complete button */}
         <View style={styles.completeSection}>
@@ -439,8 +505,73 @@ const styles = StyleSheet.create({
     fontFamily: 'Jost_400Regular',
     fontSize: 14,
   },
+  chatSection: {
+    marginTop: 8,
+  },
+  chatDivider: {
+    height: 1,
+    backgroundColor: '#222222',
+    marginBottom: 20,
+  },
+  aiMessageBubble: {
+    backgroundColor: '#111111',
+    borderRadius: 16,
+    borderTopLeftRadius: 4,
+    padding: 16,
+    marginBottom: 12,
+    marginRight: 40,
+  },
+  aiMessageText: {
+    color: '#DDDDDD',
+    fontSize: 15,
+    fontFamily: 'Jost_400Regular',
+    lineHeight: 22,
+  },
+  userMessageBubble: {
+    backgroundColor: '#2A2A2A',
+    borderRadius: 16,
+    borderTopRightRadius: 4,
+    padding: 16,
+    marginBottom: 12,
+    marginLeft: 40,
+  },
+  userMessageText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontFamily: 'Jost_400Regular',
+    lineHeight: 22,
+  },
+  chatInputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 10,
+    marginTop: 4,
+  },
+  chatInput: {
+    flex: 1,
+    backgroundColor: '#111111',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: '#FFFFFF',
+    fontFamily: 'Jost_400Regular',
+    fontSize: 14,
+    maxHeight: 100,
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendButtonText: {
+    color: '#000000',
+    fontSize: 18,
+    fontWeight: '700',
+  },
   completeSection: {
-    marginTop: 20,
+    marginTop: 24,
   },
   completeButton: {
     backgroundColor: '#FFFFFF',
