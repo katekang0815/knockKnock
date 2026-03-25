@@ -1,35 +1,30 @@
-import { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Svg, { Path } from 'react-native-svg';
+import EmotionShape from '@/components/EmotionShape';
 import { EMOTION_DATA, EmotionCategory } from '@/constants/emotions';
+
+const TAGS = ['Pets', 'Friends', 'Husband'];
 
 export default function EmotionLogScreen() {
   const insets = useSafeAreaInsets();
   const { emotion, category } = useLocalSearchParams<{ emotion: string; category: string }>();
-  const [text, setText] = useState('');
 
   const categoryKey = category as EmotionCategory;
-  const accentColor = EMOTION_DATA[categoryKey]?.accentColor ?? '#FFFFFF';
+  const data = EMOTION_DATA[categoryKey];
+  const accentColor = data?.accentColor ?? '#FFFFFF';
+  const gradientStart = data?.gradientStart ?? '#FFFFFF';
+  const gradientEnd = data?.gradientEnd ?? '#FFFFFF';
 
-  const handleSubmit = async () => {
+  const handleComplete = async () => {
     try {
       const existing = await AsyncStorage.getItem('emotion_logs');
       const logs = existing ? JSON.parse(existing) : [];
       logs.push({
         emotion,
         category,
-        text,
         timestamp: new Date().toISOString(),
       });
       await AsyncStorage.setItem('emotion_logs', JSON.stringify(logs));
@@ -40,44 +35,58 @@ export default function EmotionLogScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 },
-        ]}
-        keyboardShouldPersistTaps="handled"
+    <View style={styles.container}>
+      {/* Back arrow */}
+      <TouchableOpacity
+        style={[styles.backArrow, { top: insets.top + 16 }]}
+        onPress={() => router.back()}
+        activeOpacity={0.7}
       >
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
+        <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+          <Path
+            d="M19 12H5M12 19l-7-7 7-7"
+            stroke="#FFFFFF"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      </TouchableOpacity>
 
-        <Text style={[styles.emotionTitle, { color: accentColor }]}>
-          {emotion}
-        </Text>
-
-        <TextInput
-          style={styles.textInput}
-          placeholder="What's making you feel this way?"
-          placeholderTextColor="#666666"
-          multiline
-          value={text}
-          onChangeText={setText}
-          textAlignVertical="top"
+      {/* Shape + text centered */}
+      <View style={styles.content}>
+        <EmotionShape
+          emotion={emotion ?? ''}
+          gradientStart={gradientStart}
+          gradientEnd={gradientEnd}
+          size={180}
         />
 
+        <View style={styles.textContainer}>
+          <Text style={styles.feelingText}>I'm feeling</Text>
+          <Text style={[styles.emotionWord, { color: accentColor }]}>
+            {emotion}
+          </Text>
+        </View>
+      </View>
+
+      {/* Bottom section: tags + button */}
+      <View style={[styles.bottomSection, { paddingBottom: insets.bottom + 24 }]}>
+        <View style={styles.tagsRow}>
+          {TAGS.map((tag) => (
+            <Text key={tag} style={styles.tag}>{tag}</Text>
+          ))}
+        </View>
+
         <TouchableOpacity
-          style={[styles.submitButton, { backgroundColor: accentColor }]}
-          onPress={handleSubmit}
+          style={styles.completeButton}
+          onPress={handleComplete}
           activeOpacity={0.8}
         >
-          <Text style={styles.submitText}>Save</Text>
+          <Text style={styles.completeText}>Complete check-in</Text>
         </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </View>
+    </View>
   );
 }
 
@@ -86,48 +95,58 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  scrollContent: {
-    paddingHorizontal: 24,
-    flexGrow: 1,
+  backArrow: {
+    position: 'absolute',
+    left: 20,
+    zIndex: 10,
+    padding: 8,
   },
-  backButton: {
-    marginBottom: 32,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-    borderRadius: 8,
-    alignSelf: 'flex-start',
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -60,
   },
-  backText: {
+  textContainer: {
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  feelingText: {
     color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '300',
+    fontSize: 28,
+    fontFamily: Platform.select({ ios: 'Georgia', default: 'serif' }),
+    fontStyle: 'italic',
     letterSpacing: 1,
   },
-  emotionTitle: {
+  emotionWord: {
     fontSize: 28,
-    fontFamily: 'Jost_700Bold',
-    marginBottom: 32,
+    fontFamily: Platform.select({ ios: 'Georgia', default: 'serif' }),
+    fontStyle: 'italic',
+    letterSpacing: 1,
+    marginTop: 4,
   },
-  textInput: {
-    minHeight: 200,
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
-    padding: 16,
-    color: '#FFFFFF',
+  bottomSection: {
+    paddingHorizontal: 24,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 24,
+    marginBottom: 20,
+  },
+  tag: {
+    color: '#888888',
+    fontSize: 14,
     fontFamily: 'Jost_400Regular',
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 32,
+    letterSpacing: 1,
   },
-  submitButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 48,
-    borderRadius: 28,
-    alignSelf: 'center',
+  completeButton: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 18,
+    borderRadius: 32,
+    alignItems: 'center',
   },
-  submitText: {
+  completeText: {
     color: '#000000',
     fontSize: 16,
     fontFamily: 'Jost_700Bold',
