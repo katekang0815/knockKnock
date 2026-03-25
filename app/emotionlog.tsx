@@ -159,13 +159,17 @@ export default function EmotionLogScreen() {
   const [selectedWhere, setSelectedWhere] = useState<string[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([]);
+  const [editing, setEditing] = useState(false);
 
   const allAnswered = selectedDoing.length > 0 && selectedWith.length > 0 && selectedWhere.length > 0;
 
-  // Placeholder AI question based on selections
-  const aiQuestion = allAnswered
-    ? `You're feeling ${emotion?.toLowerCase()} while ${selectedDoing[0]?.toLowerCase()} ${selectedWith[0] === 'By Myself' ? 'by yourself' : `with ${selectedWith[0]?.toLowerCase()}`} at ${selectedWhere[0]?.toLowerCase()}. What do you think is driving that feeling today?`
+  // Summary sentence from selections
+  const summaryText = allAnswered
+    ? `I am ${selectedDoing[0]?.toLowerCase()} ${selectedWith[0] === 'By Myself' ? 'by myself' : `with ${selectedWith[0]?.toLowerCase()}`} at ${selectedWhere[0]?.toLowerCase()}.`
     : '';
+
+  // AI opening question for chat
+  const aiQuestion = `What do you think is driving your ${emotion?.toLowerCase()} today?`;
 
   const handleSendChat = () => {
     const trimmed = chatInput.trim();
@@ -275,86 +279,102 @@ export default function EmotionLogScreen() {
           </Text>
         </View>
 
-        {/* What are you doing? */}
-        <TagSection
-          title="What are you doing?"
-          options={doingOptions}
-          selected={selectedDoing}
-          onSelect={(item) => setSelectedDoing([item])}
-          onAdd={(item) => {
-            setDoingOptions((prev) => [...prev, item]);
-            setSelectedDoing([item]);
-          }}
-          accentColor={accentColor}
-        />
-
-        {/* Who are you with? */}
-        <TagSection
-          title="Who are you with?"
-          options={withOptions}
-          selected={selectedWith}
-          onSelect={(item) => setSelectedWith([item])}
-          onAdd={(item) => {
-            setWithOptions((prev) => [...prev, item]);
-            setSelectedWith([item]);
-          }}
-          accentColor={accentColor}
-        />
-
-        {/* Where are you? */}
-        <TagSection
-          title="Where are you?"
-          options={whereOptions}
-          selected={selectedWhere}
-          onSelect={(item) => setSelectedWhere([item])}
-          onAdd={(item) => {
-            setWhereOptions((prev) => [...prev, item]);
-            setSelectedWhere([item]);
-          }}
-          accentColor={accentColor}
-        />
-
-        {/* AI Reflection Chat — only visible when all 3 answered */}
-        {allAnswered && (
-          <View style={styles.chatSection}>
-            <View style={styles.chatDivider} />
-
-            {/* AI question */}
-            <View style={styles.aiMessageBubble}>
-              <Text style={styles.aiMessageText}>{aiQuestion}</Text>
-            </View>
-
-            {/* Chat history */}
-            {chatMessages.map((msg, i) => (
-              <View
-                key={i}
-                style={msg.role === 'ai' ? styles.aiMessageBubble : styles.userMessageBubble}
-              >
-                <Text style={msg.role === 'ai' ? styles.aiMessageText : styles.userMessageText}>
-                  {msg.text}
-                </Text>
-              </View>
-            ))}
-
-            {/* Chat input */}
-            <View style={styles.chatInputRow}>
-              <TextInput
-                style={styles.chatInput}
-                value={chatInput}
-                onChangeText={setChatInput}
-                placeholder="Share your thoughts..."
-                placeholderTextColor="#666"
-                multiline
-              />
+        {/* Questions OR Summary + Chat */}
+        {!allAnswered || editing ? (
+          <>
+            <TagSection
+              title="What are you doing?"
+              options={doingOptions}
+              selected={selectedDoing}
+              onSelect={(item) => setSelectedDoing([item])}
+              onAdd={(item) => {
+                setDoingOptions((prev) => [...prev, item]);
+                setSelectedDoing([item]);
+              }}
+              accentColor={accentColor}
+            />
+            <TagSection
+              title="Who are you with?"
+              options={withOptions}
+              selected={selectedWith}
+              onSelect={(item) => setSelectedWith([item])}
+              onAdd={(item) => {
+                setWithOptions((prev) => [...prev, item]);
+                setSelectedWith([item]);
+              }}
+              accentColor={accentColor}
+            />
+            <TagSection
+              title="Where are you?"
+              options={whereOptions}
+              selected={selectedWhere}
+              onSelect={(item) => setSelectedWhere([item])}
+              onAdd={(item) => {
+                setWhereOptions((prev) => [...prev, item]);
+                setSelectedWhere([item]);
+              }}
+              accentColor={accentColor}
+            />
+            {allAnswered && editing && (
               <TouchableOpacity
-                style={[styles.sendButton, { backgroundColor: accentColor }]}
-                onPress={handleSendChat}
+                style={styles.doneEditingButton}
+                onPress={() => setEditing(false)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.sendButtonText}>↑</Text>
+                <Text style={styles.doneEditingText}>Done</Text>
               </TouchableOpacity>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Summary text */}
+            <TouchableOpacity
+              onPress={() => setEditing(true)}
+              activeOpacity={0.7}
+              style={styles.summaryContainer}
+            >
+              <Text style={styles.summaryLine}>{summaryText}</Text>
+              <Text style={styles.editHint}>Tap to edit</Text>
+            </TouchableOpacity>
+
+            {/* AI Chat */}
+            <View style={styles.chatSection}>
+              <View style={styles.chatDivider} />
+
+              <View style={styles.aiMessageBubble}>
+                <Text style={styles.aiMessageText}>{aiQuestion}</Text>
+              </View>
+
+              {chatMessages.map((msg, i) => (
+                <View
+                  key={i}
+                  style={msg.role === 'ai' ? styles.aiMessageBubble : styles.userMessageBubble}
+                >
+                  <Text style={msg.role === 'ai' ? styles.aiMessageText : styles.userMessageText}>
+                    {msg.text}
+                  </Text>
+                </View>
+              ))}
+
+              <View style={styles.chatInputRow}>
+                <TextInput
+                  style={styles.chatInput}
+                  value={chatInput}
+                  onChangeText={setChatInput}
+                  placeholder="Share your thoughts..."
+                  placeholderTextColor="#666"
+                  multiline
+                />
+                <TouchableOpacity
+                  style={[styles.sendButton, { backgroundColor: accentColor }]}
+                  onPress={handleSendChat}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.sendButtonText}>↑</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          </>
         )}
 
         {/* Complete button */}
@@ -505,6 +525,36 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontFamily: 'Jost_400Regular',
     fontSize: 14,
+  },
+  summaryContainer: {
+    marginBottom: 8,
+  },
+  summaryLine: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontFamily: 'Jost_400Regular',
+    lineHeight: 32,
+  },
+  editHint: {
+    color: '#555555',
+    fontSize: 12,
+    fontFamily: 'Jost_400Regular',
+    marginTop: 6,
+  },
+  doneEditingButton: {
+    alignSelf: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#444',
+    marginBottom: 16,
+  },
+  doneEditingText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: 'Jost_400Regular',
+    letterSpacing: 1,
   },
   chatSection: {
     marginTop: 8,
