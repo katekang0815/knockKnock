@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet, Platform, Dimensions, KeyboardAvoidingView } from 'react-native';
+import { useState, useRef, useEffect } from 'react';
+import { View, Text, TouchableOpacity, TextInput, StyleSheet, Platform, Dimensions, KeyboardAvoidingView, Keyboard, ScrollView } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
@@ -149,7 +149,17 @@ export default function EmotionLogScreen() {
   const gradientStart = data?.gradientStart ?? '#FFFFFF';
   const gradientEnd = data?.gradientEnd ?? '#FFFFFF';
 
+  const scrollViewRef = useRef<Animated.ScrollView>(null);
   const scrollY = useSharedValue(0);
+
+  useEffect(() => {
+    const sub = Keyboard.addListener('keyboardDidShow', () => {
+      setTimeout(() => {
+        (scrollViewRef.current as unknown as ScrollView)?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+    return () => sub.remove();
+  }, []);
 
   const [doingOptions, setDoingOptions] = useState(DOING_OPTIONS);
   const [withOptions, setWithOptions] = useState(WITH_OPTIONS);
@@ -262,6 +272,7 @@ export default function EmotionLogScreen() {
 
       {/* Scrollable content */}
       <Animated.ScrollView
+        ref={scrollViewRef}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         contentContainerStyle={[
@@ -419,6 +430,11 @@ export default function EmotionLogScreen() {
                     placeholder="Write"
                     placeholderTextColor="#666"
                     multiline
+                    onFocus={() => {
+                      setTimeout(() => {
+                        (scrollViewRef.current as unknown as ScrollView)?.scrollToEnd({ animated: true });
+                      }, 300);
+                    }}
                   />
                   <TouchableOpacity
                     style={[
