@@ -398,10 +398,6 @@ export default function EmotionLogScreen() {
             <View style={styles.chatSection}>
               <View style={styles.chatDivider} />
 
-              <View style={styles.aiMessageBubble}>
-                <Text style={styles.aiMessageText}>{aiQuestion}</Text>
-              </View>
-
               {chatMessages.map((msg, i) => (
                 <View
                   key={i}
@@ -413,22 +409,32 @@ export default function EmotionLogScreen() {
                 </View>
               ))}
 
-              <View style={styles.chatInputRow}>
-                <TextInput
-                  style={styles.chatInput}
-                  value={chatInput}
-                  onChangeText={setChatInput}
-                  placeholder="Share your thoughts..."
-                  placeholderTextColor="#666"
-                  multiline
-                />
-                <TouchableOpacity
-                  style={[styles.sendButton, { backgroundColor: accentColor }]}
-                  onPress={handleSendChat}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.sendButtonText}>↑</Text>
-                </TouchableOpacity>
+              <View style={styles.chatInputBlock}>
+                <Text style={styles.chatInputLabel}>{aiQuestion}</Text>
+                <View style={styles.chatInputRow}>
+                  <TextInput
+                    style={styles.chatInput}
+                    value={chatInput}
+                    onChangeText={setChatInput}
+                    placeholder="Write"
+                    placeholderTextColor="#666"
+                    multiline
+                  />
+                  <TouchableOpacity
+                    style={[
+                      styles.sendButton,
+                      { backgroundColor: chatInput.trim() ? accentColor : '#444444' },
+                    ]}
+                    onPress={handleSendChat}
+                    activeOpacity={0.7}
+                    disabled={!chatInput.trim()}
+                  >
+                    <Text style={[
+                      styles.sendButtonText,
+                      { color: chatInput.trim() ? '#000000' : '#888888' },
+                    ]}>↑</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           </>
@@ -632,22 +638,31 @@ const styles = StyleSheet.create({
     fontFamily: 'Jost_400Regular',
     lineHeight: 22,
   },
+  chatInputBlock: {
+    backgroundColor: '#1A1200',
+    borderRadius: 16,
+    padding: 16,
+  },
+  chatInputLabel: {
+    color: '#CCCCCC',
+    fontSize: 15,
+    fontFamily: 'Jost_400Regular',
+    lineHeight: 22,
+    marginBottom: 16,
+  },
   chatInputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 10,
-    marginTop: 4,
   },
   chatInput: {
     flex: 1,
-    backgroundColor: '#111111',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: 'transparent',
     color: '#FFFFFF',
     fontFamily: 'Jost_400Regular',
-    fontSize: 14,
+    fontSize: 16,
     maxHeight: 100,
+    padding: 0,
   },
   sendButton: {
     width: 40,
