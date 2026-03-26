@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet, Platform, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, StyleSheet, Platform, Dimensions, KeyboardAvoidingView } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
@@ -231,7 +231,7 @@ export default function EmotionLogScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* Fixed header with shrinking shape */}
       <Animated.View style={[styles.header, headerStyle]}>
         <TouchableOpacity
@@ -273,7 +273,7 @@ export default function EmotionLogScreen() {
       >
         {/* I'm feeling text */}
         <View style={styles.textContainer}>
-          <Text style={styles.feelingText}>I'm feeling</Text>
+          <Text style={styles.feelingText}>I{`'`}m feeling</Text>
           <Text style={[styles.emotionWord, { color: accentColor }]}>
             {emotion}
           </Text>
@@ -451,7 +451,7 @@ export default function EmotionLogScreen() {
           </TouchableOpacity>
         </View>
       </Animated.ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
