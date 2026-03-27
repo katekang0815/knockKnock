@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path } from 'react-native-svg';
 import EmotionShape from '@/components/EmotionShape';
 import { EMOTION_DATA, EmotionCategory } from '@/constants/emotions';
+import { sendChatMessage } from '@/services/aiService';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -181,18 +182,23 @@ export default function EmotionLogScreen() {
   // AI opening question for chat
   const aiQuestion = `What do you think is driving your ${emotion?.toLowerCase()} today?`;
 
-  const handleSendChat = () => {
+  const handleSendChat = async () => {
     const trimmed = chatInput.trim();
     if (!trimmed) return;
-    setChatMessages((prev) => [...prev, { role: 'user', text: trimmed }]);
+
+    const updatedMessages = [...chatMessages, { role: 'user' as const, text: trimmed }];
+    setChatMessages(updatedMessages);
     setChatInput('');
-    // Placeholder AI response — will be replaced with real AI later
-    setTimeout(() => {
-      setChatMessages((prev) => [
-        ...prev,
-        { role: 'ai', text: 'Thank you for sharing. Take a moment to sit with that feeling — it tells you something important about what matters to you.' },
-      ]);
-    }, 1000);
+
+    const response = await sendChatMessage(trimmed, chatMessages, {
+      emotion: emotion ?? '',
+      category: category ?? '',
+      doing: selectedDoing[0],
+      withWhom: selectedWith[0],
+      where: selectedWhere[0],
+    });
+
+    setChatMessages((prev) => [...prev, { role: 'ai', text: response }]);
   };
 
   const scrollHandler = useAnimatedScrollHandler({
