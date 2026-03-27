@@ -171,16 +171,31 @@ export default function EmotionLogScreen() {
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([]);
   const [editingField, setEditingField] = useState<'doing' | 'with' | 'where' | null>(null);
+  const [aiOpenerSent, setAiOpenerSent] = useState(false);
 
   const allAnswered = selectedDoing.length > 0 && selectedWith.length > 0 && selectedWhere.length > 0;
 
-  // Summary sentence from selections
-  const summaryText = allAnswered
-    ? `I am ${selectedDoing[0]?.toLowerCase()} ${selectedWith[0] === 'By Myself' ? 'by myself' : `with ${selectedWith[0]?.toLowerCase()}`} at ${selectedWhere[0]?.toLowerCase()}.`
+  // Summary line for context display
+  const contextSummary = allAnswered
+    ? `${selectedDoing[0]}, ${selectedWith[0]}, ${selectedWhere[0]}`
     : '';
 
-  // AI opening question for chat
-  const aiQuestion = `What do you think is driving your ${emotion?.toLowerCase()} today?`;
+  // Auto-generate AI opening message when all tags are answered
+  useEffect(() => {
+    if (allAnswered && !aiOpenerSent) {
+      setAiOpenerSent(true);
+      const openingPrompt = `The user just checked in feeling ${emotion?.toLowerCase()} while ${selectedDoing[0]?.toLowerCase()} ${selectedWith[0] === 'By Myself' ? 'by themselves' : `with ${selectedWith[0]?.toLowerCase()}`} at ${selectedWhere[0]?.toLowerCase()}. Generate a warm, contextual opening message that acknowledges their specific situation and asks a gentle follow-up question. Keep it to 2-3 sentences.`;
+      sendChatMessage(openingPrompt, [], {
+        emotion: emotion ?? '',
+        category: category ?? '',
+        doing: selectedDoing[0],
+        withWhom: selectedWith[0],
+        where: selectedWhere[0],
+      }).then((response) => {
+        setChatMessages([{ role: 'ai', text: response }]);
+      });
+    }
+  }, [allAnswered]);
 
   const handleSendChat = async () => {
     const trimmed = chatInput.trim();
@@ -411,24 +426,21 @@ export default function EmotionLogScreen() {
               />
             )}
 
+            {/* Context summary */}
+            <Text style={styles.contextLine}>{contextSummary}</Text>
+
             {/* AI Chat */}
             <View style={styles.chatSection}>
-              <View style={styles.chatDivider} />
-
               {chatMessages.map((msg, i) => (
-                <View
+                <Text
                   key={i}
-                  style={msg.role === 'ai' ? styles.aiMessageBubble : styles.userMessageBubble}
+                  style={msg.role === 'ai' ? styles.aiMessageText : styles.userMessageText}
                 >
-                  <Text style={msg.role === 'ai' ? styles.aiMessageText : styles.userMessageText}>
-                    {msg.text}
-                  </Text>
-                </View>
+                  {msg.text}
+                </Text>
               ))}
 
-              <View style={styles.chatInputBlock}>
-                <Text style={styles.chatInputLabel}>{aiQuestion}</Text>
-                <View style={styles.chatInputRow}>
+              <View style={styles.chatInputRow}>
                   <TextInput
                     style={styles.chatInput}
                     value={chatInput}
@@ -457,7 +469,6 @@ export default function EmotionLogScreen() {
                     ]}>↑</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
             </View>
           </>
         )}
@@ -624,49 +635,25 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     fontFamily: 'Jost_700Bold',
   },
+  contextLine: {
+    color: '#888888',
+    fontSize: 14,
+    fontFamily: 'Jost_400Regular',
+    marginBottom: 16,
+  },
   chatSection: {
     marginTop: 8,
   },
-  chatDivider: {
-    height: 1,
-    backgroundColor: '#222222',
-    marginBottom: 20,
-  },
-  aiMessageBubble: {
-    backgroundColor: '#111111',
-    borderRadius: 16,
-    borderTopLeftRadius: 4,
-    padding: 16,
-    marginBottom: 12,
-    marginRight: 40,
-  },
   aiMessageText: {
-    color: '#DDDDDD',
+    color: '#CCCCCC',
     fontSize: 15,
     fontFamily: 'Jost_400Regular',
+    fontStyle: 'italic',
     lineHeight: 22,
-  },
-  userMessageBubble: {
-    backgroundColor: '#2A2A2A',
-    borderRadius: 16,
-    borderTopRightRadius: 4,
-    padding: 16,
-    marginBottom: 12,
-    marginLeft: 40,
+    marginBottom: 16,
   },
   userMessageText: {
     color: '#FFFFFF',
-    fontSize: 15,
-    fontFamily: 'Jost_400Regular',
-    lineHeight: 22,
-  },
-  chatInputBlock: {
-    backgroundColor: '#1A1200',
-    borderRadius: 16,
-    padding: 16,
-  },
-  chatInputLabel: {
-    color: '#CCCCCC',
     fontSize: 15,
     fontFamily: 'Jost_400Regular',
     lineHeight: 22,
