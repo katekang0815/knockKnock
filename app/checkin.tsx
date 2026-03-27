@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: 'Jost_400Regular',
     lineHeight: 34,
-    marginTop: '22%',
+    marginTop: '50%',
     marginBottom: 32,
     textAlign: 'center',
   },
