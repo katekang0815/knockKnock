@@ -2,20 +2,27 @@ import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-nati
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import SunnyIcon from '@/components/SunnyIcon';
-import StormyIcon from '@/components/StormyIcon';
-import RainIcon from '@/components/RainIcon';
-import BreezeIcon from '@/components/BreezeIcon';
+import LottieView from 'lottie-react-native';
 
 const { width } = Dimensions.get('window');
-const CARD_GAP = 8;
-const CARD_SIZE = (width - 48 - CARD_GAP) / 2;
 
-const CATEGORIES = [
-  { label: 'Sunny', color: '#F5C842' },
-  { label: 'Stormy', color: '#E8614D' },
-  { label: 'Calm', color: '#8B7BE8' },
-  { label: 'Breezy', color: '#7BC88E' },
+// Lottie canvas dimensions
+const LOTTIE_W = 440;
+const LOTTIE_H = 956;
+
+// Available width for the Lottie (with padding)
+const CONTAINER_PADDING = 24;
+const CONTAINER_W = width - CONTAINER_PADDING * 2;
+const SCALE = CONTAINER_W / LOTTIE_W;
+const CONTAINER_H = LOTTIE_H * SCALE;
+
+// Icon positions in Lottie coordinates (center x, center y, width, height)
+// Mapped from the JSON analysis
+const ICON_BOUNDS = [
+  { label: 'Sunny',  x: 43 - 85,  y: 357 - 87,  w: 170, h: 174 },
+  { label: 'Stormy', x: 225 - 85, y: 357 - 87,  w: 170, h: 174 },
+  { label: 'Calm',   x: 43 - 86,  y: 541 - 86,  w: 173, h: 172 },
+  { label: 'Breezy', x: 225 - 85, y: 541 - 86,  w: 170, h: 172 },
 ];
 
 export default function CheckInScreen() {
@@ -23,6 +30,7 @@ export default function CheckInScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Back arrow */}
       <TouchableOpacity
         style={[styles.backArrow, { top: insets.top + 16 }]}
         onPress={() => router.back()}
@@ -44,24 +52,29 @@ export default function CheckInScreen() {
           How are you feeling today?
         </Text>
 
-        <View style={styles.grid}>
-          {CATEGORIES.map((cat) => (
+        {/* Single Lottie with touch overlays */}
+        <View style={{ width: CONTAINER_W, height: CONTAINER_H, alignSelf: 'center' }}>
+          <LottieView
+            source={require('../assets/MajorEmotions.json')}
+            autoPlay
+            loop
+            style={{ width: CONTAINER_W, height: CONTAINER_H }}
+          />
+
+          {/* Invisible tap targets over each icon */}
+          {ICON_BOUNDS.map((icon) => (
             <TouchableOpacity
-              key={cat.label}
-              style={styles.card}
-              activeOpacity={0.7}
-              onPress={() => router.push({ pathname: '/subemotions', params: { category: cat.label } })}
-            >
-              {cat.label === 'Sunny' ? (
-                <SunnyIcon size={CARD_SIZE * 0.7} />
-              ) : cat.label === 'Stormy' ? (
-                <StormyIcon size={CARD_SIZE * 0.7} />
-              ) : cat.label === 'Calm' ? (
-                <RainIcon size={CARD_SIZE * 0.7} />
-              ) : (
-                <BreezeIcon size={CARD_SIZE * 0.7} />
-              )}
-            </TouchableOpacity>
+              key={icon.label}
+              activeOpacity={0.6}
+              onPress={() => router.push({ pathname: '/subemotions', params: { category: icon.label } })}
+              style={{
+                position: 'absolute',
+                left: icon.x * SCALE,
+                top: icon.y * SCALE,
+                width: icon.w * SCALE,
+                height: icon.h * SCALE,
+              }}
+            />
           ))}
         </View>
       </View>
@@ -76,34 +89,16 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
-    justifyContent: 'center',
+    paddingHorizontal: CONTAINER_PADDING,
   },
   title: {
     color: '#FFFFFF',
     fontSize: 24,
     fontFamily: 'Jost_400Regular',
     lineHeight: 34,
-    marginBottom: 42,
+    marginTop: '22%',
+    marginBottom: 32,
     textAlign: 'center',
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: CARD_GAP,
-  },
-  card: {
-    width: CARD_SIZE,
-    height: CARD_SIZE,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    opacity: 0.85,
   },
   backArrow: {
     position: 'absolute',
