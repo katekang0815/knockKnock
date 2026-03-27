@@ -52,13 +52,13 @@ export default function CheckInScreen() {
           How are you feeling today?
         </Text>
 
-        {/* Single Lottie with touch overlays */}
-        <View style={{ width: CONTAINER_W, height: CONTAINER_H, alignSelf: 'center' }}>
+        {/* Single Lottie with touch overlays — clip to icon region */}
+        <View style={{ width: CONTAINER_W, height: 460 * SCALE, alignSelf: 'center', overflow: 'hidden' }}>
           <LottieView
             source={require('../assets/MajorEmotions.json')}
             autoPlay
             loop
-            style={{ width: CONTAINER_W, height: CONTAINER_H }}
+            style={{ width: CONTAINER_W, height: CONTAINER_H, marginTop: -270 * SCALE }}
           />
 
           {/* Invisible tap targets over each icon */}
@@ -70,7 +70,7 @@ export default function CheckInScreen() {
               style={{
                 position: 'absolute',
                 left: icon.x * SCALE,
-                top: icon.y * SCALE,
+                top: (icon.y - 270) * SCALE,
                 width: icon.w * SCALE,
                 height: icon.h * SCALE,
               }}
