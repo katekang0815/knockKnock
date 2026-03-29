@@ -10,12 +10,23 @@ const GAP = 6;
 const HORIZONTAL_PADDING = 24;
 const CIRCLE_SIZE = (width - HORIZONTAL_PADDING * 2 - GAP * (4 - 1)) / 4 + 4;
 
-// Adjacent category pairs — left grid is the neighbor
+// Grid layout: Stormy (top-left) | Sunny (top-right)
+//              Calm (bottom-left) | Breezy (bottom-right)
+
+// Adjacent category (left extension)
 const ADJACENT_CATEGORY: Record<EmotionCategory, EmotionCategory> = {
   Sunny: 'Stormy',
   Stormy: 'Sunny',
   Calm: 'Breezy',
   Breezy: 'Calm',
+};
+
+// Below category (vertical extension)
+const BELOW_CATEGORY: Record<EmotionCategory, EmotionCategory> = {
+  Sunny: 'Breezy',
+  Stormy: 'Calm',
+  Calm: 'Stormy',
+  Breezy: 'Sunny',
 };
 
 function buildRows(emotions: string[]): string[][] {
@@ -24,6 +35,22 @@ function buildRows(emotions: string[]): string[][] {
     rows.push(emotions.slice(i, i + COLUMNS));
   }
   return rows;
+}
+
+function equalizeRows(a: string[][], b: string[][], columns: number) {
+  const max = Math.max(a.length, b.length);
+  while (a.length < max) a.push([]);
+  while (b.length < max) b.push([]);
+}
+
+interface GridSection {
+  leftKey: EmotionCategory;
+  leftData: typeof EMOTION_DATA[EmotionCategory];
+  leftRows: string[][];
+  rightKey: EmotionCategory;
+  rightData: typeof EMOTION_DATA[EmotionCategory];
+  rightRows: string[][];
+  rowCount: number;
 }
 
 export default function SubEmotionsScreen() {
@@ -41,16 +68,48 @@ export default function SubEmotionsScreen() {
     );
   }
 
+  // Build the grid sections: top (main + adjacent) and bottom (below + below-adjacent)
   const adjacentKey = ADJACENT_CATEGORY[categoryKey];
   const adjacentData = EMOTION_DATA[adjacentKey];
+  const belowKey = BELOW_CATEGORY[categoryKey];
+  const belowData = EMOTION_DATA[belowKey];
+  const belowAdjacentKey = BELOW_CATEGORY[adjacentKey];
+  const belowAdjacentData = EMOTION_DATA[belowAdjacentKey];
 
-  const mainRows = buildRows(data.subEmotions);
-  const adjacentRows = buildRows(adjacentData.subEmotions);
+  // Top section: adjacent (left) | main (right)
+  const topLeftRows = buildRows(adjacentData.subEmotions);
+  const topRightRows = buildRows(data.subEmotions);
+  equalizeRows(topLeftRows, topRightRows, COLUMNS);
 
-  // Ensure both grids have same number of rows
-  const maxRows = Math.max(mainRows.length, adjacentRows.length);
-  while (mainRows.length < maxRows) mainRows.push([]);
-  while (adjacentRows.length < maxRows) adjacentRows.push([]);
+  // Bottom section: below-adjacent (left) | below (right)
+  const bottomLeftRows = buildRows(belowAdjacentData.subEmotions);
+  const bottomRightRows = buildRows(belowData.subEmotions);
+  equalizeRows(bottomLeftRows, bottomRightRows, COLUMNS);
+
+  const sections: GridSection[] = [
+    {
+      leftKey: adjacentKey,
+      leftData: adjacentData,
+      leftRows: topLeftRows,
+      rightKey: categoryKey,
+      rightData: data,
+      rightRows: topRightRows,
+      rowCount: topLeftRows.length,
+    },
+  ];
+
+  // Only add bottom section if it has emotions
+  if (belowData.subEmotions.length > 0 || belowAdjacentData.subEmotions.length > 0) {
+    sections.push({
+      leftKey: belowAdjacentKey,
+      leftData: belowAdjacentData,
+      leftRows: bottomLeftRows,
+      rightKey: belowKey,
+      rightData: belowData,
+      rightRows: bottomRightRows,
+      rowCount: bottomLeftRows.length,
+    });
+  }
 
   const singleGridWidth = COLUMNS * CIRCLE_SIZE + (COLUMNS - 1) * GAP;
   const totalGridWidth = singleGridWidth * 2 + GAP;
@@ -78,45 +137,48 @@ export default function SubEmotionsScreen() {
             contentOffset={{ x: singleGridWidth + GAP - HORIZONTAL_PADDING, y: 0 }}
           >
             <View style={{ width: totalGridWidth }}>
-              {Array.from({ length: maxRows }).map((_, rowIndex) => (
-                <View key={rowIndex} style={styles.row}>
-                  {/* Adjacent (left) grid row */}
-                  {adjacentRows[rowIndex].map((emotion) => (
-                    <EmotionCircle
-                      key={emotion}
-                      label={emotion}
-                      gradientStart={adjacentData.gradientStart}
-                      gradientEnd={adjacentData.gradientEnd}
-                      size={CIRCLE_SIZE}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/emotionlog',
-                          params: { emotion, category: adjacentKey },
-                        })
-                      }
-                    />
-                  ))}
-                  {/* Fill empty slots in adjacent row */}
-                  {adjacentRows[rowIndex].length < COLUMNS &&
-                    Array.from({ length: COLUMNS - adjacentRows[rowIndex].length }).map((_, i) => (
-                      <View key={`empty-adj-${i}`} style={{ width: CIRCLE_SIZE, height: CIRCLE_SIZE }} />
-                    ))}
+              {sections.map((section, sectionIndex) => (
+                <View key={sectionIndex}>
+                  {Array.from({ length: section.rowCount }).map((_, rowIndex) => (
+                    <View key={`${sectionIndex}-${rowIndex}`} style={styles.row}>
+                      {/* Left grid row */}
+                      {section.leftRows[rowIndex].map((emotion) => (
+                        <EmotionCircle
+                          key={emotion}
+                          label={emotion}
+                          gradientStart={section.leftData.gradientStart}
+                          gradientEnd={section.leftData.gradientEnd}
+                          size={CIRCLE_SIZE}
+                          onPress={() =>
+                            router.push({
+                              pathname: '/emotionlog',
+                              params: { emotion, category: section.leftKey },
+                            })
+                          }
+                        />
+                      ))}
+                      {section.leftRows[rowIndex].length < COLUMNS &&
+                        Array.from({ length: COLUMNS - section.leftRows[rowIndex].length }).map((_, i) => (
+                          <View key={`empty-l-${i}`} style={{ width: CIRCLE_SIZE, height: CIRCLE_SIZE }} />
+                        ))}
 
-                  {/* Main (right) grid row */}
-                  {mainRows[rowIndex].map((emotion) => (
-                    <EmotionCircle
-                      key={emotion}
-                      label={emotion}
-                      gradientStart={data.gradientStart}
-                      gradientEnd={data.gradientEnd}
-                      size={CIRCLE_SIZE}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/emotionlog',
-                          params: { emotion, category: categoryKey },
-                        })
-                      }
-                    />
+                      {/* Right grid row */}
+                      {section.rightRows[rowIndex].map((emotion) => (
+                        <EmotionCircle
+                          key={emotion}
+                          label={emotion}
+                          gradientStart={section.rightData.gradientStart}
+                          gradientEnd={section.rightData.gradientEnd}
+                          size={CIRCLE_SIZE}
+                          onPress={() =>
+                            router.push({
+                              pathname: '/emotionlog',
+                              params: { emotion, category: section.rightKey },
+                            })
+                          }
+                        />
+                      ))}
+                    </View>
                   ))}
                 </View>
               ))}
