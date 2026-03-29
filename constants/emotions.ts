@@ -25,7 +25,14 @@ export const EMOTION_DATA: Record<EmotionCategory, CategoryConfig> = {
     gradientStart: '#E8614D',
     gradientEnd: '#FF8A75',
     accentColor: '#E8614D',
-    subEmotions: [],
+    subEmotions: [
+      'Terrified', 'Enraged', 'Irate', 'Livid', 'Frightened', 'Furious',
+      'Jealous', 'Scared', 'Envious', 'Repulsed', 'Contempt', 'Troubled',
+      'Panicked', 'Shocked', 'Annoyed', 'Stressed', 'Pressured', 'Overwhelmed',
+      'Apprehensive', 'Irritated', 'Restless', 'Jittery', 'Fomo', 'Confused',
+      'Embarrassed', 'Concerned', 'Tense', 'Peeved', 'Nervous', 'Uneasy',
+      'Worried', 'Frustrated', 'Impassioned', 'Hyper', 'Excited', 'Anxious',
+    ],
   },
   Calm: {
     gradientStart: '#8B7BE8',

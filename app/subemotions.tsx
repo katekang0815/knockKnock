@@ -8,7 +8,23 @@ const { width } = Dimensions.get('window');
 const COLUMNS = 6;
 const GAP = 6;
 const HORIZONTAL_PADDING = 24;
-const CIRCLE_SIZE = (width - HORIZONTAL_PADDING * 2 - GAP * (4 - 1)) / 4 + 4; // 4px larger than old 4-col size
+const CIRCLE_SIZE = (width - HORIZONTAL_PADDING * 2 - GAP * (4 - 1)) / 4 + 4;
+
+// Adjacent category pairs — left grid is the neighbor
+const ADJACENT_CATEGORY: Record<EmotionCategory, EmotionCategory> = {
+  Sunny: 'Stormy',
+  Stormy: 'Sunny',
+  Calm: 'Breezy',
+  Breezy: 'Calm',
+};
+
+function buildRows(emotions: string[]): string[][] {
+  const rows: string[][] = [];
+  for (let i = 0; i < emotions.length; i += COLUMNS) {
+    rows.push(emotions.slice(i, i + COLUMNS));
+  }
+  return rows;
+}
 
 export default function SubEmotionsScreen() {
   const insets = useSafeAreaInsets();
@@ -25,13 +41,19 @@ export default function SubEmotionsScreen() {
     );
   }
 
-  // Build rows of COLUMNS items each
-  const rows: string[][] = [];
-  for (let i = 0; i < data.subEmotions.length; i += COLUMNS) {
-    rows.push(data.subEmotions.slice(i, i + COLUMNS));
-  }
+  const adjacentKey = ADJACENT_CATEGORY[categoryKey];
+  const adjacentData = EMOTION_DATA[adjacentKey];
 
-  const gridWidth = COLUMNS * CIRCLE_SIZE + (COLUMNS - 1) * GAP;
+  const mainRows = buildRows(data.subEmotions);
+  const adjacentRows = buildRows(adjacentData.subEmotions);
+
+  // Ensure both grids have same number of rows
+  const maxRows = Math.max(mainRows.length, adjacentRows.length);
+  while (mainRows.length < maxRows) mainRows.push([]);
+  while (adjacentRows.length < maxRows) adjacentRows.push([]);
+
+  const singleGridWidth = COLUMNS * CIRCLE_SIZE + (COLUMNS - 1) * GAP;
+  const totalGridWidth = singleGridWidth * 2 + GAP;
 
   return (
     <View style={styles.container}>
@@ -53,11 +75,35 @@ export default function SubEmotionsScreen() {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: HORIZONTAL_PADDING }}
+            contentOffset={{ x: singleGridWidth + GAP - HORIZONTAL_PADDING, y: 0 }}
           >
-            <View style={{ width: gridWidth }}>
-              {rows.map((row, rowIndex) => (
+            <View style={{ width: totalGridWidth }}>
+              {Array.from({ length: maxRows }).map((_, rowIndex) => (
                 <View key={rowIndex} style={styles.row}>
-                  {row.map((emotion) => (
+                  {/* Adjacent (left) grid row */}
+                  {adjacentRows[rowIndex].map((emotion) => (
+                    <EmotionCircle
+                      key={emotion}
+                      label={emotion}
+                      gradientStart={adjacentData.gradientStart}
+                      gradientEnd={adjacentData.gradientEnd}
+                      size={CIRCLE_SIZE}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/emotionlog',
+                          params: { emotion, category: adjacentKey },
+                        })
+                      }
+                    />
+                  ))}
+                  {/* Fill empty slots in adjacent row */}
+                  {adjacentRows[rowIndex].length < COLUMNS &&
+                    Array.from({ length: COLUMNS - adjacentRows[rowIndex].length }).map((_, i) => (
+                      <View key={`empty-adj-${i}`} style={{ width: CIRCLE_SIZE, height: CIRCLE_SIZE }} />
+                    ))}
+
+                  {/* Main (right) grid row */}
+                  {mainRows[rowIndex].map((emotion) => (
                     <EmotionCircle
                       key={emotion}
                       label={emotion}
