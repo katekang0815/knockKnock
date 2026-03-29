@@ -1,4 +1,5 @@
-import { View, Text, Dimensions, StyleSheet, TouchableOpacity } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, Dimensions, StyleSheet, TouchableOpacity, InteractionManager, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -44,6 +45,15 @@ export default function SubEmotionsScreen() {
   const translateY = useSharedValue(0);
   const contextX = useSharedValue(0);
   const contextY = useSharedValue(0);
+
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      setReady(true);
+    });
+    return () => task.cancel();
+  }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -138,6 +148,11 @@ export default function SubEmotionsScreen() {
       </View>
 
       <View style={{ flex: 1, overflow: 'hidden' }}>
+        {!ready ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color="#666666" />
+          </View>
+        ) : (
         <GestureDetector gesture={panGesture}>
           <Animated.View style={[{ width: totalGridWidth }, animatedStyle]}>
             {sections.map((section, sectionIndex) => (
@@ -177,6 +192,7 @@ export default function SubEmotionsScreen() {
             ))}
           </Animated.View>
         </GestureDetector>
+        )}
       </View>
     </GestureHandlerRootView>
   );
@@ -201,6 +217,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '300',
     letterSpacing: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   row: {
     flexDirection: 'row',
