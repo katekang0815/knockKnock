@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   title: {
     color: '#FFFFFF',
     fontSize: 24,
-    fontFamily: 'Jost_400Regular',
+    fontFamily: 'Jost_700Bold',
     lineHeight: 34,
     marginTop: '50%',
     marginBottom: 32,
