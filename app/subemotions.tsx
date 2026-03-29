@@ -16,8 +16,8 @@ const CIRCLE_SIZE = (SCREEN_W - HORIZONTAL_PADDING * 2 - GAP * (4 - 1)) / 4 + 4;
 // Stormy (top-left)    | Sunny (top-right)
 // Breezy (bottom-left) | Calm (bottom-right)
 const FIXED_GRID: { left: EmotionCategory; right: EmotionCategory }[] = [
-  { left: 'Stormy', right: 'Sunny' },
-  { left: 'Breezy', right: 'Calm' },
+  { left: 'Sunny', right: 'Stormy' },
+  { left: 'Calm',  right: 'Breezy' },
 ];
 
 function buildRows(emotions: string[]): string[][] {
@@ -95,10 +95,10 @@ export default function SubEmotionsScreen() {
 
   // Initial offset to show the selected category's quadrant
   const startOffsets: Record<EmotionCategory, { x: number; y: number }> = {
-    Stormy: { x: maxX, y: maxY },
-    Sunny:  { x: -(singleGridWidth + GAP - HORIZONTAL_PADDING), y: maxY },
-    Breezy: { x: maxX, y: -topSectionHeight },
-    Calm:   { x: -(singleGridWidth + GAP - HORIZONTAL_PADDING), y: -topSectionHeight },
+    Sunny:  { x: maxX, y: maxY },
+    Stormy: { x: -(singleGridWidth + GAP - HORIZONTAL_PADDING), y: maxY },
+    Calm:   { x: maxX, y: -topSectionHeight },
+    Breezy: { x: -(singleGridWidth + GAP - HORIZONTAL_PADDING), y: -topSectionHeight },
   };
 
   translateX.value = startOffsets[categoryKey].x;
@@ -149,15 +149,10 @@ export default function SubEmotionsScreen() {
                       <EmotionCircle
                         key={emotion}
                         label={emotion}
+                        category={section.leftKey}
                         gradientStart={section.leftData.gradientStart}
                         gradientEnd={section.leftData.gradientEnd}
                         size={CIRCLE_SIZE}
-                        onPress={() =>
-                          router.push({
-                            pathname: '/emotionlog',
-                            params: { emotion, category: section.leftKey },
-                          })
-                        }
                       />
                     ))}
                     {section.leftRows[rowIndex].length < COLUMNS &&
@@ -170,15 +165,10 @@ export default function SubEmotionsScreen() {
                       <EmotionCircle
                         key={emotion}
                         label={emotion}
+                        category={section.rightKey}
                         gradientStart={section.rightData.gradientStart}
                         gradientEnd={section.rightData.gradientEnd}
                         size={CIRCLE_SIZE}
-                        onPress={() =>
-                          router.push({
-                            pathname: '/emotionlog',
-                            params: { emotion, category: section.rightKey },
-                          })
-                        }
                       />
                     ))}
                   </View>
