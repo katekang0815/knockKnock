@@ -141,17 +141,16 @@ export default function OrbitingShapes({ size, orbitRadius, shapeSize }: Props) 
 
   return (
     <Animated.View style={[{ width: size, height: size, position: 'absolute' }, rotateStyle]}>
-      {/* Trailing arc */}
+      {/* Trailing dots */}
       <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-        {arcSegments.map((seg, i) => (
-          <SvgPath
+        {dots.map((dot, i) => (
+          <SvgCircle
             key={i}
-            d={seg.d}
-            stroke={COLOR}
-            strokeWidth={shapeSize}
-            strokeLinecap={i === SEGMENT_COUNT - 1 ? 'round' : 'butt'}
-            strokeOpacity={seg.opacity * 0.4}
-            fill="none"
+            cx={dot.cx}
+            cy={dot.cy}
+            r={dot.r}
+            fill="#FFFFFF"
+            opacity={dot.opacity}
           />
         ))}
       </Svg>
