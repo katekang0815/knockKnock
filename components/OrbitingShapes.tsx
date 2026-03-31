@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { StyleSheet } from 'react-native';
-import Svg, { Circle as SvgCircle, Path as SvgPath } from 'react-native-svg';
+import { View } from 'react-native';
+import Svg, { Path as SvgPath, Defs, LinearGradient, Stop } from 'react-native-svg';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -10,44 +10,40 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 
-const COLOR = '#ECDA96';
-const ARC_DEGREES = 360;
-const SEGMENT_COUNT = 120;
+// Gradient colors — soft pink/peach to gold
+const GRAD_START = '#E8B4C8';
+const GRAD_END = '#F0D090';
 
-// --- 4 Shape renderers ---
-
-function ShapeCircle({ size }: { size: number }) {
-  const r = size * 0.35;
+// Shape 1: Rounded square with concave sides (screenshot 1)
+function ShapeSquish({ size }: { size: number }) {
+  const s = size;
+  const m = s * 0.12; // concave inset
   return (
-    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <SvgCircle cx={size / 2} cy={size / 2} r={r} fill={COLOR} />
+    <Svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
+      <Defs>
+        <LinearGradient id="grad1" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor={GRAD_START} />
+          <Stop offset="1" stopColor={GRAD_END} />
+        </LinearGradient>
+      </Defs>
+      <SvgPath
+        d={`M ${s * 0.2},${s * 0.05}
+            Q ${s * 0.5},${m} ${s * 0.8},${s * 0.05}
+            Q ${s - m},${s * 0.5} ${s * 0.8},${s * 0.95}
+            Q ${s * 0.5},${s - m} ${s * 0.2},${s * 0.95}
+            Q ${m},${s * 0.5} ${s * 0.2},${s * 0.05} Z`}
+        fill="url(#grad1)"
+      />
     </Svg>
   );
 }
 
-function ShapeSun({ size }: { size: number }) {
+// Shape 2: 4-pointed star (screenshot 2)
+function ShapeStar({ size }: { size: number }) {
   const cx = size / 2;
   const cy = size / 2;
-  const r = size * 0.35;
-  const points = 8;
-  let d = '';
-  for (let i = 0; i < points * 2; i++) {
-    const angle = (Math.PI * i) / points - Math.PI / 2;
-    const rad = i % 2 === 0 ? r : r * 0.7;
-    d += `${i === 0 ? 'M' : 'L'}${(cx + rad * Math.cos(angle)).toFixed(1)},${(cy + rad * Math.sin(angle)).toFixed(1)} `;
-  }
-  return (
-    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <SvgPath d={d + 'Z'} fill={COLOR} />
-    </Svg>
-  );
-}
-
-function ShapeStarLarge({ size }: { size: number }) {
-  const cx = size / 2;
-  const cy = size / 2;
-  const outer = size * 0.45;
-  const inner = size * 0.15;
+  const outer = size * 0.48;
+  const inner = size * 0.12;
   let d = '';
   for (let i = 0; i < 8; i++) {
     const angle = (Math.PI * i) / 4 - Math.PI / 2;
@@ -56,138 +52,79 @@ function ShapeStarLarge({ size }: { size: number }) {
   }
   return (
     <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <SvgPath d={d + 'Z'} fill={COLOR} />
+      <Defs>
+        <LinearGradient id="grad2" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor={GRAD_START} />
+          <Stop offset="1" stopColor={GRAD_END} />
+        </LinearGradient>
+      </Defs>
+      <SvgPath d={d + 'Z'} fill="url(#grad2)" />
     </Svg>
   );
 }
 
-function ShapeStarSmall({ size }: { size: number }) {
-  const cx = size / 2;
-  const cy = size / 2;
-  const outer = size * 0.38;
-  const inner = size * 0.12;
-  let d = '';
-  for (let i = 0; i < 8; i++) {
-    const angle = (Math.PI * i) / 4 - Math.PI / 4;
-    const r = i % 2 === 0 ? outer : inner;
-    d += `${i === 0 ? 'M' : 'L'}${(cx + r * Math.cos(angle)).toFixed(1)},${(cy + r * Math.sin(angle)).toFixed(1)} `;
-  }
+// Shape 3: Cross / plus shape (screenshot 3)
+function ShapeCross({ size }: { size: number }) {
+  const s = size;
+  const t = s * 0.22; // arm thickness half
+  const cx = s / 2;
+  const cy = s / 2;
   return (
-    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <SvgPath d={d + 'Z'} fill={COLOR} />
+    <Svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
+      <Defs>
+        <LinearGradient id="grad3" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor={GRAD_START} />
+          <Stop offset="1" stopColor={GRAD_END} />
+        </LinearGradient>
+      </Defs>
+      <SvgPath
+        d={`M ${cx - t},${s * 0.05}
+            L ${cx + t},${s * 0.05}
+            L ${cx + t},${cy - t}
+            L ${s * 0.95},${cy - t}
+            L ${s * 0.95},${cy + t}
+            L ${cx + t},${cy + t}
+            L ${cx + t},${s * 0.95}
+            L ${cx - t},${s * 0.95}
+            L ${cx - t},${cy + t}
+            L ${s * 0.05},${cy + t}
+            L ${s * 0.05},${cy - t}
+            L ${cx - t},${cy - t} Z`}
+        fill="url(#grad3)"
+      />
     </Svg>
   );
 }
 
-const SHAPES = [ShapeCircle, ShapeSun, ShapeStarLarge, ShapeStarSmall];
-
-// --- Arc segments (trailing behind the shape) ---
-
-function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
-  const rad = ((angleDeg - 90) * Math.PI) / 180;
-  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-}
-
-const PARTICLE_COUNT = 150;
-
-// Seeded pseudo-random for consistent render
-function seededRandom(seed: number) {
-  const x = Math.sin(seed * 9301 + 49297) * 49297;
-  return x - Math.floor(x);
-}
-
-function buildParticles(center: number, radius: number) {
-  return Array.from({ length: PARTICLE_COUNT }, (_, i) => {
-    const progress = i / (PARTICLE_COUNT - 1); // 0 = tail, 1 = head
-    const angle = ARC_DEGREES * progress;
-
-    // Scatter: more spread at the tail, tight at the head
-    const scatter = (1 - progress) * 18;
-    const offsetR = (seededRandom(i * 3) - 0.5) * scatter;
-    const offsetAngle = (seededRandom(i * 7) - 0.5) * scatter * 0.4;
-
-    const pos = polarToCartesian(center, center, radius + offsetR, angle + offsetAngle);
-
-    // Size: head particles are larger
-    const baseSize = 0.4 + progress * 2.2;
-    const sizeVariation = seededRandom(i * 13) * 0.8;
-    const dotRadius = Math.max(0.3, baseSize + sizeVariation * (1 - progress));
-
-    // Opacity: dense and bright at head, sparse and dim at tail
-    const baseOpacity = progress * progress * progress;
-    const opacityVariation = seededRandom(i * 17) * 0.3;
-    const opacity = Math.min(1, baseOpacity + opacityVariation * progress);
-
-    return { cx: pos.x, cy: pos.y, r: dotRadius, opacity };
-  });
-}
-
-// --- Main component ---
+const SHAPES = [ShapeSquish, ShapeStar, ShapeCross];
 
 interface Props {
   size: number;
-  orbitRadius: number;
-  shapeSize: number;
 }
 
-export default function OrbitingShapes({ size, orbitRadius, shapeSize }: Props) {
-  const rotation = useSharedValue(0);
+export default function OrbitingShapes({ size }: Props) {
   const shapePhase = useSharedValue(0);
 
   useEffect(() => {
-    // Full orbit rotation — continuous
-    rotation.value = withRepeat(
-      withTiming(360, { duration: 12000, easing: Easing.linear }),
-      -1,
-      false,
-    );
-    // Cycle through 4 shapes, one every 8s = 32s total cycle
     shapePhase.value = withRepeat(
-      withTiming(4, { duration: 16000, easing: Easing.linear }),
+      withTiming(3, { duration: 6000, easing: Easing.linear }),
       -1,
       false,
     );
   }, []);
 
-  const rotateStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation.value}deg` }],
-  }));
-
-  // Particle trail along the orbit path
-  const particles = buildParticles(size / 2, orbitRadius);
-
-  // Shape position at the head of the arc (270° = end of arc)
-  const headPos = polarToCartesian(size / 2, size / 2, orbitRadius, 0);
-
   return (
-    <Animated.View style={[{ width: size, height: size, position: 'absolute' }, rotateStyle]}>
-      {/* Particle trail */}
-      <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-        {particles.map((p, i) => (
-          <SvgCircle
-            key={i}
-            cx={p.cx}
-            cy={p.cy}
-            r={p.r}
-            fill="#FFFFFF"
-            opacity={p.opacity}
-          />
-        ))}
-      </Svg>
-
-      {/* Shape at the head of the arc — one at a time, cycling */}
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       {SHAPES.map((Shape, shapeIndex) => (
         <ShapeLayer
           key={shapeIndex}
           shapeIndex={shapeIndex}
           shapePhase={shapePhase}
-          shapeSize={shapeSize}
-          left={headPos.x - shapeSize / 2}
-          top={headPos.y - shapeSize / 2}
+          shapeSize={size}
           Shape={Shape}
         />
       ))}
-    </Animated.View>
+    </View>
   );
 }
 
@@ -195,21 +132,16 @@ function ShapeLayer({
   shapeIndex,
   shapePhase,
   shapeSize,
-  left,
-  top,
   Shape,
 }: {
   shapeIndex: number;
   shapePhase: Animated.SharedValue<number>;
   shapeSize: number;
-  left: number;
-  top: number;
   Shape: (props: { size: number }) => React.JSX.Element;
 }) {
   const opacity = useDerivedValue(() => {
-    const phase = shapePhase.value % 4;
-    const dist = Math.min(Math.abs(phase - shapeIndex), 4 - Math.abs(phase - shapeIndex));
-    // Sharp transition: fully visible when active, invisible otherwise
+    const phase = shapePhase.value % 3;
+    const dist = Math.min(Math.abs(phase - shapeIndex), 3 - Math.abs(phase - shapeIndex));
     return Math.max(0, 1 - dist * 3);
   });
 
@@ -220,7 +152,7 @@ function ShapeLayer({
   return (
     <Animated.View
       style={[
-        { position: 'absolute', left, top, width: shapeSize, height: shapeSize },
+        { position: 'absolute', width: shapeSize, height: shapeSize },
         style,
       ]}
     >

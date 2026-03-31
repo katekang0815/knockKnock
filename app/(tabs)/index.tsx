@@ -3,15 +3,15 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import OrbitingShapes from '@/components/OrbitingShapes';
 
-const RING_SIZE = 200;
-const RING_STROKE = 24;
-const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const { height: SCREEN_H } = Dimensions.get('window');
+const SHAPE_SIZE = 120;
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -39,11 +39,13 @@ export default function HomeScreen() {
         Let{`'`}s check in your{'\n'}daily devotional!
       </Text>
 
-      <View style={styles.checkinContainer}>
-        {/* Orbiting morphing shapes */}
-        <OrbitingShapes size={RING_SIZE} orbitRadius={RING_RADIUS} shapeSize={24} />
+      {/* Morphing shapes — centered above the button */}
+      <View style={[styles.shapeContainer, { bottom: SCREEN_H / 3 + 40 }]}>
+        <OrbitingShapes size={SHAPE_SIZE} />
+      </View>
 
-        {/* Plus button centered */}
+      {/* Plus button — 1/3 from bottom */}
+      <View style={[styles.buttonContainer, { bottom: insets.bottom + SCREEN_H / 3 - 60 }]}>
         <TouchableOpacity style={styles.checkinButton} activeOpacity={0.8} onPress={() => router.push('/checkin')}>
           <Text style={styles.plusText}>+</Text>
         </TouchableOpacity>
@@ -66,15 +68,14 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     textAlign: 'center',
   },
-  checkinContainer: {
+  shapeContainer: {
+    position: 'absolute',
+    alignSelf: 'center',
+  },
+  buttonContainer: {
     position: 'absolute',
     alignSelf: 'center',
     alignItems: 'center',
-    justifyContent: 'center',
-    top: '50%',
-    marginTop: -(RING_SIZE / 2),
-    width: RING_SIZE,
-    height: RING_SIZE,
   },
   checkinButton: {
     width: 48,
