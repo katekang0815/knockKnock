@@ -14,24 +14,24 @@ import Animated, {
 const GRAD_START = '#E8B4C8';
 const GRAD_END = '#F0D090';
 
-// Shape 1: Rounded square with concave sides (screenshot 1)
-function ShapeSquish({ size }: { size: number }) {
-  const s = size;
-  const m = s * 0.12; // concave inset
+// Shape 1: 4-pointed sparkle star — tall vertical, narrow horizontal
+function ShapeSparkle({ size }: { size: number }) {
+  const cx = size / 2;
+  const cy = size / 2;
   return (
-    <Svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
+    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       <Defs>
-        <LinearGradient id="grad1" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor={GRAD_START} />
-          <Stop offset="1" stopColor={GRAD_END} />
+        <LinearGradient id="grad1" x1="0.5" y1="0" x2="0.5" y2="1">
+          <Stop offset="0" stopColor={GRAD_END} />
+          <Stop offset="1" stopColor={GRAD_START} />
         </LinearGradient>
       </Defs>
       <SvgPath
-        d={`M ${s * 0.2},${s * 0.05}
-            Q ${s * 0.5},${m} ${s * 0.8},${s * 0.05}
-            Q ${s - m},${s * 0.5} ${s * 0.8},${s * 0.95}
-            Q ${s * 0.5},${s - m} ${s * 0.2},${s * 0.95}
-            Q ${m},${s * 0.5} ${s * 0.2},${s * 0.05} Z`}
+        d={`M ${cx},${size * 0.02}
+            C ${cx + size * 0.06},${cy * 0.7} ${cx + size * 0.12},${cy - size * 0.08} ${size * 0.7},${cy}
+            C ${cx + size * 0.12},${cy + size * 0.08} ${cx + size * 0.06},${cy * 1.3} ${cx},${size * 0.98}
+            C ${cx - size * 0.06},${cy * 1.3} ${cx - size * 0.12},${cy + size * 0.08} ${size * 0.3},${cy}
+            C ${cx - size * 0.12},${cy - size * 0.08} ${cx - size * 0.06},${cy * 0.7} ${cx},${size * 0.02} Z`}
         fill="url(#grad1)"
       />
     </Svg>
@@ -96,7 +96,7 @@ function ShapeCross({ size }: { size: number }) {
   );
 }
 
-const SHAPES = [ShapeSquish, ShapeStar, ShapeCross];
+const SHAPES = [ShapeSparkle, ShapeStar, ShapeCross];
 
 interface Props {
   size: number;
