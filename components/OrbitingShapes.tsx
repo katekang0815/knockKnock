@@ -11,7 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 const COLOR = '#ECDA96';
-const ARC_DEGREES = 270;
+const ARC_DEGREES = 360;
 const SEGMENT_COUNT = 120;
 
 // --- 4 Shape renderers ---
@@ -88,18 +88,17 @@ function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
 }
 
-function buildArcSegments(center: number, radius: number, stroke: number) {
-  const span = ARC_DEGREES / SEGMENT_COUNT;
-  return Array.from({ length: SEGMENT_COUNT }, (_, i) => {
-    const startAngle = i * span;
-    const endAngle = startAngle + span + 2;
-    const start = polarToCartesian(center, center, radius, startAngle);
-    const end = polarToCartesian(center, center, radius, endAngle);
-    const large = endAngle - startAngle > 180 ? 1 : 0;
-    const d = `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${large} 1 ${end.x} ${end.y}`;
-    const progress = i / (SEGMENT_COUNT - 1);
-    const opacity = progress * progress * progress; // cubic falloff
-    return { d, opacity };
+const DOT_COUNT = 20;
+
+function buildDots(center: number, radius: number) {
+  return Array.from({ length: DOT_COUNT }, (_, i) => {
+    const angle = (ARC_DEGREES * i) / (DOT_COUNT - 1);
+    const pos = polarToCartesian(center, center, radius, angle);
+    const progress = i / (DOT_COUNT - 1);
+    // Head is brightest/largest, tail fades and shrinks
+    const opacity = progress * progress;
+    const dotRadius = 1 + progress * 2.5;
+    return { cx: pos.x, cy: pos.y, r: dotRadius, opacity };
   });
 }
 
@@ -124,7 +123,7 @@ export default function OrbitingShapes({ size, orbitRadius, shapeSize }: Props) 
     );
     // Cycle through 4 shapes, one every 8s = 32s total cycle
     shapePhase.value = withRepeat(
-      withTiming(4, { duration: 32000, easing: Easing.linear }),
+      withTiming(4, { duration: 16000, easing: Easing.linear }),
       -1,
       false,
     );
@@ -134,11 +133,11 @@ export default function OrbitingShapes({ size, orbitRadius, shapeSize }: Props) 
     transform: [{ rotate: `${rotation.value}deg` }],
   }));
 
-  // Arc segments (pre-built, static)
-  const arcSegments = buildArcSegments(size / 2, orbitRadius, shapeSize);
+  // Dots along the orbit path
+  const dots = buildDots(size / 2, orbitRadius);
 
   // Shape position at the head of the arc (270° = end of arc)
-  const headPos = polarToCartesian(size / 2, size / 2, orbitRadius, ARC_DEGREES);
+  const headPos = polarToCartesian(size / 2, size / 2, orbitRadius, 0);
 
   return (
     <Animated.View style={[{ width: size, height: size, position: 'absolute' }, rotateStyle]}>
