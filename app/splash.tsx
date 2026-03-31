@@ -30,11 +30,6 @@ export default function SplashScreen() {
         style={styles.animation}
       />
 
-      {/* Knock Knock text */}
-      <View style={styles.titleContainer}>
-        <Text style={styles.title}>Knock Knock</Text>
-      </View>
-
       {/* Icon buttons overlay */}
       <View style={[styles.buttonsContainer, { bottom: insets.bottom + 60 }]}>
         {/* Replay icon */}
@@ -71,19 +66,6 @@ const styles = StyleSheet.create({
   },
   animation: {
     flex: 1,
-  },
-  titleContainer: {
-    position: 'absolute',
-    bottom: '18%',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  title: {
-    color: '#FFFFFF',
-    fontSize: 36,
-    fontFamily: 'Jost_700Bold',
-    letterSpacing: 2,
   },
   buttonsContainer: {
     position: 'absolute',
