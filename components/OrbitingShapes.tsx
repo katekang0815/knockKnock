@@ -88,16 +88,36 @@ function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
 }
 
-const DOT_COUNT = 20;
+const PARTICLE_COUNT = 150;
 
-function buildDots(center: number, radius: number) {
-  return Array.from({ length: DOT_COUNT }, (_, i) => {
-    const angle = (ARC_DEGREES * i) / (DOT_COUNT - 1);
-    const pos = polarToCartesian(center, center, radius, angle);
-    const progress = i / (DOT_COUNT - 1);
-    // Head is brightest/largest, tail fades and shrinks
-    const opacity = progress * progress;
-    const dotRadius = 1 + progress * 2.5;
+// Seeded pseudo-random for consistent render
+function seededRandom(seed: number) {
+  const x = Math.sin(seed * 9301 + 49297) * 49297;
+  return x - Math.floor(x);
+}
+
+function buildParticles(center: number, radius: number) {
+  return Array.from({ length: PARTICLE_COUNT }, (_, i) => {
+    const progress = i / (PARTICLE_COUNT - 1); // 0 = tail, 1 = head
+    const angle = ARC_DEGREES * progress;
+
+    // Scatter: more spread at the tail, tight at the head
+    const scatter = (1 - progress) * 18;
+    const offsetR = (seededRandom(i * 3) - 0.5) * scatter;
+    const offsetAngle = (seededRandom(i * 7) - 0.5) * scatter * 0.4;
+
+    const pos = polarToCartesian(center, center, radius + offsetR, angle + offsetAngle);
+
+    // Size: head particles are larger
+    const baseSize = 0.4 + progress * 2.2;
+    const sizeVariation = seededRandom(i * 13) * 0.8;
+    const dotRadius = Math.max(0.3, baseSize + sizeVariation * (1 - progress));
+
+    // Opacity: dense and bright at head, sparse and dim at tail
+    const baseOpacity = progress * progress * progress;
+    const opacityVariation = seededRandom(i * 17) * 0.3;
+    const opacity = Math.min(1, baseOpacity + opacityVariation * progress);
+
     return { cx: pos.x, cy: pos.y, r: dotRadius, opacity };
   });
 }
@@ -133,24 +153,24 @@ export default function OrbitingShapes({ size, orbitRadius, shapeSize }: Props) 
     transform: [{ rotate: `${rotation.value}deg` }],
   }));
 
-  // Dots along the orbit path
-  const dots = buildDots(size / 2, orbitRadius);
+  // Particle trail along the orbit path
+  const particles = buildParticles(size / 2, orbitRadius);
 
   // Shape position at the head of the arc (270° = end of arc)
   const headPos = polarToCartesian(size / 2, size / 2, orbitRadius, 0);
 
   return (
     <Animated.View style={[{ width: size, height: size, position: 'absolute' }, rotateStyle]}>
-      {/* Trailing dots */}
+      {/* Particle trail */}
       <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-        {dots.map((dot, i) => (
+        {particles.map((p, i) => (
           <SvgCircle
             key={i}
-            cx={dot.cx}
-            cy={dot.cy}
-            r={dot.r}
+            cx={p.cx}
+            cy={p.cy}
+            r={p.r}
             fill="#FFFFFF"
-            opacity={dot.opacity}
+            opacity={p.opacity}
           />
         ))}
       </Svg>
