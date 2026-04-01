@@ -33,11 +33,11 @@ const STAIRS = [
 // Ball positions (on stair surfaces)
 const BALL_SIZE_FRAC = 0.18;
 const POSITIONS = [
-  { x: 0.10, y: 0.92 }, // ground (below stair 1)
+  { x: 0.1, y: 0.92 }, // ground (below stair 1)
   { x: 0.16, y: 0.76 }, // on stair 1
   { x: 0.46, y: 0.49 }, // on stair 2
   { x: 0.78, y: 0.22 }, // on stair 3
-  { x: 0.90, y: 0.02 }, // above stair 3 (disappear)
+  { x: 0.9, y: 0.02 }, // above stair 3 (disappear)
 ];
 
 export default function BouncingBall({ size }: Props) {
@@ -57,25 +57,50 @@ export default function BouncingBall({ size }: Props) {
 
   const ballStyle = useAnimatedStyle(() => {
     const p = progress.value;
-    const x = interpolate(p, [0, 1, 2, 3, 4], [
-      POSITIONS[0].x * size, POSITIONS[1].x * size, POSITIONS[2].x * size, POSITIONS[3].x * size, POSITIONS[4].x * size,
-    ]);
-    const y = interpolate(p, [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.2, 3.5, 3.75, 3.9, 4], [
-      POSITIONS[0].y * size, (POSITIONS[0].y - 0.50) * size,
-      POSITIONS[1].y * size, (POSITIONS[1].y - 0.50) * size,
-      POSITIONS[2].y * size, (POSITIONS[2].y - 0.50) * size,
-      POSITIONS[3].y * size, (POSITIONS[3].y - 0.18) * size,
-      (POSITIONS[3].y - 0.27) * size, (POSITIONS[3].y - 0.22) * size,
-      (POSITIONS[3].y - 0.08) * size, POSITIONS[3].y * size,
-    ]);
-    const xFinal = interpolate(p, [3, 3.2, 3.5, 3.75, 4], [
-      POSITIONS[3].x * size, (POSITIONS[3].x + 0.06) * size, (POSITIONS[3].x + 0.13) * size,
-      (POSITIONS[3].x + 0.19) * size, (POSITIONS[3].x + 0.24) * size,
-    ]);
+    const x = interpolate(
+      p,
+      [0, 1, 2, 3, 4],
+      [
+        POSITIONS[0].x * size,
+        POSITIONS[1].x * size,
+        POSITIONS[2].x * size,
+        POSITIONS[3].x * size,
+        POSITIONS[4].x * size,
+      ],
+    );
+    const y = interpolate(
+      p,
+      [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.2, 3.5, 3.75, 3.9, 4],
+      [
+        POSITIONS[0].y * size,
+        (POSITIONS[0].y - 0.5) * size,
+        POSITIONS[1].y * size,
+        (POSITIONS[1].y - 0.5) * size,
+        POSITIONS[2].y * size,
+        (POSITIONS[2].y - 0.5) * size,
+        POSITIONS[3].y * size,
+        (POSITIONS[3].y - 0.18) * size,
+        (POSITIONS[3].y - 0.27) * size,
+        (POSITIONS[3].y - 0.22) * size,
+        (POSITIONS[3].y - 0.08) * size,
+        POSITIONS[3].y * size,
+      ],
+    );
+    const xFinal = interpolate(
+      p,
+      [3, 3.2, 3.5, 3.75, 4],
+      [
+        POSITIONS[3].x * size,
+        (POSITIONS[3].x + 0.06) * size,
+        (POSITIONS[3].x + 0.13) * size,
+        (POSITIONS[3].x + 0.19) * size,
+        (POSITIONS[3].x + 0.24) * size,
+      ],
+    );
     const xPos = p >= 3 ? xFinal : x;
     const opacity = interpolate(p, [0, 3, 3.4, 4], [1, 1, 0.5, 0]);
     return {
-      position: 'absolute' as const,
+      position: "absolute" as const,
       left: xPos - ballR / 2,
       top: y - ballR / 2,
       width: ballR,
@@ -86,26 +111,51 @@ export default function BouncingBall({ size }: Props) {
 
   const glowStyle = useAnimatedStyle(() => {
     const p = progress.value;
-    const x = interpolate(p, [0, 1, 2, 3, 4], [
-      POSITIONS[0].x * size, POSITIONS[1].x * size, POSITIONS[2].x * size, POSITIONS[3].x * size, POSITIONS[4].x * size,
-    ]);
-    const y = interpolate(p, [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.2, 3.5, 3.75, 3.9, 4], [
-      POSITIONS[0].y * size, (POSITIONS[0].y - 0.50) * size,
-      POSITIONS[1].y * size, (POSITIONS[1].y - 0.50) * size,
-      POSITIONS[2].y * size, (POSITIONS[2].y - 0.50) * size,
-      POSITIONS[3].y * size, (POSITIONS[3].y - 0.18) * size,
-      (POSITIONS[3].y - 0.27) * size, (POSITIONS[3].y - 0.22) * size,
-      (POSITIONS[3].y - 0.08) * size, POSITIONS[3].y * size,
-    ]);
-    const xFinal = interpolate(p, [3, 3.2, 3.5, 3.75, 4], [
-      POSITIONS[3].x * size, (POSITIONS[3].x + 0.06) * size, (POSITIONS[3].x + 0.13) * size,
-      (POSITIONS[3].x + 0.19) * size, (POSITIONS[3].x + 0.24) * size,
-    ]);
+    const x = interpolate(
+      p,
+      [0, 1, 2, 3, 4],
+      [
+        POSITIONS[0].x * size,
+        POSITIONS[1].x * size,
+        POSITIONS[2].x * size,
+        POSITIONS[3].x * size,
+        POSITIONS[4].x * size,
+      ],
+    );
+    const y = interpolate(
+      p,
+      [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.2, 3.5, 3.75, 3.9, 4],
+      [
+        POSITIONS[0].y * size,
+        (POSITIONS[0].y - 0.5) * size,
+        POSITIONS[1].y * size,
+        (POSITIONS[1].y - 0.5) * size,
+        POSITIONS[2].y * size,
+        (POSITIONS[2].y - 0.5) * size,
+        POSITIONS[3].y * size,
+        (POSITIONS[3].y - 0.18) * size,
+        (POSITIONS[3].y - 0.27) * size,
+        (POSITIONS[3].y - 0.22) * size,
+        (POSITIONS[3].y - 0.08) * size,
+        POSITIONS[3].y * size,
+      ],
+    );
+    const xFinal = interpolate(
+      p,
+      [3, 3.2, 3.5, 3.75, 4],
+      [
+        POSITIONS[3].x * size,
+        (POSITIONS[3].x + 0.06) * size,
+        (POSITIONS[3].x + 0.13) * size,
+        (POSITIONS[3].x + 0.19) * size,
+        (POSITIONS[3].x + 0.24) * size,
+      ],
+    );
     const xPos = p >= 3 ? xFinal : x;
     const ballOpacity = interpolate(p, [0, 3, 3.4, 4], [1, 1, 0.5, 0]);
     const glowOpacity = p < 1 ? 0 : p >= 3 ? 0.7 : 0.5;
     return {
-      position: 'absolute' as const,
+      position: "absolute" as const,
       left: xPos - glowSize / 2,
       top: y - glowSize / 2,
       width: glowSize,
@@ -142,15 +192,15 @@ export default function BouncingBall({ size }: Props) {
           <View
             key={i}
             style={{
-              position: 'absolute',
-              left: glowSize * (1 - scale) / 2,
-              top: glowSize * (1 - scale) / 2,
+              position: "absolute",
+              left: (glowSize * (1 - scale)) / 2,
+              top: (glowSize * (1 - scale)) / 2,
               width: glowSize * scale,
               height: glowSize * scale,
               borderRadius: (glowSize * scale) / 2,
-              backgroundColor: '#E8CFA0',
+              backgroundColor: "#E8CFA0",
               opacity: i === 4 ? 1 : (4 - i) * 0.15,
-              shadowColor: '#E8CFA0',
+              shadowColor: "#E8CFA0",
               shadowOffset: { width: 0, height: 0 },
               shadowOpacity: (4 - i) * 0.2,
               shadowRadius: (4 - i) * 4,
@@ -205,30 +255,15 @@ function BallPhase({
         </Defs>
 
         {phase === 0 && (
-          <SvgCircle
-            cx={r}
-            cy={r}
-            r={r * 0.7}
-            fill="url(#warmGrad)"
-          />
+          <SvgCircle cx={r} cy={r} r={r * 0.7} fill="url(#warmGrad)" />
         )}
 
         {phase === 1 && (
-          <SvgCircle
-            cx={r}
-            cy={r}
-            r={r * 0.7}
-            fill="url(#warmGrad)"
-          />
+          <SvgCircle cx={r} cy={r} r={r * 0.7} fill="url(#warmGrad)" />
         )}
 
         {phase === 2 && (
-          <SvgCircle
-            cx={r}
-            cy={r}
-            r={r * 0.875}
-            fill="url(#warmGrad)"
-          />
+          <SvgCircle cx={r} cy={r} r={r * 0.875} fill="url(#warmGrad)" />
         )}
 
         {phase === 3 && <StarShape cx={r} cy={r} size={r * 3.2} />}
@@ -246,5 +281,12 @@ function StarShape({ cx, cy, size }: { cx: number; cy: number; size: number }) {
     const r = i % 2 === 0 ? outer : inner;
     d += `${i === 0 ? "M" : "L"}${(cx + r * Math.cos(angle)).toFixed(1)},${(cy + r * Math.sin(angle)).toFixed(1)} `;
   }
-  return <SvgPath d={d + "Z"} fill="url(#starGrad)" stroke="#E8654A" strokeWidth={1} />;
+  return (
+    <SvgPath
+      d={d + "Z"}
+      fill="url(#starGrad)"
+      stroke="#E8654A"
+      strokeWidth={1}
+    />
+  );
 }

@@ -40,11 +40,11 @@ export default function HomeScreen() {
           </Svg>
         </TouchableOpacity>
 
-        <Text style={[styles.title, { top: insets.top + 30 + 96 }]}>
+        <Text style={[styles.title, { top: insets.top + 20 + 96 }]}>
           Let{`'`}s check in and begin today{`'`}s devotional!
         </Text>
 
-        <Text style={[styles.tapText, { top: insets.top + 30 + 96 + 80 }]}>
+        <Text style={[styles.tapText, { top: insets.top + 20 + 96 + 80 }]}>
           Tap anywhere to start
         </Text>
 
