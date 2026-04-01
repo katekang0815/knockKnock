@@ -25,9 +25,9 @@ interface Props {
 // Stair positions as fractions of the container
 // Staggered diagonally: bottom-left → top-right
 const STAIRS = [
-  { x: 0.05, y: 0.82, w: 0.22 }, // stair 1 (far left)
-  { x: 0.35, y: 0.55, w: 0.22 }, // stair 2 (center)
-  { x: 0.68, y: 0.28, w: 0.22 }, // stair 3 (far right)
+  { x: 0.105, y: 0.82, w: 0.11 }, // stair 1 (far left)
+  { x: 0.405, y: 0.55, w: 0.11 }, // stair 2 (center)
+  { x: 0.735, y: 0.28, w: 0.11 }, // stair 3 (far right)
 ];
 
 // Ball positions (on stair surfaces)
