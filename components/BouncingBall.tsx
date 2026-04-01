@@ -226,7 +226,7 @@ function BallPhase({
           <SvgCircle
             cx={r}
             cy={r}
-            r={r * 0.7}
+            r={r * 0.875}
             fill="url(#warmGrad)"
           />
         )}
