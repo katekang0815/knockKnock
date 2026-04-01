@@ -45,7 +45,7 @@ export default function BouncingBall({ size }: Props) {
 
   useEffect(() => {
     progress.value = withRepeat(
-      withTiming(4, { duration: 5000, easing: Easing.linear }),
+      withTiming(4, { duration: 2500, easing: Easing.linear }),
       -1,
       false,
     );
