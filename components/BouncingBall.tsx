@@ -154,13 +154,15 @@ export default function BouncingBall({ size }: Props) {
     const xPos = p >= 3 ? xFinal : x;
     const ballOpacity = interpolate(p, [0, 3, 3.4, 4], [1, 1, 0.5, 0]);
     const glowOpacity = p < 1 ? 0 : p >= 3 ? 0.7 : 0.5;
+    // Phase 0: no glow, Phase 1: current size, Phase 2+3: larger
+    const gs = p < 1 ? glowSize : p < 2 ? glowSize : ballR * 1.6;
     return {
       position: "absolute" as const,
-      left: xPos - glowSize / 2,
-      top: y - glowSize / 2,
-      width: glowSize,
-      height: glowSize,
-      borderRadius: glowSize / 2,
+      left: xPos - gs / 2,
+      top: y - gs / 2,
+      width: gs,
+      height: gs,
+      borderRadius: gs / 2,
       opacity: glowOpacity * ballOpacity,
     };
   });
@@ -193,11 +195,11 @@ export default function BouncingBall({ size }: Props) {
             key={i}
             style={{
               position: "absolute",
-              left: (glowSize * (1 - scale)) / 2,
-              top: (glowSize * (1 - scale)) / 2,
-              width: glowSize * scale,
-              height: glowSize * scale,
-              borderRadius: (glowSize * scale) / 2,
+              left: `${((1 - scale) / 2) * 100}%`,
+              top: `${((1 - scale) / 2) * 100}%`,
+              width: `${scale * 100}%`,
+              height: `${scale * 100}%`,
+              borderRadius: 9999,
               backgroundColor: "#E8CFA0",
               opacity: i === 4 ? 1 : (4 - i) * 0.15,
               shadowColor: "#E8CFA0",
