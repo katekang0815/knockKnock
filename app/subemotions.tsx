@@ -111,8 +111,10 @@ export default function SubEmotionsScreen() {
     Breezy: { x: -(singleGridWidth + GAP - HORIZONTAL_PADDING), y: -topSectionHeight },
   };
 
-  translateX.value = startOffsets[categoryKey].x;
-  translateY.value = startOffsets[categoryKey].y;
+  useEffect(() => {
+    translateX.value = startOffsets[categoryKey].x;
+    translateY.value = startOffsets[categoryKey].y;
+  }, []);
 
   const clamp = (val: number, min: number, max: number) => {
     'worklet';
