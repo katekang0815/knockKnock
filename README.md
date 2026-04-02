@@ -5,7 +5,7 @@ A mobile prayer companion that helps users build a daily habit of reflection thr
 
 ## Technologies Used
 
-````text
+````md id="4n82p5"
 - React Native
 - Expo
 - TypeScript
@@ -15,13 +15,11 @@ A mobile prayer companion that helps users build a daily habit of reflection thr
 - NativeWind
 - Figma
 
-
 1. Start the app
 
    ```bash
    npx expo start
-````
-
+   ```
 ````
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
@@ -49,4 +47,3 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-````
