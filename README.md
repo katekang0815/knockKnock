@@ -1,20 +1,26 @@
-# Welcome to your Expo app 👋
+# Knock Knock
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A mobile prayer companion that helps users build a daily habit of reflection through emotional check-ins, guided prayer, and faith-based conversation.
 
-## Get started
+````md id="4n82p5"
+## Technologies Used
 
-1. Install dependencies
+> - React Native
+> - Expo
+> - TypeScript
+> - Supabase
+> - PostgreSQL
+> - AI API integration
+> - NativeWind
+> - Figma
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
+1. Start the app
 
    ```bash
    npx expo start
    ```
+````
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
