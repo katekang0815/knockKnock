@@ -21,18 +21,6 @@ The project was designed with the purpose of making prayer feel more personal, i
   - Allows users to select how they are feeling in the moment.
   - Encourages emotional awareness as the starting point for reflection.
 
-- **AI Conversation Page**
-  - Provides guided, empathetic conversation based on the user’s selected emotions.
-  - Supports reflection in a warm and age-appropriate tone.
-
-- **Prayer Builder Page**
-  - Helps users turn their thoughts and feelings into a guided prayer.
-  - Encourages a simple and personal habit of talking to God.
-
-- **Scripture Reflection Page**
-  - Presents Bible verses connected to the user’s emotional state.
-  - Supports faith-based encouragement and reflection.
-
 - **Emotion Log / History Page**
   - Tracks previous emotional check-ins over time.
   - Helps users recognize patterns in feelings and prayer habits.
