@@ -9,6 +9,8 @@ Knock Knock is a mobile application designed to support young adults in building
 
 The project was designed with the purpose of making prayer feel more personal, interactive, and accessible for younger users. Instead of starting with a blank page, Knock Knock creates a structured experience that helps users move from emotion to reflection, then into meaningful conversation and prayer.
 
+![Preview Screens](images/preview-screens.png)
+
 ### Screen Pages
 
 - **Home Page**
@@ -48,6 +50,5 @@ The project was designed with the purpose of making prayer feel more personal, i
 - Supabase
 - PostgreSQL
 - AI API integration
-- NativeWind
 - Figma
 ```
