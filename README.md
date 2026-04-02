@@ -9,7 +9,7 @@ Knock Knock is a mobile application designed to support young adults in building
 
 The project was designed with the purpose of making prayer feel more personal, interactive, and accessible for younger users. Instead of starting with a blank page, Knock Knock creates a structured experience that helps users move from emotion to reflection, then into meaningful conversation and prayer.
 
-!(images/preview-screens.png)
+![Preview Screens](images/preview-screens.png)
 
 ### Screen Pages
 
