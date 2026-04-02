@@ -3,23 +3,25 @@
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 A mobile prayer companion that helps users build a daily habit of reflection through emotional check-ins, guided prayer, and faith-based conversation.
 
-````md id="4n82p5"
 ## Technologies Used
 
-> - React Native
-> - Expo
-> - TypeScript
-> - Supabase
-> - PostgreSQL
-> - AI API integration
-> - NativeWind
-> - Figma
+````text
+- React Native
+- Expo
+- TypeScript
+- Supabase
+- PostgreSQL
+- AI API integration
+- NativeWind
+- Figma
+
 
 1. Start the app
 
    ```bash
    npx expo start
-   ```
+````
+
 ````
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
@@ -47,3 +49,4 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+````
