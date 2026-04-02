@@ -3,9 +3,45 @@
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 A mobile prayer companion that helps users build a daily habit of reflection through emotional check-ins, guided prayer, and faith-based conversation.
 
+## About the project
+
+Knock Knock is a mobile application designed to support young adults in building a consistent prayer habit in a gentle and approachable way. The product begins with emotional awareness, helping users name how they feel before guiding them into reflection, scripture-based encouragement, and prayer.
+
+The project was designed with the purpose of making prayer feel more personal, interactive, and accessible for younger users. Instead of starting with a blank page, Knock Knock creates a structured experience that helps users move from emotion to reflection, then into meaningful conversation and prayer.
+
+### Screen Pages
+
+- **Home Page**
+  - Introduces the app and guides users into their daily prayer flow.
+  - Highlights check-in prompts and recent activity.
+
+- **Emotion Check-In Page**
+  - Allows users to select how they are feeling in the moment.
+  - Encourages emotional awareness as the starting point for reflection.
+
+- **AI Conversation Page**
+  - Provides guided, empathetic conversation based on the user’s selected emotions.
+  - Supports reflection in a warm and age-appropriate tone.
+
+- **Prayer Builder Page**
+  - Helps users turn their thoughts and feelings into a guided prayer.
+  - Encourages a simple and personal habit of talking to God.
+
+- **Scripture Reflection Page**
+  - Presents Bible verses connected to the user’s emotional state.
+  - Supports faith-based encouragement and reflection.
+
+- **Emotion Log / History Page**
+  - Tracks previous emotional check-ins over time.
+  - Helps users recognize patterns in feelings and prayer habits.
+
+- **Profile / Settings Page**
+  - Manages user preferences and app experience.
+  - Supports a simple and safe personalized environment.
+
 ## Technologies Used
 
-````md id="4n82p5"
+```md id="4n82p5"
 - React Native
 - Expo
 - TypeScript
@@ -14,36 +50,4 @@ A mobile prayer companion that helps users build a daily habit of reflection thr
 - AI API integration
 - NativeWind
 - Figma
-
-1. Start the app
-
-   ```bash
-   npx expo start
-   ```
-````
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
 ```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
