@@ -105,7 +105,7 @@ export const API_FALLBACK_RESPONSE =
 /**
  * Maximum conversation turns allowed per session.
  */
-export const MAX_CHAT_TURNS = 6;
+export const MAX_CHAT_TURNS = 4;
 
 /*
  * ===== EXAMPLE CONVERSATIONS (Reference) =====
