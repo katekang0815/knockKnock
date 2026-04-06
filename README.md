@@ -4,9 +4,7 @@ A mobile prayer companion that helps users build a daily habit of reflection thr
 
 ## About the project
 
-Knock Knock is a mobile application designed to support young adults in building a consistent prayer habit in a gentle and approachable way. The product begins with emotional awareness, helping users name how they feel before guiding them into reflection, scripture-based encouragement, and prayer.
-
-The project was designed with the purpose of making prayer feel more personal, interactive, and accessible for younger users. Instead of starting with a blank page, Knock Knock creates a structured experience that helps users move from emotion to reflection, then into meaningful conversation and prayer.
+Knock Knock is a mobile application designed to support young adults in building a consistent prayer habit in a gentle and approachable way. The product begins with emotional awareness, helping users name how they feel before guiding them into reflection, making prayer feel more personal, interactive, and accessible. It creates a structured experience that helps users flow into meaningful conversation and prayer.
 
 ![Preview Screens](images/preview-screens.png)
 
@@ -14,14 +12,12 @@ The project was designed with the purpose of making prayer feel more personal, i
 
 - **Home Page**
   - Introduces the app and guides users into their daily prayer flow.
-  - Highlights check-in prompts and recent activity.
 
 - **Emotion Check-In Page**
   - Allows users to select how they are feeling in the moment.
   - Encourages emotional awareness as the starting point for reflection.
 
-- **Emotion Log / History Page**
-  - Tracks previous emotional check-ins over time.
+- **Emotion Log / AI chat**
   - Helps users recognize patterns in feelings and prayer habits.
 
 - **Profile / Settings Page**
