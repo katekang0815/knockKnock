@@ -25,8 +25,6 @@ The project was designed with the purpose of making prayer feel more personal, i
   - Helps users recognize patterns in feelings and prayer habits.
 
 - **Profile / Settings Page**
-  - Manages user preferences and app experience.
-  - Supports a simple and safe personalized environment.
 
 ## Technologies Used
 
