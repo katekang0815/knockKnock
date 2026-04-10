@@ -14,7 +14,7 @@ Knock Knock is a mobile application designed to support young adults in building
   - Introduces the app and guides users into their daily prayer flow.
 
 - **Emotion Check-In Page**
-  - Encourages emotional awareness as the starting point for reflection.
+  
 
 - **Emotion Log / AI chat**
 
