@@ -20,7 +20,7 @@ Knock Knock is a mobile application designed to support young adults in building
 
 ## Technologies Used
 
-```md id="4n82p5"
+```
 - React Native
 - Expo
 - TypeScript
