@@ -16,8 +16,6 @@ Knock Knock is a mobile application designed to support young adults in building
 
 - **Emotion Log / AI chat**
 
-- **Profile / Settings Page**
-
 ## Technologies Used
 
 ```
