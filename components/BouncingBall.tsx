@@ -200,9 +200,9 @@ export default function BouncingBall({ size }: Props) {
               width: `${scale * 100}%`,
               height: `${scale * 100}%`,
               borderRadius: 9999,
-              backgroundColor: "#E8CFA0",
+              backgroundColor: "#C78E7D",
               opacity: i === 4 ? 1 : (4 - i) * 0.15,
-              shadowColor: "#E8CFA0",
+              shadowColor: "#C78E7D",
               shadowOffset: { width: 0, height: 0 },
               shadowOpacity: (4 - i) * 0.2,
               shadowRadius: (4 - i) * 4,
@@ -245,14 +245,16 @@ function BallPhase({
     <Animated.View style={[StyleSheet.absoluteFill, style]}>
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <Defs>
+          {/* Heart color scheme from splash: coral → rose → cream */}
           <LinearGradient id="warmGrad" x1="0.5" y1="0" x2="0.5" y2="1">
-            <Stop offset="0" stopColor="#E8CFA0" />
-            <Stop offset="1" stopColor="#C8887A" />
+            <Stop offset="0" stopColor="#DB533C" />
+            <Stop offset="0.5" stopColor="#C78E7D" />
+            <Stop offset="1" stopColor="#FFF7CE" />
           </LinearGradient>
           <LinearGradient id="starGrad" x1="0.5" y1="0" x2="0.5" y2="1">
-            <Stop offset="0" stopColor="#E8654A" />
-            <Stop offset="0.5" stopColor="#E8956A" />
-            <Stop offset="1" stopColor="#F0C888" />
+            <Stop offset="0" stopColor="#DB533C" />
+            <Stop offset="0.5" stopColor="#C78E7D" />
+            <Stop offset="1" stopColor="#FFF7CE" />
           </LinearGradient>
         </Defs>
 
@@ -287,7 +289,7 @@ function StarShape({ cx, cy, size }: { cx: number; cy: number; size: number }) {
     <SvgPath
       d={d + "Z"}
       fill="url(#starGrad)"
-      stroke="#E8654A"
+      stroke="#DB533C"
       strokeWidth={1}
     />
   );
