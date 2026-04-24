@@ -52,7 +52,9 @@ export default function CheckInScreen() {
               style={styles.card}
               activeOpacity={0.7}
               onPress={() => router.push({ pathname: '/subemotions', params: { category: cat.label } })}
-            />
+            >
+              {cat.label === 'Sunny' && <WalkingIcon size={CARD_SIZE * 0.7} />}
+            </TouchableOpacity>
           ))}
         </View>
       </View>
@@ -90,6 +92,8 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1.5,
     borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backArrow: {
     position: 'absolute',
