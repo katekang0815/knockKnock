@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import WalkingIcon from '@/components/WalkingIcon';
+import StormyCardIcon from '@/components/StormyCardIcon';
 
 const { width } = Dimensions.get('window');
 
@@ -57,32 +58,37 @@ export default function CheckInScreen() {
               onPress={() => router.push({ pathname: '/subemotions', params: { category: cat.label } })}
             >
               {cat.label === 'Stormy' && (
-                <Svg
-                  width={CARD_SIZE}
-                  height={CARD_SIZE}
-                  style={StyleSheet.absoluteFill}
-                >
-                  <Defs>
-                    <RadialGradient
-                      id="stormyGlow"
-                      cx="0.5"
-                      cy="0.6"
-                      r="0.7"
-                      gradientUnits="objectBoundingBox"
-                    >
-                      <Stop offset="0" stopColor="#FFB69E" stopOpacity={0.6} />
-                      <Stop offset="1" stopColor="#FFB69E" stopOpacity={0.15} />
-                    </RadialGradient>
-                  </Defs>
-                  <Rect
-                    x={0}
-                    y={0}
+                <>
+                  <Svg
                     width={CARD_SIZE}
                     height={CARD_SIZE}
-                    rx={24}
-                    fill="url(#stormyGlow)"
-                  />
-                </Svg>
+                    style={StyleSheet.absoluteFill}
+                  >
+                    <Defs>
+                      <RadialGradient
+                        id="stormyGlow"
+                        cx="0.5"
+                        cy="0.6"
+                        r="0.7"
+                        gradientUnits="objectBoundingBox"
+                      >
+                        <Stop offset="0" stopColor="#FFB69E" stopOpacity={0.6} />
+                        <Stop offset="1" stopColor="#FFB69E" stopOpacity={0.15} />
+                      </RadialGradient>
+                    </Defs>
+                    <Rect
+                      x={0}
+                      y={0}
+                      width={CARD_SIZE}
+                      height={CARD_SIZE}
+                      rx={24}
+                      fill="url(#stormyGlow)"
+                    />
+                  </Svg>
+                  <View style={[StyleSheet.absoluteFill, styles.stormyClip]}>
+                    <StormyCardIcon size={CARD_SIZE} />
+                  </View>
+                </>
               )}
               {cat.label === 'Sunny' && <WalkingIcon size={CARD_SIZE * 0.7} />}
             </TouchableOpacity>
@@ -128,6 +134,10 @@ const styles = StyleSheet.create({
   },
   cardNoBorder: {
     borderWidth: 0,
+  },
+  stormyClip: {
+    borderRadius: 24,
+    overflow: 'hidden',
   },
   backArrow: {
     position: 'absolute',
