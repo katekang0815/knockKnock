@@ -24,6 +24,20 @@ interface Props {
   borderRadius?: number;
 }
 
+// Deterministic seeded random for consistent frost texture
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed * 9301 + 49297) * 49297;
+  return x - Math.floor(x);
+}
+
+// Pre-compute grainy frost particles distributed across the whole card
+const FROST_GRAIN = Array.from({ length: 140 }, (_, i) => ({
+  x: seededRandom(i * 13) * 100,
+  y: seededRandom(i * 17 + 1) * 100,
+  r: 0.18 + seededRandom(i * 23 + 2) * 0.55,
+  opacity: 0.07 + seededRandom(i * 31 + 3) * 0.28,
+}));
+
 /**
  * Generate an organic blob path using sine-perturbed polar coordinates.
  * Smooth closed curve via quadratic Bezier through midpoints.
@@ -116,6 +130,19 @@ export default function LavaCardIcon({ size, borderRadius = 24 }: Props) {
           <Stop offset="0.5" stopColor="#0A0A18" />
           <Stop offset="1" stopColor="#000000" />
         </RadialGradient>
+        {/* Frost glass edge — inverse vignette: transparent at center, bright at edges */}
+        <RadialGradient
+          id="frostEdge"
+          cx="0.5"
+          cy="0.5"
+          r="0.75"
+          gradientUnits="objectBoundingBox"
+        >
+          <Stop offset="0" stopColor="#9BA8C0" stopOpacity={0} />
+          <Stop offset="0.6" stopColor="#9BA8C0" stopOpacity={0} />
+          <Stop offset="0.85" stopColor="#A8B5CC" stopOpacity={0.18} />
+          <Stop offset="1" stopColor="#C0CCE0" stopOpacity={0.4} />
+        </RadialGradient>
         {/* Lava blob gradient */}
         <RadialGradient
           id="blobGrad"
@@ -140,8 +167,43 @@ export default function LavaCardIcon({ size, borderRadius = 24 }: Props) {
         fill="url(#cardBg)"
       />
 
+      {/* Frost glass vignette — bright soft edge */}
+      <Rect
+        x={0}
+        y={0}
+        width={100}
+        height={100}
+        rx={borderRadius}
+        fill="url(#frostEdge)"
+      />
+
+      {/* Frost rim — visible glass edge */}
+      <Rect
+        x={0.6}
+        y={0.6}
+        width={98.8}
+        height={98.8}
+        rx={borderRadius - 0.6}
+        fill="none"
+        stroke="#C0CCE0"
+        strokeWidth={0.8}
+        strokeOpacity={0.5}
+      />
+
       {/* Liquid contents — clipped to rounded card shape */}
       <G clipPath="url(#cardClip)">
+        {/* Grainy frost texture covering the whole card */}
+        {FROST_GRAIN.map((g, i) => (
+          <Circle
+            key={`grain-${i}`}
+            cx={g.x}
+            cy={g.y}
+            r={g.r}
+            fill="#C5D0E5"
+            opacity={g.opacity}
+          />
+        ))}
+
         {/* Floating particles distributed across the card */}
         <Circle cx={20} cy={22} r={0.7} fill="#FFF5DD" opacity={0.45} />
         <Circle cx={32} cy={32} r={0.5} fill="#FFF5DD" opacity={0.4} />
