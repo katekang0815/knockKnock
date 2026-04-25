@@ -49,11 +49,11 @@ export default function CheckInScreen() {
           {CATEGORIES.map((cat) => (
             <TouchableOpacity
               key={cat.label}
-              style={styles.card}
+              style={[styles.card, cat.label === 'Sunny' && styles.cardNoBorder]}
               activeOpacity={0.7}
               onPress={() => router.push({ pathname: '/subemotions', params: { category: cat.label } })}
             >
-              {cat.label === 'Sunny' && <WalkingIcon size={CARD_SIZE * 0.7} />}
+              {cat.label === 'Sunny' && <WalkingIcon size={CARD_SIZE * 0.95} />}
             </TouchableOpacity>
           ))}
         </View>
@@ -94,6 +94,9 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  cardNoBorder: {
+    borderWidth: 0,
   },
   backArrow: {
     position: 'absolute',

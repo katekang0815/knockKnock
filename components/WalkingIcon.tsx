@@ -21,10 +21,12 @@ import Animated, {
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const STROKE = '#FFFFFF';
 const HEAD_COLOR = '#F5E8C8';
-const BODY_PATH = 'M 28 38 L 46 38 L 103 131 L 28 131 Z';
+const BODY_PATH = 'M 28 30 L 55 30 L 140.5 169.5 L 28 169.5 Z';
 const LIQUID_GLOW = '#FFB69E';
+
+const VIEW_W = 145;
+const VIEW_H = 195;
 
 interface Props {
   size: number;
@@ -51,7 +53,6 @@ export default function WalkingIcon({ size }: Props) {
       -1,
       false,
     );
-    // Slow liquid animation — full cycle in 6 seconds
     liquidT.value = withRepeat(
       withTiming(2 * Math.PI, { duration: 6000, easing: Easing.linear }),
       -1,
@@ -59,7 +60,7 @@ export default function WalkingIcon({ size }: Props) {
     );
   }, []);
 
-  const scale = size / 110;
+  const scale = size / VIEW_W;
 
   const upperBodyStyle = useAnimatedStyle(() => {
     const bobY = -2.5 * Math.abs(Math.sin(t.value * 2 * Math.PI));
@@ -76,36 +77,36 @@ export default function WalkingIcon({ size }: Props) {
     return { transform: [{ translateX: x * scale }, { translateY: y * scale }] };
   });
 
-  // Lava lamp blobs — each oscillates vertically and pulses in size
+  // Lava blobs (positions/sizes scaled 1.5x to match larger body)
   const blob1Props = useAnimatedProps(() => {
-    const cy = 100 + 22 * Math.sin(liquidT.value * 1.0);
-    const r = 11 + 2 * Math.cos(liquidT.value * 1.3);
+    const cy = 123 + 33 * Math.sin(liquidT.value * 1.0);
+    const r = 16.5 + 3 * Math.cos(liquidT.value * 1.3);
     return { cy, r };
   });
 
   const blob2Props = useAnimatedProps(() => {
-    const cy = 90 + 28 * Math.sin(liquidT.value * 0.7 + 1.5);
-    const r = 8 + 2 * Math.cos(liquidT.value * 0.9 + 0.5);
+    const cy = 108 + 42 * Math.sin(liquidT.value * 0.7 + 1.5);
+    const r = 12 + 3 * Math.cos(liquidT.value * 0.9 + 0.5);
     return { cy, r };
   });
 
   const blob3Props = useAnimatedProps(() => {
-    const cy = 80 + 18 * Math.sin(liquidT.value * 1.4 + 3);
-    const r = 6 + 1.5 * Math.cos(liquidT.value * 1.1 + 2);
+    const cy = 93 + 27 * Math.sin(liquidT.value * 1.4 + 3);
+    const r = 9 + 2.25 * Math.cos(liquidT.value * 1.1 + 2);
     return { cy, r };
   });
 
   const blob4Props = useAnimatedProps(() => {
-    const cy = 110 + 15 * Math.sin(liquidT.value * 0.8 + 4);
-    const r = 5 + 1 * Math.cos(liquidT.value * 1.5 + 1);
+    const cy = 138 + 22 * Math.sin(liquidT.value * 0.8 + 4);
+    const r = 7.5 + 1.5 * Math.cos(liquidT.value * 1.5 + 1);
     return { cy, r };
   });
 
   return (
     <View style={{ width: size, height: size }}>
-      {/* Upper body (head + trapezoid + lava lamp) — bobs up and down */}
+      {/* Upper body (head + lava lamp) — bobs up and down */}
       <Animated.View style={[StyleSheet.absoluteFill, upperBodyStyle]}>
-        <Svg width={size} height={size} viewBox="0 0 110 150">
+        <Svg width={size} height={size} viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}>
           <Defs>
             <ClipPath id="bodyClip">
               <Path d={BODY_PATH} />
@@ -136,61 +137,53 @@ export default function WalkingIcon({ size }: Props) {
           {/* Head */}
           <Circle cx={22} cy={22} r={6} fill={HEAD_COLOR} />
 
-          {/* Liquid contents — clipped to body shape */}
+          {/* Liquid contents — clipped to body shape (no body outline) */}
           <G clipPath="url(#bodyClip)">
-            {/* Background warm glow */}
+            {/* Soft coral/pink body fill */}
+            <Path d={BODY_PATH} fill="#C58C8C" opacity={0.85} />
             <Path d={BODY_PATH} fill="url(#bgGlow)" />
 
-            {/* Floating particles (subtle dots) */}
-            <Circle cx={42} cy={70} r={1.2} fill="#FFF5DD" opacity={0.6} />
-            <Circle cx={60} cy={85} r={0.8} fill="#FFF5DD" opacity={0.5} />
-            <Circle cx={50} cy={55} r={0.7} fill="#FFF5DD" opacity={0.4} />
-            <Circle cx={70} cy={120} r={1} fill="#FFF5DD" opacity={0.5} />
-            <Circle cx={45} cy={115} r={0.9} fill="#FFF5DD" opacity={0.4} />
-            <Circle cx={80} cy={100} r={0.6} fill="#FFF5DD" opacity={0.5} />
+            {/* Particles */}
+            <Circle cx={42} cy={78} r={1.2} fill="#FFF5DD" opacity={0.6} />
+            <Circle cx={60} cy={100.5} r={0.8} fill="#FFF5DD" opacity={0.5} />
+            <Circle cx={50} cy={55.5} r={0.7} fill="#FFF5DD" opacity={0.4} />
+            <Circle cx={70} cy={153} r={1} fill="#FFF5DD" opacity={0.5} />
+            <Circle cx={45} cy={145.5} r={0.9} fill="#FFF5DD" opacity={0.4} />
+            <Circle cx={80} cy={123} r={0.6} fill="#FFF5DD" opacity={0.5} />
 
-            {/* Lava blobs — animated */}
-            <AnimatedCircle animatedProps={blob1Props} cx={50} fill="url(#blobGrad)" />
-            <AnimatedCircle animatedProps={blob2Props} cx={68} fill="url(#blobGrad)" />
-            <AnimatedCircle animatedProps={blob3Props} cx={45} fill="url(#blobGrad)" />
-            <AnimatedCircle animatedProps={blob4Props} cx={75} fill="url(#blobGrad)" />
+            {/* Lava blobs */}
+            <AnimatedCircle animatedProps={blob1Props} cx={60} fill="url(#blobGrad)" />
+            <AnimatedCircle animatedProps={blob2Props} cx={85} fill="url(#blobGrad)" />
+            <AnimatedCircle animatedProps={blob3Props} cx={50} fill="url(#blobGrad)" />
+            <AnimatedCircle animatedProps={blob4Props} cx={95} fill="url(#blobGrad)" />
           </G>
-
-          {/* Body outline (drawn on top) */}
-          <Path
-            d={BODY_PATH}
-            stroke={STROKE}
-            strokeWidth={1.5}
-            fill="none"
-            strokeLinejoin="round"
-          />
         </Svg>
       </Animated.View>
 
       {/* Foot 1 */}
       <Animated.View style={[StyleSheet.absoluteFill, foot1Style]}>
-        <Svg width={size} height={size} viewBox="0 0 110 150">
+        <Svg width={size} height={size} viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}>
           <Ellipse
             cx={38}
-            cy={143}
+            cy={181.5}
             rx={5}
             ry={1.8}
             fill={HEAD_COLOR}
-            transform="rotate(-20 38 143)"
+            transform="rotate(-20 38 181.5)"
           />
         </Svg>
       </Animated.View>
 
       {/* Foot 2 */}
       <Animated.View style={[StyleSheet.absoluteFill, foot2Style]}>
-        <Svg width={size} height={size} viewBox="0 0 110 150">
+        <Svg width={size} height={size} viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}>
           <Ellipse
             cx={54}
-            cy={143}
+            cy={181.5}
             rx={5}
             ry={1.8}
             fill={HEAD_COLOR}
-            transform="rotate(-20 54 143)"
+            transform="rotate(-20 54 181.5)"
           />
         </Svg>
       </Animated.View>
