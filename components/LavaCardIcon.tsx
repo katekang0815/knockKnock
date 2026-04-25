@@ -104,18 +104,17 @@ export default function LavaCardIcon({ size, borderRadius = 24 }: Props) {
         <ClipPath id="cardClip">
           <Rect x={0} y={0} width={100} height={100} rx={borderRadius} />
         </ClipPath>
-        {/* Card background — night scene with warm lamp-lit pool at bottom */}
+        {/* Card background — starry night sky in a jar */}
         <RadialGradient
           id="cardBg"
           cx="0.5"
-          cy="0.85"
-          r="0.95"
+          cy="0.5"
+          r="0.85"
           gradientUnits="objectBoundingBox"
         >
-          <Stop offset="0" stopColor="#E8D8AA" />
-          <Stop offset="0.3" stopColor="#8B7B6E" />
-          <Stop offset="0.65" stopColor="#3A4A6E" />
-          <Stop offset="1" stopColor="#15233D" />
+          <Stop offset="0" stopColor="#1A1A2E" />
+          <Stop offset="0.5" stopColor="#0A0A18" />
+          <Stop offset="1" stopColor="#000000" />
         </RadialGradient>
         {/* Lava blob gradient */}
         <RadialGradient
