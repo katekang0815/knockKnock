@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import WalkingIcon from '@/components/WalkingIcon';
 
 const { width } = Dimensions.get('window');
@@ -49,10 +49,41 @@ export default function CheckInScreen() {
           {CATEGORIES.map((cat) => (
             <TouchableOpacity
               key={cat.label}
-              style={[styles.card, cat.label === 'Sunny' && styles.cardNoBorder]}
+              style={[
+                styles.card,
+                (cat.label === 'Sunny' || cat.label === 'Stormy') && styles.cardNoBorder,
+              ]}
               activeOpacity={0.7}
               onPress={() => router.push({ pathname: '/subemotions', params: { category: cat.label } })}
             >
+              {cat.label === 'Stormy' && (
+                <Svg
+                  width={CARD_SIZE}
+                  height={CARD_SIZE}
+                  style={StyleSheet.absoluteFill}
+                >
+                  <Defs>
+                    <RadialGradient
+                      id="stormyGlow"
+                      cx="0.5"
+                      cy="0.6"
+                      r="0.7"
+                      gradientUnits="objectBoundingBox"
+                    >
+                      <Stop offset="0" stopColor="#FFB69E" stopOpacity={0.6} />
+                      <Stop offset="1" stopColor="#FFB69E" stopOpacity={0.15} />
+                    </RadialGradient>
+                  </Defs>
+                  <Rect
+                    x={0}
+                    y={0}
+                    width={CARD_SIZE}
+                    height={CARD_SIZE}
+                    rx={24}
+                    fill="url(#stormyGlow)"
+                  />
+                </Svg>
+              )}
               {cat.label === 'Sunny' && <WalkingIcon size={CARD_SIZE * 0.7} />}
             </TouchableOpacity>
           ))}
