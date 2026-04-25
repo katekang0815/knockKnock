@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-nati
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
-import WalkingIcon from '@/components/WalkingIcon';
+import LavaCardIcon from '@/components/LavaCardIcon';
 import StormyCardIcon from '@/components/StormyCardIcon';
 
 const { width } = Dimensions.get('window');
@@ -90,7 +90,7 @@ export default function CheckInScreen() {
                   </View>
                 </>
               )}
-              {cat.label === 'Sunny' && <WalkingIcon size={CARD_SIZE * 0.7} />}
+              {cat.label === 'Sunny' && <LavaCardIcon size={CARD_SIZE} borderRadius={24} />}
             </TouchableOpacity>
           ))}
         </View>

@@ -1,4 +1,15 @@
+import { useEffect } from 'react';
 import Svg, { Path, G } from 'react-native-svg';
+import Animated, {
+  useSharedValue,
+  useAnimatedProps,
+  withRepeat,
+  withSequence,
+  withTiming,
+  withDelay,
+} from 'react-native-reanimated';
+
+const AnimatedG = Animated.createAnimatedComponent(G);
 
 interface Props {
   size: number;
@@ -12,6 +23,59 @@ const RAIN_COLOR = '#F5E8C8';
 const BIRD_COLOR = '#3A1816';
 
 export default function StormyCardIcon({ size }: Props) {
+  const bolt1 = useSharedValue(0);
+  const bolt2 = useSharedValue(0);
+  const bolt3 = useSharedValue(0);
+
+  useEffect(() => {
+    // Main bolt — dramatic double flicker every ~2.5s
+    bolt1.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 50 }),
+        withTiming(0.25, { duration: 50 }),
+        withTiming(1, { duration: 50 }),
+        withTiming(0, { duration: 120 }),
+        withDelay(2200, withTiming(0, { duration: 1 })),
+      ),
+      -1,
+      false,
+    );
+
+    // Secondary bolt — single flash, offset by ~0.8s
+    bolt2.value = withDelay(
+      800,
+      withRepeat(
+        withSequence(
+          withTiming(0.85, { duration: 60 }),
+          withTiming(0, { duration: 100 }),
+          withDelay(1900, withTiming(0, { duration: 1 })),
+        ),
+        -1,
+        false,
+      ),
+    );
+
+    // Accent bolt — quick flicker, offset by ~1.5s
+    bolt3.value = withDelay(
+      1500,
+      withRepeat(
+        withSequence(
+          withTiming(0.7, { duration: 40 }),
+          withTiming(0.2, { duration: 40 }),
+          withTiming(0.7, { duration: 40 }),
+          withTiming(0, { duration: 80 }),
+          withDelay(2700, withTiming(0, { duration: 1 })),
+        ),
+        -1,
+        false,
+      ),
+    );
+  }, []);
+
+  const bolt1Props = useAnimatedProps(() => ({ opacity: bolt1.value }));
+  const bolt2Props = useAnimatedProps(() => ({ opacity: bolt2.value }));
+  const bolt3Props = useAnimatedProps(() => ({ opacity: bolt3.value }));
+
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100">
       {/* Cloud wisps at top */}
@@ -41,7 +105,7 @@ export default function StormyCardIcon({ size }: Props) {
         opacity={0.85}
       />
 
-      {/* Rain streaks — diagonal lines scattered across the scene */}
+      {/* Rain streaks */}
       <G stroke={RAIN_COLOR} strokeWidth={0.5} strokeLinecap="round" opacity={0.6}>
         <Path d="M 8 35 l 2 6" fill="none" />
         <Path d="M 18 28 l 2 6" fill="none" />
@@ -58,7 +122,7 @@ export default function StormyCardIcon({ size }: Props) {
         <Path d="M 90 70 l 2 6" fill="none" />
       </G>
 
-      {/* Birds — small V silhouettes scattered in sky */}
+      {/* Birds */}
       <G stroke={BIRD_COLOR} strokeWidth={0.8} strokeLinecap="round" fill="none">
         <Path d="M 14 42 l 2.5 -1.5 l 2.5 1.5" />
         <Path d="M 35 55 l 2 -1.2 l 2 1.2" />
@@ -67,26 +131,44 @@ export default function StormyCardIcon({ size }: Props) {
         <Path d="M 50 70 l 2.2 -1.3 l 2.2 1.3" />
       </G>
 
-      {/* Lightning bolt — main, dramatic with branches */}
-      <G stroke={LIGHTNING_COLOR} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" fill="none">
+      {/* Lightning bolt — main, animated flash */}
+      <AnimatedG
+        animatedProps={bolt1Props}
+        stroke={LIGHTNING_COLOR}
+        strokeWidth={2.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      >
         <Path d="M 56 4 L 48 18 L 58 22 L 42 38 L 54 42 L 36 58 L 50 62 L 32 82" />
-        {/* Branch from upper section */}
         <Path d="M 48 18 L 38 22 L 30 28" />
-        {/* Branch from middle */}
         <Path d="M 42 38 L 30 42 L 24 50" />
-        {/* Branch right */}
         <Path d="M 54 42 L 66 46 L 74 40" />
-      </G>
+      </AnimatedG>
 
-      {/* Lightning bolt — secondary smaller */}
-      <G stroke={LIGHTNING_COLOR} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={0.85}>
+      {/* Lightning bolt — secondary, animated flash */}
+      <AnimatedG
+        animatedProps={bolt2Props}
+        stroke={LIGHTNING_COLOR}
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      >
         <Path d="M 78 8 L 74 20 L 82 26 L 70 42 L 80 46 L 68 60" />
-      </G>
+      </AnimatedG>
 
-      {/* Small extra zigzag accent */}
-      <G stroke={LIGHTNING_COLOR} strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={0.7}>
+      {/* Accent zigzag — animated flash */}
+      <AnimatedG
+        animatedProps={bolt3Props}
+        stroke={LIGHTNING_COLOR}
+        strokeWidth={1.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      >
         <Path d="M 14 14 L 18 22 L 12 28 L 20 36" />
-      </G>
+      </AnimatedG>
     </Svg>
   );
 }
