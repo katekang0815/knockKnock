@@ -19,14 +19,14 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 const HEAD_COLOR = '#F5E8C8';
-const BODY_PATH = 'M 28 30 L 55 30 L 140.5 169.5 L 28 169.5 Z';
+const BODY_PATH = 'M 28 30 L 68.5 30 L 196.75 239.25 L 28 239.25 Z';
 const LIQUID_GLOW = '#FFB69E';
 
-const VIEW_W = 145;
-const VIEW_H = 195;
+const VIEW_W = 210;
+const VIEW_H = 265;
 
 interface Props {
   size: number;
@@ -41,6 +41,45 @@ function footPosition(phase: number) {
     const p = (phase - 0.5) * 2;
     return { x: 8 - 16 * p, y: -5 * Math.sin(p * Math.PI) };
   }
+}
+
+/**
+ * Generate an organic blob path using sine-perturbed polar coordinates.
+ * Smooth closed curve via quadratic Bezier through midpoints.
+ */
+function makeBlob(
+  cx: number,
+  cy: number,
+  baseR: number,
+  time: number,
+  seed: number,
+): string {
+  'worklet';
+  const N = 12;
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (let i = 0; i < N; i++) {
+    const angle = (i / N) * Math.PI * 2;
+    const noise =
+      Math.sin(time * 1.0 + angle * 3 + seed) * 0.20 +
+      Math.cos(time * 0.7 + angle * 2 + seed * 1.5) * 0.13 +
+      Math.sin(time * 1.3 + angle * 5 + seed * 0.7) * 0.07;
+    const r = baseR * (1 + noise);
+    xs.push(cx + Math.cos(angle) * r);
+    ys.push(cy + Math.sin(angle) * r);
+  }
+  // Build smooth closed path using quadratic Bezier through midpoints
+  const startMidX = (xs[N - 1] + xs[0]) / 2;
+  const startMidY = (ys[N - 1] + ys[0]) / 2;
+  let d = `M ${startMidX.toFixed(2)} ${startMidY.toFixed(2)} `;
+  for (let i = 0; i < N; i++) {
+    const j = (i + 1) % N;
+    const midX = (xs[i] + xs[j]) / 2;
+    const midY = (ys[i] + ys[j]) / 2;
+    d += `Q ${xs[i].toFixed(2)} ${ys[i].toFixed(2)} ${midX.toFixed(2)} ${midY.toFixed(2)} `;
+  }
+  d += 'Z';
+  return d;
 }
 
 export default function WalkingIcon({ size }: Props) {
@@ -77,29 +116,29 @@ export default function WalkingIcon({ size }: Props) {
     return { transform: [{ translateX: x * scale }, { translateY: y * scale }] };
   });
 
-  // Lava blobs (positions/sizes scaled 1.5x to match larger body)
+  // Lava blobs — organic morphing shapes (not solid circles)
   const blob1Props = useAnimatedProps(() => {
-    const cy = 123 + 33 * Math.sin(liquidT.value * 1.0);
-    const r = 16.5 + 3 * Math.cos(liquidT.value * 1.3);
-    return { cy, r };
+    const cy = 169.5 + 49.5 * Math.sin(liquidT.value * 1.0);
+    const r = 24.75 + 4.5 * Math.cos(liquidT.value * 1.3);
+    return { d: makeBlob(76, cy, r, liquidT.value, 0.5) };
   });
 
   const blob2Props = useAnimatedProps(() => {
-    const cy = 108 + 42 * Math.sin(liquidT.value * 0.7 + 1.5);
-    const r = 12 + 3 * Math.cos(liquidT.value * 0.9 + 0.5);
-    return { cy, r };
+    const cy = 147 + 63 * Math.sin(liquidT.value * 0.7 + 1.5);
+    const r = 18 + 4.5 * Math.cos(liquidT.value * 0.9 + 0.5);
+    return { d: makeBlob(113.5, cy, r, liquidT.value * 0.9, 2.1) };
   });
 
   const blob3Props = useAnimatedProps(() => {
-    const cy = 93 + 27 * Math.sin(liquidT.value * 1.4 + 3);
-    const r = 9 + 2.25 * Math.cos(liquidT.value * 1.1 + 2);
-    return { cy, r };
+    const cy = 124.5 + 40.5 * Math.sin(liquidT.value * 1.4 + 3);
+    const r = 13.5 + 3.375 * Math.cos(liquidT.value * 1.1 + 2);
+    return { d: makeBlob(61, cy, r, liquidT.value * 1.2, 4.0) };
   });
 
   const blob4Props = useAnimatedProps(() => {
-    const cy = 138 + 22 * Math.sin(liquidT.value * 0.8 + 4);
-    const r = 7.5 + 1.5 * Math.cos(liquidT.value * 1.5 + 1);
-    return { cy, r };
+    const cy = 192 + 33 * Math.sin(liquidT.value * 0.8 + 4);
+    const r = 11.25 + 2.25 * Math.cos(liquidT.value * 1.5 + 1);
+    return { d: makeBlob(128.5, cy, r, liquidT.value * 1.4, 5.7) };
   });
 
   return (
@@ -139,23 +178,21 @@ export default function WalkingIcon({ size }: Props) {
 
           {/* Liquid contents — clipped to body shape (no body outline) */}
           <G clipPath="url(#bodyClip)">
-            {/* Soft coral/pink body fill */}
-            <Path d={BODY_PATH} fill="#C58C8C" opacity={0.85} />
             <Path d={BODY_PATH} fill="url(#bgGlow)" />
 
             {/* Particles */}
-            <Circle cx={42} cy={78} r={1.2} fill="#FFF5DD" opacity={0.6} />
-            <Circle cx={60} cy={100.5} r={0.8} fill="#FFF5DD" opacity={0.5} />
-            <Circle cx={50} cy={55.5} r={0.7} fill="#FFF5DD" opacity={0.4} />
-            <Circle cx={70} cy={153} r={1} fill="#FFF5DD" opacity={0.5} />
-            <Circle cx={45} cy={145.5} r={0.9} fill="#FFF5DD" opacity={0.4} />
-            <Circle cx={80} cy={123} r={0.6} fill="#FFF5DD" opacity={0.5} />
+            <Circle cx={49} cy={102} r={1.8} fill="#FFF5DD" opacity={0.6} />
+            <Circle cx={76} cy={135.75} r={1.2} fill="#FFF5DD" opacity={0.5} />
+            <Circle cx={61} cy={68.25} r={1.05} fill="#FFF5DD" opacity={0.4} />
+            <Circle cx={91} cy={214.5} r={1.5} fill="#FFF5DD" opacity={0.5} />
+            <Circle cx={53.5} cy={203.25} r={1.35} fill="#FFF5DD" opacity={0.4} />
+            <Circle cx={106} cy={169.5} r={0.9} fill="#FFF5DD" opacity={0.5} />
 
-            {/* Lava blobs */}
-            <AnimatedCircle animatedProps={blob1Props} cx={60} fill="url(#blobGrad)" />
-            <AnimatedCircle animatedProps={blob2Props} cx={85} fill="url(#blobGrad)" />
-            <AnimatedCircle animatedProps={blob3Props} cx={50} fill="url(#blobGrad)" />
-            <AnimatedCircle animatedProps={blob4Props} cx={95} fill="url(#blobGrad)" />
+            {/* Lava blobs — organic morphing paths */}
+            <AnimatedPath animatedProps={blob1Props} fill="url(#blobGrad)" />
+            <AnimatedPath animatedProps={blob2Props} fill="url(#blobGrad)" />
+            <AnimatedPath animatedProps={blob3Props} fill="url(#blobGrad)" />
+            <AnimatedPath animatedProps={blob4Props} fill="url(#blobGrad)" />
           </G>
         </Svg>
       </Animated.View>
@@ -165,11 +202,11 @@ export default function WalkingIcon({ size }: Props) {
         <Svg width={size} height={size} viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}>
           <Ellipse
             cx={38}
-            cy={181.5}
+            cy={251.25}
             rx={5}
             ry={1.8}
             fill={HEAD_COLOR}
-            transform="rotate(-20 38 181.5)"
+            transform="rotate(-20 38 251.25)"
           />
         </Svg>
       </Animated.View>
@@ -179,11 +216,11 @@ export default function WalkingIcon({ size }: Props) {
         <Svg width={size} height={size} viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}>
           <Ellipse
             cx={54}
-            cy={181.5}
+            cy={251.25}
             rx={5}
             ry={1.8}
             fill={HEAD_COLOR}
-            transform="rotate(-20 54 181.5)"
+            transform="rotate(-20 54 251.25)"
           />
         </Svg>
       </Animated.View>

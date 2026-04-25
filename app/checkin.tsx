@@ -53,7 +53,7 @@ export default function CheckInScreen() {
               activeOpacity={0.7}
               onPress={() => router.push({ pathname: '/subemotions', params: { category: cat.label } })}
             >
-              {cat.label === 'Sunny' && <WalkingIcon size={CARD_SIZE * 0.95} />}
+              {cat.label === 'Sunny' && <WalkingIcon size={CARD_SIZE * 0.7} />}
             </TouchableOpacity>
           ))}
         </View>
