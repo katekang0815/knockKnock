@@ -1,16 +1,16 @@
-import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
-import Svg, { Path, Circle, Ellipse } from 'react-native-svg';
+import { useEffect } from "react";
+import { StyleSheet, View } from "react-native";
 import Animated, {
-  useSharedValue,
+  Easing,
   useAnimatedStyle,
+  useSharedValue,
   withRepeat,
   withTiming,
-  Easing,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
+import Svg, { Circle, Ellipse, Path } from "react-native-svg";
 
-const STROKE = '#FFFFFF';
-const HEAD_COLOR = '#F5E8C8';
+const STROKE = "#FFFFFF";
+const HEAD_COLOR = "#F5E8C8";
 
 interface Props {
   size: number;
@@ -24,7 +24,7 @@ interface Props {
  * - Upper body bobs up at t=0.25 & t=0.75 (feet pass)
  */
 function footPosition(phase: number) {
-  'worklet';
+  "worklet";
   if (phase < 0.5) {
     const p = phase * 2;
     return { x: -8 + 16 * p, y: 0 };
@@ -72,7 +72,7 @@ export default function WalkingIcon({ size }: Props) {
       {/* Upper body (head + trapezoid) — bobs up and down */}
       <Animated.View style={[StyleSheet.absoluteFill, upperBodyStyle]}>
         <Svg width={size} height={size} viewBox="0 0 110 150">
-          <Circle cx={22} cy={22} r={6} fill={HEAD_COLOR} />
+          <Circle cx={18} cy={25} r={6} fill={HEAD_COLOR} />
           <Path
             d="M 28 38 L 46 38 L 103 131 L 28 131 Z"
             stroke={STROKE}
