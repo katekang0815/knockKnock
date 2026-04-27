@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import WalkingIcon from '@/components/WalkingIcon';
+import StormyTornadoIcon from '@/components/StormyTornadoIcon';
 
 const { width } = Dimensions.get('window');
 
@@ -49,11 +50,16 @@ export default function CheckInScreen() {
           {CATEGORIES.map((cat) => (
             <TouchableOpacity
               key={cat.label}
-              style={styles.card}
+              style={[styles.card, cat.label === 'Stormy' && styles.cardNoBorder]}
               activeOpacity={0.7}
               onPress={() => router.push({ pathname: '/subemotions', params: { category: cat.label } })}
             >
               {cat.label === 'Sunny' && <WalkingIcon size={CARD_SIZE * 0.7} />}
+              {cat.label === 'Stormy' && (
+                <View style={[StyleSheet.absoluteFill, styles.tornadoClip]}>
+                  <StormyTornadoIcon size={CARD_SIZE} borderRadius={24} />
+                </View>
+              )}
             </TouchableOpacity>
           ))}
         </View>
@@ -94,6 +100,13 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  cardNoBorder: {
+    borderWidth: 0,
+  },
+  tornadoClip: {
+    borderRadius: 24,
+    overflow: 'hidden',
   },
   backArrow: {
     position: 'absolute',
