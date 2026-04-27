@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Jost_700Bold',
     lineHeight: 34,
     marginTop: '30%',
-    marginBottom: 48,
+    marginBottom: 96,
     textAlign: 'center',
   },
   grid: {
