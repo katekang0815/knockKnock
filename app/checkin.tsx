@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import WalkingIcon from '@/components/WalkingIcon';
-import StormyTornadoIcon from '@/components/StormyTornadoIcon';
+import CalmMountainIcon from '@/components/CalmMountainIcon';
 
 const { width } = Dimensions.get('window');
 
@@ -50,14 +50,14 @@ export default function CheckInScreen() {
           {CATEGORIES.map((cat) => (
             <TouchableOpacity
               key={cat.label}
-              style={[styles.card, cat.label === 'Stormy' && styles.cardNoBorder]}
+              style={[styles.card, cat.label === 'Calm' && styles.cardNoBorder]}
               activeOpacity={0.7}
               onPress={() => router.push({ pathname: '/subemotions', params: { category: cat.label } })}
             >
               {cat.label === 'Sunny' && <WalkingIcon size={CARD_SIZE * 0.7} />}
-              {cat.label === 'Stormy' && (
-                <View style={[StyleSheet.absoluteFill, styles.tornadoClip]}>
-                  <StormyTornadoIcon size={CARD_SIZE} borderRadius={24} />
+              {cat.label === 'Calm' && (
+                <View style={[StyleSheet.absoluteFill, styles.cardClip]}>
+                  <CalmMountainIcon size={CARD_SIZE} borderRadius={24} />
                 </View>
               )}
             </TouchableOpacity>
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   cardNoBorder: {
     borderWidth: 0,
   },
-  tornadoClip: {
+  cardClip: {
     borderRadius: 24,
     overflow: 'hidden',
   },
