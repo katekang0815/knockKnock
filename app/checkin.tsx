@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import WalkingIcon from '@/components/WalkingIcon';
-import CalmMountainIcon from '@/components/CalmMountainIcon';
+import CalmBeachIcon from '@/components/CalmBeachIcon';
 
 const { width } = Dimensions.get('window');
 
@@ -57,7 +57,7 @@ export default function CheckInScreen() {
               {cat.label === 'Sunny' && <WalkingIcon size={CARD_SIZE * 0.7} />}
               {cat.label === 'Calm' && (
                 <View style={[StyleSheet.absoluteFill, styles.cardClip]}>
-                  <CalmMountainIcon size={CARD_SIZE} borderRadius={24} />
+                  <CalmBeachIcon size={CARD_SIZE} borderRadius={24} />
                 </View>
               )}
             </TouchableOpacity>
