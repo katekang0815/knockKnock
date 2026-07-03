@@ -17,7 +17,7 @@ import { EMOTION_DATA, EmotionCategory } from '@/constants/emotions';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const COLUMNS = 6;
-const GAP = 6;
+const GAP = 2;
 const HORIZONTAL_PADDING = 24;
 const CIRCLE_SIZE = (SCREEN_W - HORIZONTAL_PADDING * 2 - GAP * (4 - 1)) / 4 + 4;
 const CELL_STEP = CIRCLE_SIZE + GAP; // horizontal / vertical step between circle centers
