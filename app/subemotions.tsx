@@ -3,7 +3,15 @@ import { View, Text, Dimensions, StyleSheet, TouchableOpacity, InteractionManage
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, withDecay } from 'react-native-reanimated';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useDerivedValue,
+  useAnimatedReaction,
+  withDecay,
+  runOnJS,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import EmotionCircle from '@/components/EmotionCircle';
 import { EMOTION_DATA, EmotionCategory } from '@/constants/emotions';
 
@@ -140,6 +148,32 @@ export default function SubEmotionsScreen() {
         clamp: [minY, maxY],
       });
     });
+
+  // Focus point in the grid container's local frame — center of visible viewport
+  const focusX = SCREEN_W / 2;
+  const focusY = viewportH / 2;
+  const cellStep = CIRCLE_SIZE + GAP;
+
+  // Which cell is currently at the focus point?
+  // Encoded as `col * 10000 + row` so we can detect transitions with one comparison.
+  const focusedCell = useDerivedValue(() => {
+    const focusGridX = focusX - translateX.value;
+    const focusGridY = focusY - translateY.value;
+    const col = Math.round(focusGridX / cellStep);
+    const row = Math.round(focusGridY / cellStep);
+    return col * 10000 + row;
+  });
+
+  // Fire a subtle "tick" every time the focused cell transitions
+  useAnimatedReaction(
+    () => focusedCell.value,
+    (current, previous) => {
+      if (previous !== null && current !== previous) {
+        runOnJS(Haptics.selectionAsync)();
+      }
+    },
+    [],
+  );
 
   return (
     <GestureHandlerRootView style={styles.container}>
