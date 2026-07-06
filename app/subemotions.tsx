@@ -19,11 +19,7 @@ const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const COLUMNS = 6;
 const GAP = 6;
 const HORIZONTAL_PADDING = 24;
-// Base cell is sized so an unfocused cell (~0.85x) still fills ≈ 4 across the screen,
-// giving the focused cell (1.45x) breathing room without overlapping neighbors.
-const CIRCLE_SIZE = Math.round(
-  ((SCREEN_W - HORIZONTAL_PADDING * 2 - GAP * (4 - 1)) / 4 + 4) * 1.15,
-);
+const CIRCLE_SIZE = (SCREEN_W - HORIZONTAL_PADDING * 2 - GAP * (4 - 1)) / 4 + 4;
 
 // Fixed grid layout:
 // Stormy (top-left)    | Sunny (top-right)
@@ -195,75 +191,41 @@ export default function SubEmotionsScreen() {
         ) : (
         <GestureDetector gesture={panGesture}>
           <Animated.View style={[{ width: totalGridWidth }, animatedStyle]}>
-            {sections.map((section, sectionIndex) => {
-              // Cumulative vertical offset of this section in the grid frame
-              const sectionOffsetY = sections
-                .slice(0, sectionIndex)
-                .reduce((h, s) => h + s.rowCount * cellStep, 0);
+            {sections.map((section, sectionIndex) => (
+              <View key={sectionIndex}>
+                {Array.from({ length: section.rowCount }).map((_, rowIndex) => (
+                  <View key={`${sectionIndex}-${rowIndex}`} style={styles.row}>
+                    {/* Left grid row */}
+                    {section.leftRows[rowIndex].map((emotion) => (
+                      <EmotionCircle
+                        key={emotion}
+                        label={emotion}
+                        category={section.leftKey}
+                        gradientStart={section.leftData.gradientStart}
+                        gradientEnd={section.leftData.gradientEnd}
+                        size={CIRCLE_SIZE}
+                      />
+                    ))}
+                    {section.leftRows[rowIndex].length < COLUMNS &&
+                      Array.from({ length: COLUMNS - section.leftRows[rowIndex].length }).map((_, i) => (
+                        <View key={`empty-l-${i}`} style={{ width: CIRCLE_SIZE, height: CIRCLE_SIZE }} />
+                      ))}
 
-              return (
-                <View key={sectionIndex}>
-                  {Array.from({ length: section.rowCount }).map((_, rowIndex) => {
-                    const rowCenterY =
-                      sectionOffsetY + rowIndex * cellStep + CIRCLE_SIZE / 2;
-
-                    return (
-                      <View key={`${sectionIndex}-${rowIndex}`} style={styles.row}>
-                        {/* Left grid row */}
-                        {section.leftRows[rowIndex].map((emotion, colIndex) => {
-                          const cellCenterX = colIndex * cellStep + CIRCLE_SIZE / 2;
-                          return (
-                            <EmotionCircle
-                              key={emotion}
-                              label={emotion}
-                              category={section.leftKey}
-                              gradientStart={section.leftData.gradientStart}
-                              gradientEnd={section.leftData.gradientEnd}
-                              size={CIRCLE_SIZE}
-                              baseX={cellCenterX}
-                              baseY={rowCenterY}
-                              translateX={translateX}
-                              translateY={translateY}
-                              focusX={focusX}
-                              focusY={focusY}
-                            />
-                          );
-                        })}
-                        {section.leftRows[rowIndex].length < COLUMNS &&
-                          Array.from({ length: COLUMNS - section.leftRows[rowIndex].length }).map((_, i) => (
-                            <View
-                              key={`empty-l-${i}`}
-                              style={{ width: CIRCLE_SIZE, height: CIRCLE_SIZE }}
-                            />
-                          ))}
-
-                        {/* Right grid row */}
-                        {section.rightRows[rowIndex].map((emotion, colIndex) => {
-                          const cellCenterX =
-                            singleGridWidth + GAP + colIndex * cellStep + CIRCLE_SIZE / 2;
-                          return (
-                            <EmotionCircle
-                              key={emotion}
-                              label={emotion}
-                              category={section.rightKey}
-                              gradientStart={section.rightData.gradientStart}
-                              gradientEnd={section.rightData.gradientEnd}
-                              size={CIRCLE_SIZE}
-                              baseX={cellCenterX}
-                              baseY={rowCenterY}
-                              translateX={translateX}
-                              translateY={translateY}
-                              focusX={focusX}
-                              focusY={focusY}
-                            />
-                          );
-                        })}
-                      </View>
-                    );
-                  })}
-                </View>
-              );
-            })}
+                    {/* Right grid row */}
+                    {section.rightRows[rowIndex].map((emotion) => (
+                      <EmotionCircle
+                        key={emotion}
+                        label={emotion}
+                        category={section.rightKey}
+                        gradientStart={section.rightData.gradientStart}
+                        gradientEnd={section.rightData.gradientEnd}
+                        size={CIRCLE_SIZE}
+                      />
+                    ))}
+                  </View>
+                ))}
+              </View>
+            ))}
           </Animated.View>
         </GestureDetector>
         )}

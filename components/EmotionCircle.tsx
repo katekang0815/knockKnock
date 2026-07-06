@@ -10,12 +10,6 @@ import Svg, {
   Stop,
   G,
 } from 'react-native-svg';
-import Animated, {
-  useAnimatedStyle,
-  interpolate,
-  Extrapolation,
-  SharedValue,
-} from 'react-native-reanimated';
 
 interface EmotionCircleProps {
   label: string;
@@ -23,13 +17,6 @@ interface EmotionCircleProps {
   gradientStart?: string;
   gradientEnd?: string;
   size: number;
-  // Position/focus props (optional — cell becomes static if omitted)
-  baseX?: number;
-  baseY?: number;
-  translateX?: SharedValue<number>;
-  translateY?: SharedValue<number>;
-  focusX?: number;
-  focusY?: number;
 }
 
 // --- Frost grain pre-computed once at module load ---
@@ -60,12 +47,6 @@ function EmotionCircleComponent({
   label,
   category,
   size,
-  baseX,
-  baseY,
-  translateX,
-  translateY,
-  focusX,
-  focusY,
 }: EmotionCircleProps) {
   const handlePress = useCallback(() => {
     router.push({
@@ -79,48 +60,19 @@ function EmotionCircleComponent({
     [category],
   );
 
-  const isAnimated =
-    baseX !== undefined &&
-    baseY !== undefined &&
-    translateX !== undefined &&
-    translateY !== undefined &&
-    focusX !== undefined &&
-    focusY !== undefined;
-
-  // Scale up at focus, shrink further away.
-  // The (harmless) hook call must be unconditional — the fallback style is a no-op.
-  const animatedStyle = useAnimatedStyle(() => {
-    if (!isAnimated) return { transform: [{ scale: 1 }] };
-    const cx = baseX! + translateX!.value;
-    const cy = baseY! + translateY!.value;
-    const dx = cx - focusX!;
-    const dy = cy - focusY!;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    const scale = interpolate(
-      dist,
-      [0, size * 0.7, size * 1.6, size * 3],
-      [1.45, 1.2, 0.85, 0.6],
-      Extrapolation.CLAMP,
-    );
-    return { transform: [{ scale }] };
-  });
-
   return (
     <TouchableOpacity
       onPress={handlePress}
       activeOpacity={0.7}
       style={{ width: size, height: size }}
     >
-      <Animated.View
-        style={[
-          {
-            width: size,
-            height: size,
-            borderRadius: 14,
-            overflow: 'hidden',
-          },
-          animatedStyle,
-        ]}
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: 14,
+          overflow: 'hidden',
+        }}
       >
         <Svg width={size} height={size} viewBox="0 0 100 100">
           <Defs>
@@ -183,7 +135,7 @@ function EmotionCircleComponent({
             {label}
           </Text>
         </View>
-      </Animated.View>
+      </View>
     </TouchableOpacity>
   );
 }
