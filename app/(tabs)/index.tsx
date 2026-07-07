@@ -41,10 +41,18 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         <Text style={[styles.title, { top: insets.top + 20 + 96 }]}>
-          Let{`'`}s check in and begin today{`'`}s devotional!
+          One step closer.
         </Text>
 
-        <Text style={[styles.tapText, { top: insets.top + 20 + 96 + 80 }]}>
+        <Text style={[styles.verse, { top: insets.top + 20 + 96 + 88 }]}>
+          {`"He saw a stairway resting on the earth,\nwith its top reaching to heaven."`}
+        </Text>
+
+        <Text style={[styles.attribution, { top: insets.top + 20 + 96 + 88 + 60 }]}>
+          — Genesis 28:12
+        </Text>
+
+        <Text style={[styles.tapText, { top: insets.top + 20 + 96 + 88 + 60 + 40 }]}>
           Tap anywhere to start
         </Text>
 
@@ -66,10 +74,29 @@ const styles = StyleSheet.create({
     position: "absolute",
     alignSelf: "center",
     color: "#FFFFFF",
-    fontSize: 32,
+    fontSize: 44,
     fontFamily: "Jost_700Bold",
-    lineHeight: 34,
+    lineHeight: 48,
     textAlign: "center",
+  },
+  verse: {
+    position: "absolute",
+    alignSelf: "center",
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 15,
+    fontFamily: "Jost_400Regular",
+    fontStyle: "italic",
+    lineHeight: 22,
+    textAlign: "center",
+    paddingHorizontal: 24,
+  },
+  attribution: {
+    position: "absolute",
+    alignSelf: "center",
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 13,
+    fontFamily: "Jost_400Regular",
+    letterSpacing: 1.5,
   },
   tapText: {
     position: "absolute",
