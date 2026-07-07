@@ -49,24 +49,25 @@ const FROST_GRAIN = Array.from({ length: 45 }, (_, i) => ({
   bright: seededRandom(i * 41 + 5) > 0.5,
 }));
 
-// Bright warm hotspots fading into cool blush / pale blue-gray fields,
-// matching the overlapping-circles reference.
-// Format: [hotspot (bright/warm), field (cool/pale)]
+// Vivid color pairs pulled from the reference — pink, cyan, coral, magenta
 const COLOR_PAIRS: Array<[string, string]> = [
-  ['#FFC838', '#F4B5A0'], // yellow → coral blush
-  ['#FF7A4A', '#F2C6BE'], // orange → pale peach
-  ['#FF8A5C', '#D9CFD0'], // coral → pale cool gray
-  ['#FFE352', '#F0C9B8'], // lemon → warm blush
-  ['#FF6E4A', '#E8C8C4'], // salmon → soft pink
-  ['#FFB040', '#E0C8CE'], // amber → dusty blush
-  ['#F58260', '#D6D4D8'], // coral → cool gray-blush
-  ['#FFD450', '#F1BFAD'], // sunflower → peach
-  ['#FF8850', '#EEC6BC'], // tangerine → pale coral
-  ['#FF9F58', '#DCCBCE'], // apricot → pale mauve
+  ['#FF2E86', '#00D4D4'], // hot pink → turquoise
+  ['#FF2E86', '#FF6633'], // hot pink → coral
+  ['#00CFCF', '#FF6633'], // cyan → coral
+  ['#88F0C0', '#FF2E86'], // mint → pink
+  ['#FF6633', '#00CCE0'], // coral → cyan
+  ['#D000B0', '#00E0E0'], // magenta → aqua
+  ['#FFB0C0', '#00D4D4'], // soft pink → turquoise
+  ['#FF3399', '#FF9944'], // pink → orange
 ];
 
-// Label color — black for readability on the warm pink/coral gradients
-const LABEL_COLOR = '#FFFFFF';
+// Per-category text label color
+const LABEL_COLORS: Record<string, string> = {
+  Sunny: '#F5D960',   // warm yellow
+  Stormy: '#E85050',  // red
+  Calm: '#FFFFFF',    // white (Rain)
+  Breezy: '#F58A6C',  // coral (Breeze)
+};
 
 function EmotionCircleComponent({
   label,
@@ -80,7 +81,10 @@ function EmotionCircleComponent({
     });
   }, [label, category]);
 
-  const labelColor = LABEL_COLOR;
+  const labelColor = useMemo(
+    () => LABEL_COLORS[category] ?? '#FFFFFF',
+    [category],
+  );
 
   // Deterministic per-cell visuals: color pair + gradient hotspot position + id suffix
   const cellVisuals = useMemo(() => {
