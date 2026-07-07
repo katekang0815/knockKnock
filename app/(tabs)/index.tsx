@@ -41,10 +41,17 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         <Text style={[styles.title, { top: insets.top + 20 + 96 }]}>
-          Let{`'`}s check in and begin today{`'`}s devotional!
+          Ready to climb? Take the first step!
         </Text>
 
-        <Text style={[styles.tapText, { top: insets.top + 20 + 96 + 80 }]}>
+        <View style={[styles.verseCard, { top: insets.top + 20 + 96 + 96 }]}>
+          <Text style={styles.verse}>
+            {`"He saw a stairway resting on the earth,\nwith its top reaching to heaven."`}
+          </Text>
+          <Text style={styles.attribution}>— Genesis 28:12</Text>
+        </View>
+
+        <Text style={[styles.tapText, { top: insets.top + 20 + 96 + 96 + 160 }]}>
           Tap anywhere to start
         </Text>
 
@@ -70,6 +77,34 @@ const styles = StyleSheet.create({
     fontFamily: "Jost_700Bold",
     lineHeight: 34,
     textAlign: "center",
+  },
+  verseCard: {
+    position: "absolute",
+    alignSelf: "center",
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "rgba(180,180,180,0.55)",
+    borderRadius: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    marginHorizontal: 24,
+    alignItems: "center",
+    maxWidth: "88%",
+  },
+  verse: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 15,
+    fontFamily: "Jost_400Regular",
+    fontStyle: "italic",
+    lineHeight: 22,
+    textAlign: "center",
+  },
+  attribution: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 13,
+    fontFamily: "Jost_400Regular",
+    letterSpacing: 1.5,
+    marginTop: 10,
   },
   tapText: {
     position: "absolute",
