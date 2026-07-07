@@ -49,7 +49,7 @@ export default function CheckInScreen() {
 
       <View style={styles.content}>
         <Text style={styles.title}>
-          How are you feeling today?
+          What{`'`}s the sky like where you{`'`}re standing?
         </Text>
 
         {/* Single Lottie with touch overlays — clip to icon region */}
