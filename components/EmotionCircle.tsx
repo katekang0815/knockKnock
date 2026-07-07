@@ -19,23 +19,49 @@ interface EmotionCircleProps {
   size: number;
 }
 
-// --- Frost grain pre-computed once at module load ---
+// --- Utilities ---
 
 function seededRandom(seed: number): number {
   const x = Math.sin(seed * 9301 + 49297) * 49297;
   return x - Math.floor(x);
 }
 
-// Grain positions in 0–100 viewBox space, shared by every cell
+function hashLabel(label: string): number {
+  let h = 0;
+  for (let i = 0; i < label.length; i++) {
+    h = (h << 5) - h + label.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h);
+}
+
+// Sanitize the label into a legal SVG id fragment (a-z, A-Z, digits, underscore only)
+function safeId(label: string): string {
+  return label.replace(/[^a-zA-Z0-9]/g, '_');
+}
+
+// Shared frost grain positions in 0–100 viewBox space
 const FROST_GRAIN = Array.from({ length: 45 }, (_, i) => ({
   x: seededRandom(i * 13) * 100,
   y: seededRandom(i * 17 + 1) * 100,
   r: 0.25 + seededRandom(i * 23 + 2) * 0.7,
-  opacity: 0.08 + seededRandom(i * 31 + 3) * 0.3,
-  bright: seededRandom(i * 41 + 5) > 0.4,
+  opacity: 0.05 + seededRandom(i * 31 + 3) * 0.15,
+  bright: seededRandom(i * 41 + 5) > 0.5,
 }));
 
-// Per-category label color
+// Vivid color pairs pulled from the reference — pink, cyan, coral, magenta
+const COLOR_PAIRS: Array<[string, string]> = [
+  ['#FF2E86', '#00D4D4'], // hot pink → turquoise
+  ['#FF2E86', '#FF6633'], // hot pink → coral
+  ['#00CFCF', '#FF6633'], // cyan → coral
+  ['#88F0C0', '#FF2E86'], // mint → pink
+  ['#FF6633', '#00CCE0'], // coral → cyan
+  ['#D000B0', '#00E0E0'], // magenta → aqua
+  ['#FFB0C0', '#00D4D4'], // soft pink → turquoise
+  ['#FF3399', '#FF9944'], // pink → orange
+];
+
+// Per-category text label color
 const LABEL_COLORS: Record<string, string> = {
   Sunny: '#F5D960',   // warm yellow
   Stormy: '#E85050',  // red
@@ -60,6 +86,25 @@ function EmotionCircleComponent({
     [category],
   );
 
+  // Deterministic per-cell visuals: color pair + gradient hotspot position + id suffix
+  const cellVisuals = useMemo(() => {
+    const h = hashLabel(label);
+    const pair = COLOR_PAIRS[h % COLOR_PAIRS.length];
+    // Off-center hotspot for organic variation, roughly matching the reference
+    const cx = 0.28 + seededRandom(h * 3.1) * 0.44; // 0.28 – 0.72
+    const cy = 0.28 + seededRandom(h * 7.7) * 0.44;
+    // Unique id fragment prevents Def collisions across cells
+    const idFrag = safeId(label);
+    return { pair, cx, cy, idFrag };
+  }, [label]);
+
+  const { pair, cx, cy, idFrag } = cellVisuals;
+  const [colorA, colorB] = pair;
+
+  const bgGradientId = `bg_${idFrag}`;
+  const rimGradientId = `rim_${idFrag}`;
+  const clipId = `clip_${idFrag}`;
+
   return (
     <TouchableOpacity
       onPress={handlePress}
@@ -70,59 +115,60 @@ function EmotionCircleComponent({
         style={{
           width: size,
           height: size,
-          borderRadius: 14,
+          borderRadius: size / 2,
           overflow: 'hidden',
         }}
       >
         <Svg width={size} height={size} viewBox="0 0 100 100">
           <Defs>
-            <ClipPath id="cellClip">
-              <Rect x={0} y={0} width={100} height={100} rx={14} />
+            <ClipPath id={clipId}>
+              <Rect x={0} y={0} width={100} height={100} rx={50} />
             </ClipPath>
-            {/* Warm dark radial gradient — brighter center fading to darker edges */}
+            {/* Bright vivid radial: hotspot color at cx/cy fading to the second color */}
             <RadialGradient
-              id="cellBg"
-              cx="0.5"
-              cy="0.5"
-              r="0.7"
+              id={bgGradientId}
+              cx={cx.toString()}
+              cy={cy.toString()}
+              r="0.85"
               gradientUnits="objectBoundingBox"
             >
-              <Stop offset="0" stopColor="#3A2320" />
-              <Stop offset="1" stopColor="#170D0B" />
+              <Stop offset="0" stopColor={colorA} />
+              <Stop offset="0.65" stopColor={colorB} />
+              <Stop offset="1" stopColor={colorB} />
             </RadialGradient>
-            {/* Frost edge vignette — subtle brighter rim */}
+            {/* Soft rim highlight — a hint of shine at the edge */}
             <RadialGradient
-              id="frostRim"
+              id={rimGradientId}
               cx="0.5"
               cy="0.5"
               r="0.75"
               gradientUnits="objectBoundingBox"
             >
-              <Stop offset="0" stopColor="#5A3835" stopOpacity={0} />
-              <Stop offset="0.7" stopColor="#5A3835" stopOpacity={0} />
-              <Stop offset="1" stopColor="#7A4A45" stopOpacity={0.35} />
+              <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0} />
+              <Stop offset="0.85" stopColor="#FFFFFF" stopOpacity={0} />
+              <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0.25} />
             </RadialGradient>
           </Defs>
 
-          {/* Base warm dark gradient */}
-          <Rect x={0} y={0} width={100} height={100} rx={14} fill="url(#cellBg)" />
+          {/* Base vivid gradient */}
+          <Rect x={0} y={0} width={100} height={100} rx={50} fill={`url(#${bgGradientId})`} />
 
-          {/* Grainy frost texture clipped to shape */}
-          <G clipPath="url(#cellClip)">
+          {/* Subtle grain texture to keep the "matte marble" feel */}
+          <G clipPath={`url(#${clipId})`}>
             {FROST_GRAIN.map((g, i) => (
               <Circle
                 key={i}
                 cx={g.x}
                 cy={g.y}
                 r={g.r}
-                fill={g.bright ? '#9A6E68' : '#0A0403'}
+                fill={g.bright ? '#FFFFFF' : '#000000'}
                 opacity={g.opacity}
               />
             ))}
           </G>
 
-          {/* Subtle frost rim */}
-          <Rect x={0} y={0} width={100} height={100} rx={14} fill="url(#frostRim)" />
+          {/* Bright edge sheen */}
+          <Rect x={0} y={0} width={100} height={100} rx={50} fill={`url(#${rimGradientId})`} />
         </Svg>
 
         {/* Label overlay */}
@@ -152,5 +198,9 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: 'Jost_400Regular',
     textAlign: 'center',
+    // Soft dark drop for legibility over vivid gradients
+    textShadowColor: 'rgba(0, 0, 0, 0.35)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });
