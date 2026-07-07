@@ -61,13 +61,7 @@ const COLOR_PAIRS: Array<[string, string]> = [
   ['#FF3399', '#FF9944'], // pink → orange
 ];
 
-// Per-category text label color
-const LABEL_COLORS: Record<string, string> = {
-  Sunny: '#F5D960',   // warm yellow
-  Stormy: '#E85050',  // red
-  Calm: '#FFFFFF',    // white (Rain)
-  Breezy: '#F58A6C',  // coral (Breeze)
-};
+const LABEL_COLOR = '#FFFFFF';
 
 function EmotionCircleComponent({
   label,
@@ -81,10 +75,7 @@ function EmotionCircleComponent({
     });
   }, [label, category]);
 
-  const labelColor = useMemo(
-    () => LABEL_COLORS[category] ?? '#FFFFFF',
-    [category],
-  );
+  const labelColor = LABEL_COLOR;
 
   // Deterministic per-cell visuals: color pair + gradient hotspot position + id suffix
   const cellVisuals = useMemo(() => {
