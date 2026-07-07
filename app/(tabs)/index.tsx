@@ -57,7 +57,7 @@ export default function HomeScreen() {
         </Text>
 
         {/* Bouncing ball animation */}
-        <View style={[styles.shapeContainer, { bottom: SCREEN_H / 3 + 10 }]}>
+        <View style={[styles.shapeContainer, { bottom: 200 }]}>
           <BouncingBall size={SHAPE_SIZE * 2} />
         </View>
       </View>
