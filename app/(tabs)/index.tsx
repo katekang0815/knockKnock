@@ -2,6 +2,7 @@ import BouncingBall from "@/components/BouncingBall";
 import { router } from "expo-router";
 import {
   Dimensions,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -51,7 +52,7 @@ export default function HomeScreen() {
           <Text style={styles.attribution}>— Genesis 28:12</Text>
         </View>
 
-        <Text style={[styles.tapText, { top: insets.top + 20 + 96 + 96 + 160 }]}>
+        <Text style={[styles.tapText, { top: insets.top + 20 + 96 + 96 + 130 }]}>
           Tap anywhere to start
         </Text>
 
@@ -77,6 +78,8 @@ const styles = StyleSheet.create({
     fontFamily: "Jost_700Bold",
     lineHeight: 34,
     textAlign: "center",
+    paddingHorizontal: 35,
+    letterSpacing: -0.8,
   },
   verseCard: {
     position: "absolute",
@@ -92,18 +95,18 @@ const styles = StyleSheet.create({
     maxWidth: "88%",
   },
   verse: {
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 15,
-    fontFamily: "Jost_400Regular",
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 16,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     fontStyle: "italic",
-    lineHeight: 22,
+    lineHeight: 24,
     textAlign: "center",
   },
   attribution: {
-    color: "rgba(255,255,255,0.55)",
+    color: "rgba(255,255,255,0.6)",
     fontSize: 13,
-    fontFamily: "Jost_400Regular",
-    letterSpacing: 1.5,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    letterSpacing: 0.5,
     marginTop: 10,
   },
   tapText: {
