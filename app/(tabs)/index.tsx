@@ -42,7 +42,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         <Text style={[styles.title, { top: insets.top + 20 + 96 }]}>
-          Ready to climb? Take the first step!
+          Ready to check in? Take the first step!
         </Text>
 
         <View style={[styles.verseCard, { top: insets.top + 20 + 96 + 96 }]}>

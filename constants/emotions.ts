@@ -13,10 +13,10 @@ export const EMOTION_DATA: Record<EmotionCategory, CategoryConfig> = {
     gradientEnd: '#F5E042',
     accentColor: '#F5C842',
     subEmotions: [
-      'Happy', 'Excited', 'Surprised', 'Amazed', 'Proud', 'Curious',
-      'Hopeful', 'Motivated', 'Confident', 'Inspired', 'Successful', 'Cheerful',
-      'Focused', 'Playful', 'Determined', 'Optimistic', 'Thrilled', 'Joyful',
-      'Delighted', 'Accomplished', 'Productive', 'Energized', 'Enthusiastic', 'Alive',
+      'Happy', 'Excited', 'Surprised', 'Amazed',
+      'Proud', 'Curious', 'Hopeful', 'Motivated',
+      'Confident', 'Inspired', 'Successful', 'Focused',
+      'Playful', 'Thrilled', 'Joyful', 'Determined',
     ],
   },
   Stormy: {
@@ -24,10 +24,10 @@ export const EMOTION_DATA: Record<EmotionCategory, CategoryConfig> = {
     gradientEnd: '#FF8A75',
     accentColor: '#E8614D',
     subEmotions: [
-      'Anxious', 'Stressed', 'Overwhelmed', 'Worried', 'Annoyed', 'Frustrated',
-      'Nervous', 'Scared', 'Confused', 'Embarrassed', 'Irritated', 'Jealous',
-      'Shocked', 'Tense', 'Panicked', 'Uneasy', 'Fomo', 'Furious',
-      'Hyper', 'Terrified', 'Restless', 'Concerned', 'Pressured', 'Livid',
+      'Anxious', 'Stressed', 'Overwhelmed', 'Worried',
+      'Annoyed', 'Frustrated', 'Nervous', 'Scared',
+      'Confused', 'Embarrassed', 'Irritated', 'Jealous',
+      'Fomo', 'Shocked', 'Tense', 'Panicked',
     ],
   },
   Calm: {
@@ -35,10 +35,10 @@ export const EMOTION_DATA: Record<EmotionCategory, CategoryConfig> = {
     gradientEnd: '#00BFFF',
     accentColor: '#4A90D9',
     subEmotions: [
-      'Sad', 'Tired', 'Bored', 'Lonely', 'Down', 'Depressed',
-      'Disappointed', 'Exhausted', 'Lost', 'Insecure', 'Meh', 'Guilty',
-      'Ashamed', 'Numb', 'Vulnerable', 'Hopeless', 'Miserable', 'Nostalgic',
-      'Burned Out', 'Disconnected', 'Trapped', 'Helpless', 'Disgusted', 'Excluded',
+      'Sad', 'Tired', 'Bored', 'Lonely',
+      'Down', 'Depressed', 'Disappointed', 'Exhausted',
+      'Lost', 'Insecure', 'Meh', 'Guilty',
+      'Ashamed', 'Numb', 'Vulnerable', 'Burned Out',
     ],
   },
   Breezy: {
@@ -46,10 +46,10 @@ export const EMOTION_DATA: Record<EmotionCategory, CategoryConfig> = {
     gradientEnd: '#00FFB0',
     accentColor: '#00D68F',
     subEmotions: [
-      'Loved', 'Good', 'Chill', 'Relaxed', 'Grateful', 'Thankful',
-      'Blessed', 'Peaceful', 'Safe', 'Comfortable', 'Content', 'Connected',
-      'Appreciated', 'Relieved', 'Understood', 'Supported', 'Calm', 'Secure',
-      'Fulfilled', 'Blissful', 'Grounded', 'Included', 'Balanced', 'Accepted',
+      'Loved', 'Good', 'Chill', 'Relaxed',
+      'Grateful', 'Blessed', 'Thankful', 'Peaceful',
+      'Safe', 'Comfortable', 'Content', 'Connected',
+      'Appreciated', 'Relieved', 'Understood', 'Supported',
     ],
   },
 };

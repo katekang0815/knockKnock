@@ -1,6 +1,14 @@
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useEffect, useMemo } from 'react';
 import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withDelay,
+  Easing,
+} from 'react-native-reanimated';
 import Svg, {
   Rect,
   Circle,
@@ -49,7 +57,7 @@ const FROST_GRAIN = Array.from({ length: 45 }, (_, i) => ({
   bright: seededRandom(i * 41 + 5) > 0.5,
 }));
 
-// Palette pulled from BouncingBall: coral → dusty rose → cream
+// Default palette pulled from BouncingBall: coral → dusty rose → cream
 // Format: [hotspot (warm/vivid), field (soft/pale)]
 const COLOR_PAIRS: Array<[string, string]> = [
   ['#DB533C', '#FFF7CE'], // coral → cream (the ball's own gradient)
@@ -60,6 +68,45 @@ const COLOR_PAIRS: Array<[string, string]> = [
   ['#C78E7D', '#FFEBC8'], // rose → butter cream
   ['#B84832', '#F0C8B0'], // deep coral → peach
   ['#E88A6E', '#FFF2D8'], // salmon → light cream
+];
+
+// Stormy palette — hot pink / magenta hotspots fading into cool teal / mint fields.
+// Reads as "electric tension": warm and cool colors colliding on each cell.
+const STORMY_PAIRS: Array<[string, string]> = [
+  ['#FF3E7C', '#6ABDB6'], // hot pink → teal
+  ['#F7476D', '#5FBEC0'], // rose → cool teal
+  ['#FF547A', '#7EC6BE'], // pink → mint
+  ['#E63E7A', '#66BFB8'], // magenta → teal
+  ['#FF6E4E', '#FF3E7C'], // coral → pink (warm-dominant)
+  ['#66BFB8', '#FF3E7C'], // teal → pink (cool-dominant)
+  ['#F26A5A', '#66BFB8'], // coral → teal
+  ['#FF3E7C', '#A88EA0'], // pink → dusty lavender
+];
+
+// Breezy palette — deep forest teal + warm coral / peach, on a cream field.
+// Reads as "grounded warmth": earthier and softer than Stormy's electric pop.
+const BREEZY_PAIRS: Array<[string, string]> = [
+  ['#1B5854', '#F0E4CE'], // deep teal → cream
+  ['#E5745A', '#1B5854'], // coral → deep teal
+  ['#0F4A48', '#E5745A'], // forest → coral
+  ['#F0A88C', '#1B5854'], // peach → deep teal
+  ['#E85E45', '#F5E8D0'], // warm coral → cream
+  ['#0F4A48', '#F0A88C'], // forest → peach
+  ['#2A6560', '#E85E45'], // teal green → coral
+  ['#E5745A', '#F5E0C8'], // coral → warm cream
+];
+
+// Calm palette — glowing red-orange embers inside cool steel-blue rain.
+// Reads as "warmth remembered in a cold storm": small heat cores in cool fields.
+const CALM_PAIRS: Array<[string, string]> = [
+  ['#EE4E2E', '#5A7A9B'], // ember → steel blue
+  ['#E85030', '#7A8A9B'], // warm red → slate
+  ['#4A6B8A', '#EE4E2E'], // steel → ember
+  ['#D64828', '#4A6580'], // deep red → deep steel
+  ['#6A8098', '#EE4E2E'], // slate → ember
+  ['#5A7A9B', '#2A3A4E'], // steel → dark navy
+  ['#E85030', '#8595A5'], // warm red → cool gray
+  ['#EE4E2E', '#3E5670'], // ember → deep steel
 ];
 
 const LABEL_COLOR = '#FFFFFF';
@@ -81,14 +128,20 @@ function EmotionCircleComponent({
   // Deterministic per-cell visuals: color pair + gradient hotspot position + id suffix
   const cellVisuals = useMemo(() => {
     const h = hashLabel(label);
-    const pair = COLOR_PAIRS[h % COLOR_PAIRS.length];
+    // Per-category palettes; Sunny falls back to the default warm coral set.
+    const palette =
+      category === 'Stormy' ? STORMY_PAIRS :
+      category === 'Breezy' ? BREEZY_PAIRS :
+      category === 'Calm'   ? CALM_PAIRS :
+      COLOR_PAIRS;
+    const pair = palette[h % palette.length];
     // Off-center hotspot for organic variation, roughly matching the reference
     const cx = 0.28 + seededRandom(h * 3.1) * 0.44; // 0.28 – 0.72
     const cy = 0.28 + seededRandom(h * 7.7) * 0.44;
     // Unique id fragment prevents Def collisions across cells
     const idFrag = safeId(label);
     return { pair, cx, cy, idFrag };
-  }, [label]);
+  }, [label, category]);
 
   const { pair, cx, cy, idFrag } = cellVisuals;
   const [colorA, colorB] = pair;
@@ -97,19 +150,48 @@ function EmotionCircleComponent({
   const rimGradientId = `rim_${idFrag}`;
   const clipId = `clip_${idFrag}`;
 
+  // Idle motion — all cells jitter like the Stormy temperament for now.
+  const idleAnim = useSharedValue(0);
+  useEffect(() => {
+    // Stagger by hash so cells don't all move in sync.
+    const phase = seededRandom(hashLabel(label) * 5.7) * 1000;
+    idleAnim.value = withDelay(
+      phase,
+      withRepeat(
+        withTiming(1, { duration: 800, easing: Easing.linear }),
+        -1,
+        true,
+      ),
+    );
+  }, [label]);
+
+  const idleStyle = useAnimatedStyle(() => {
+    const t = idleAnim.value;
+    const phi = t * Math.PI * 2;
+    return {
+      transform: [
+        { translateX: (Math.sin(phi * 3) + Math.sin(phi * 5.3)) * 0.5 },
+        { translateY: Math.cos(phi * 4.1) * 0.4 },
+      ],
+    };
+  });
+
   return (
     <TouchableOpacity
       onPress={handlePress}
       activeOpacity={0.7}
       style={{ width: size, height: size }}
     >
-      <View
-        style={{
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          overflow: 'hidden',
-        }}
+      <Animated.View
+        style={[
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            overflow: 'hidden',
+          },
+          idleStyle,
+        ]}
       >
         <Svg width={size} height={size} viewBox="0 0 100 100">
           <Defs>
@@ -173,7 +255,7 @@ function EmotionCircleComponent({
             {label}
           </Text>
         </View>
-      </View>
+      </Animated.View>
     </TouchableOpacity>
   );
 }
