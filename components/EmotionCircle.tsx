@@ -49,16 +49,17 @@ const FROST_GRAIN = Array.from({ length: 45 }, (_, i) => ({
   bright: seededRandom(i * 41 + 5) > 0.5,
 }));
 
-// Vivid color pairs pulled from the reference — pink, cyan, coral, magenta
+// Palette pulled from BouncingBall: coral → dusty rose → cream
+// Format: [hotspot (warm/vivid), field (soft/pale)]
 const COLOR_PAIRS: Array<[string, string]> = [
-  ['#FF2E86', '#00D4D4'], // hot pink → turquoise
-  ['#FF2E86', '#FF6633'], // hot pink → coral
-  ['#00CFCF', '#FF6633'], // cyan → coral
-  ['#88F0C0', '#FF2E86'], // mint → pink
-  ['#FF6633', '#00CCE0'], // coral → cyan
-  ['#D000B0', '#00E0E0'], // magenta → aqua
-  ['#FFB0C0', '#00D4D4'], // soft pink → turquoise
-  ['#FF3399', '#FF9944'], // pink → orange
+  ['#DB533C', '#FFF7CE'], // coral → cream (the ball's own gradient)
+  ['#DB533C', '#C78E7D'], // coral → dusty rose
+  ['#C78E7D', '#FFF7CE'], // rose → cream
+  ['#E56A50', '#FFE8C8'], // soft coral → pale cream
+  ['#DB533C', '#F5D5B8'], // coral → warm blush
+  ['#C78E7D', '#FFEBC8'], // rose → butter cream
+  ['#B84832', '#F0C8B0'], // deep coral → peach
+  ['#E88A6E', '#FFF2D8'], // salmon → light cream
 ];
 
 const LABEL_COLOR = '#FFFFFF';
