@@ -4,10 +4,12 @@ import { router } from 'expo-router';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useAnimatedReaction,
   withRepeat,
   withTiming,
   withDelay,
   Easing,
+  SharedValue,
 } from 'react-native-reanimated';
 import Svg, {
   Rect,
@@ -25,7 +27,17 @@ interface EmotionCircleProps {
   gradientStart?: string;
   gradientEnd?: string;
   size: number;
+  // For focus-driven pop-and-part animation: this cell's global grid position
+  // and the shared value tracking which cell is at the viewport center.
+  col?: number;
+  row?: number;
+  focusedCell?: SharedValue<number>;
 }
+
+// Pop-and-part tuning
+const FOCUS_SCALE = 1.35;
+const FOCUS_PUSH_RATIO = 0.175; // = (FOCUS_SCALE - 1) / 2
+const FOCUS_ANIM_MS = 220;
 
 // --- Utilities ---
 
@@ -70,22 +82,35 @@ const COLOR_PAIRS: Array<[string, string]> = [
   ['#E88A6E', '#FFF2D8'], // salmon → light cream
 ];
 
-// Stormy palette — hot pink / magenta hotspots fading into cool teal / mint fields.
-// Reads as "electric tension": warm and cool colors colliding on each cell.
+// Stormy palette — sparse ember pops inside deep steel/slate rain-dark fields.
+// Reads as "night storm": mostly cool, brooding tones with rare warm cores flaring through.
 const STORMY_PAIRS: Array<[string, string]> = [
-  ['#FF3E7C', '#6ABDB6'], // hot pink → teal
-  ['#F7476D', '#5FBEC0'], // rose → cool teal
-  ['#FF547A', '#7EC6BE'], // pink → mint
-  ['#E63E7A', '#66BFB8'], // magenta → teal
-  ['#FF6E4E', '#FF3E7C'], // coral → pink (warm-dominant)
-  ['#66BFB8', '#FF3E7C'], // teal → pink (cool-dominant)
-  ['#F26A5A', '#66BFB8'], // coral → teal
-  ['#FF3E7C', '#A88EA0'], // pink → dusty lavender
+  ['#EE4E2E', '#3A5570'], // ember → deep steel
+  ['#3A5570', '#EE4E2E'], // deep steel → ember (inverted)
+  ['#D64828', '#232D3D'], // deep red → dark navy
+  ['#4A6780', '#EE4E2E'], // slate → ember
+  ['#5A7590', '#3A5570'], // slate → deep steel (all-cool)
+  ['#E85030', '#4A6780'], // warm red → slate
+  ['#85A0B0', '#1E2838'], // light gray-blue → near black (all-cool)
+  ['#EE4E2E', '#5A7590'], // ember → slate
 ];
 
-// Breezy palette — deep forest teal + warm coral / peach, on a cream field.
-// Reads as "grounded warmth": earthier and softer than Stormy's electric pop.
+// Breezy palette — vivid hot pink / coral hotspots into clean teal / mint fields.
+// Reads as "electric breeze": bright warm-cool play with pink pops and coral blends.
 const BREEZY_PAIRS: Array<[string, string]> = [
+  ['#FF347F', '#65C4BB'], // vivid hot pink → clean teal
+  ['#F26A5A', '#5FBEC0'], // coral → cool teal
+  ['#FF5E7A', '#7ED4C8'], // pink → mint
+  ['#FF6E4E', '#66BFB8'], // coral orange → teal
+  ['#65C4BB', '#FF347F'], // teal → hot pink (cool-dominant)
+  ['#7ED4C8', '#F26A5A'], // mint → coral
+  ['#E93885', '#7AB5AC'], // magenta → dusty teal
+  ['#FF347F', '#5FBEC0'], // hot pink → cool teal
+];
+
+// Calm palette — deep forest teal + warm coral / peach on a cream field.
+// Reads as "grounded warmth": earthy tones that feel like rain on old wood.
+const CALM_PAIRS: Array<[string, string]> = [
   ['#1B5854', '#F0E4CE'], // deep teal → cream
   ['#E5745A', '#1B5854'], // coral → deep teal
   ['#0F4A48', '#E5745A'], // forest → coral
@@ -96,25 +121,51 @@ const BREEZY_PAIRS: Array<[string, string]> = [
   ['#E5745A', '#F5E0C8'], // coral → warm cream
 ];
 
-// Calm palette — glowing red-orange embers inside cool steel-blue rain.
-// Reads as "warmth remembered in a cold storm": small heat cores in cool fields.
-const CALM_PAIRS: Array<[string, string]> = [
-  ['#EE4E2E', '#5A7A9B'], // ember → steel blue
-  ['#E85030', '#7A8A9B'], // warm red → slate
-  ['#4A6B8A', '#EE4E2E'], // steel → ember
-  ['#D64828', '#4A6580'], // deep red → deep steel
-  ['#6A8098', '#EE4E2E'], // slate → ember
-  ['#5A7A9B', '#2A3A4E'], // steel → dark navy
-  ['#E85030', '#8595A5'], // warm red → cool gray
-  ['#EE4E2E', '#3E5670'], // ember → deep steel
-];
-
 const LABEL_COLOR = '#FFFFFF';
+
+// Static per-label color overrides — colors copied as literals so they stay put
+// even if the source label's palette entry later changes.
+const PAIR_OVERRIDE: Record<string, [string, string]> = {
+  Excited:    ['#E85E45', '#F5E8D0'], // snapshot of Chill's rendered pair
+  Surprised:  ['#E5745A', '#F5E0C8'], // snapshot of Peaceful's rendered pair
+  Hopeful:    ['#E5745A', '#F5E0C8'], // snapshot of Content's rendered pair
+  Inspired:   ['#E85E45', '#F5E8D0'], // snapshot of Appreciated's rendered pair
+  Successful: ['#DB533C', '#FFF7CE'], // snapshot of Happy's rendered pair
+  Thrilled:   ['#DB533C', '#F5D5B8'], // snapshot of Amazed's rendered pair
+  Focused:    ['#E5745A', '#F5E0C8'], // snapshot of Hopeful's rendered pair
+  Frustrated: ['#E85030', '#8595A5'], // snapshot of Sad's rendered pair
+  Nervous:    ['#6A8098', '#EE4E2E'], // snapshot of Tired's rendered pair
+  Irritated:  ['#4A6B8A', '#EE4E2E'], // snapshot of Down's rendered pair
+  Annoyed:    ['#4A6B8A', '#EE4E2E'], // snapshot of Disappointed's rendered pair
+  Worried:    ['#E85030', '#7A8A9B'], // snapshot of Lonely's rendered pair
+  // Breezy internal transplants — copy of another Breezy label's rendered pair.
+  Chill:       ['#FF5E7A', '#7ED4C8'], // snapshot of Loved's rendered pair
+  Grateful:    ['#7ED4C8', '#F26A5A'], // snapshot of Good's rendered pair
+  Peaceful:    ['#F26A5A', '#5FBEC0'], // snapshot of Relaxed's rendered pair
+  Comfortable: ['#7ED4C8', '#F26A5A'], // snapshot of Safe's rendered pair
+  Content:     ['#FF6E4E', '#66BFB8'], // snapshot of Thankful's rendered pair
+  Appreciated: ['#F26A5A', '#5FBEC0'], // snapshot of Connected's rendered pair
+  Relieved:    ['#FF6E4E', '#66BFB8'], // snapshot of Understood's rendered pair
+  Supported:   ['#FF5E7A', '#7ED4C8'], // reuses Loved's pair (8 targets vs 7 sources)
+  // Calm internal transplants — copy of another Calm label's rendered pair.
+  Tired:       ['#2A6560', '#E85E45'], // snapshot of Sad's rendered pair
+  Bored:       ['#E5745A', '#1B5854'], // snapshot of Lonely's rendered pair
+  Exhausted:   ['#0F4A48', '#E5745A'], // snapshot of Down's rendered pair
+  Lost:        ['#E5745A', '#1B5854'], // snapshot of Depressed's rendered pair
+  Insecure:    ['#0F4A48', '#E5745A'], // snapshot of Disappointed's rendered pair
+  Numb:        ['#E5745A', '#1B5854'], // snapshot of Ashamed's rendered pair
+  'Burned Out':['#2A6560', '#E85E45'], // snapshot of Guilty's rendered pair
+  Meh:         ['#0F4A48', '#E5745A'], // snapshot of Down's rendered pair
+  Vulnerable:  ['#2A6560', '#E85E45'], // snapshot of Sad's rendered pair
+};
 
 function EmotionCircleComponent({
   label,
   category,
   size,
+  col,
+  row,
+  focusedCell,
 }: EmotionCircleProps) {
   const handlePress = useCallback(() => {
     router.push({
@@ -125,7 +176,8 @@ function EmotionCircleComponent({
 
   const labelColor = LABEL_COLOR;
 
-  // Deterministic per-cell visuals: color pair + gradient hotspot position + id suffix
+  // Deterministic per-cell visuals: color pair + gradient hotspot position + id suffix.
+  // Each label uses its own hash + its own category palette; a few labels have literal overrides.
   const cellVisuals = useMemo(() => {
     const h = hashLabel(label);
     // Per-category palettes; Sunny falls back to the default warm coral set.
@@ -134,7 +186,7 @@ function EmotionCircleComponent({
       category === 'Breezy' ? BREEZY_PAIRS :
       category === 'Calm'   ? CALM_PAIRS :
       COLOR_PAIRS;
-    const pair = palette[h % palette.length];
+    const pair = PAIR_OVERRIDE[label] ?? palette[h % palette.length];
     // Off-center hotspot for organic variation, roughly matching the reference
     const cx = 0.28 + seededRandom(h * 3.1) * 0.44; // 0.28 – 0.72
     const cy = 0.28 + seededRandom(h * 7.7) * 0.44;
