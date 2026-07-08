@@ -29,6 +29,14 @@ const FIXED_GRID: { left: EmotionCategory; right: EmotionCategory }[] = [
   { left: 'Calm',  right: 'Breezy' },
 ];
 
+// Ambient background tint per category — extends the weather metaphor into the screen itself.
+const CATEGORY_TINT: Record<EmotionCategory, string> = {
+  Sunny:  'rgba(255, 190, 90, 0.12)',   // warm sunlight glow
+  Stormy: 'rgba(90, 70, 130, 0.28)',    // twilight thundercloud
+  Calm:   'rgba(80, 120, 165, 0.22)',   // overcast mist
+  Breezy: 'rgba(170, 205, 195, 0.14)',  // soft sage cloud
+};
+
 function buildRows(emotions: string[]): string[][] {
   const rows: string[][] = [];
   for (let i = 0; i < emotions.length; i += COLUMNS) {
@@ -191,6 +199,40 @@ export default function SubEmotionsScreen() {
         ) : (
         <GestureDetector gesture={panGesture}>
           <Animated.View style={[{ width: totalGridWidth }, animatedStyle]}>
+            {/* Ambient weather tints — one per category quadrant, sit behind cells */}
+            {sections.map((section, sIdx) => {
+              const yOffset = sections
+                .slice(0, sIdx)
+                .reduce((acc, s) => acc + s.rowCount * (CIRCLE_SIZE + GAP), 0);
+              const sectionH = section.rowCount * (CIRCLE_SIZE + GAP);
+              return (
+                <View key={`tints-${sIdx}`} pointerEvents="none">
+                  <View
+                    style={{
+                      position: 'absolute',
+                      left: -12,
+                      top: yOffset - 12,
+                      width: singleGridWidth + 24,
+                      height: sectionH + 24,
+                      backgroundColor: CATEGORY_TINT[section.leftKey],
+                      borderRadius: 32,
+                    }}
+                  />
+                  <View
+                    style={{
+                      position: 'absolute',
+                      left: singleGridWidth + GAP - 12,
+                      top: yOffset - 12,
+                      width: singleGridWidth + 24,
+                      height: sectionH + 24,
+                      backgroundColor: CATEGORY_TINT[section.rightKey],
+                      borderRadius: 32,
+                    }}
+                  />
+                </View>
+              );
+            })}
+
             {sections.map((section, sectionIndex) => (
               <View key={sectionIndex}>
                 {Array.from({ length: section.rowCount }).map((_, rowIndex) => (

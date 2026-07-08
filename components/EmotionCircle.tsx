@@ -4,7 +4,6 @@ import { router } from 'expo-router';
 import Svg, {
   Rect,
   Circle,
-  Path,
   Defs,
   ClipPath,
   RadialGradient,
@@ -50,58 +49,6 @@ const FROST_GRAIN = Array.from({ length: 45 }, (_, i) => ({
   bright: seededRandom(i * 41 + 5) > 0.5,
 }));
 
-// --- Sunny shape variants ---
-// All paths render inside the 0-100 viewBox, centered at (50, 50).
-function scallopedPath(bumps: number, r: number, amp: number): string {
-  const N = 200;
-  let d = '';
-  for (let i = 0; i <= N; i++) {
-    const t = (i / N) * Math.PI * 2;
-    const radius = r + Math.sin(t * bumps) * amp;
-    const x = 50 + Math.cos(t) * radius;
-    const y = 50 + Math.sin(t) * radius;
-    d += (i === 0 ? 'M' : 'L') + `${x.toFixed(2)},${y.toFixed(2)} `;
-  }
-  return d + 'Z';
-}
-
-function spikyStarPath(points: number, outerR: number, innerR: number): string {
-  const total = points * 2;
-  let d = '';
-  for (let i = 0; i < total; i++) {
-    const t = (i / total) * Math.PI * 2 - Math.PI / 2;
-    const rr = i % 2 === 0 ? outerR : innerR;
-    const x = 50 + Math.cos(t) * rr;
-    const y = 50 + Math.sin(t) * rr;
-    d += (i === 0 ? 'M' : 'L') + `${x.toFixed(2)},${y.toFixed(2)} `;
-  }
-  return d + 'Z';
-}
-
-function circleSubPath(cx: number, cy: number, r: number): string {
-  return `M ${(cx + r).toFixed(2)},${cy.toFixed(2)} A ${r},${r} 0 1,1 ${(cx - r).toFixed(2)},${cy.toFixed(2)} A ${r},${r} 0 1,1 ${(cx + r).toFixed(2)},${cy.toFixed(2)} Z `;
-}
-
-function flowerPath(petals: number, petalR: number, distFromCenter: number, centerR: number): string {
-  let d = circleSubPath(50, 50, centerR);
-  for (let i = 0; i < petals; i++) {
-    const t = (i / petals) * Math.PI * 2 - Math.PI / 2;
-    const cx = 50 + Math.cos(t) * distFromCenter;
-    const cy = 50 + Math.sin(t) * distFromCenter;
-    d += circleSubPath(cx, cy, petalR);
-  }
-  return d;
-}
-
-const SUNNY_SHAPES: string[] = [
-  scallopedPath(22, 42, 5),         // gear / scalloped
-  spikyStarPath(12, 48, 20),        // spiky sun
-  flowerPath(5, 22, 22, 18),        // 5-petal flower
-  flowerPath(8, 15, 28, 16),        // 8-petal daisy
-  spikyStarPath(4, 48, 8),          // 4-ray asterisk
-  flowerPath(4, 24, 24, 20),        // 4-petal rounded
-];
-
 // Palette pulled from BouncingBall: coral → dusty rose → cream
 // Format: [hotspot (warm/vivid), field (soft/pale)]
 const COLOR_PAIRS: Array<[string, string]> = [
@@ -131,7 +78,7 @@ function EmotionCircleComponent({
 
   const labelColor = LABEL_COLOR;
 
-  // Deterministic per-cell visuals: color pair + gradient hotspot position + id suffix + optional shape
+  // Deterministic per-cell visuals: color pair + gradient hotspot position + id suffix
   const cellVisuals = useMemo(() => {
     const h = hashLabel(label);
     const pair = COLOR_PAIRS[h % COLOR_PAIRS.length];
@@ -140,16 +87,11 @@ function EmotionCircleComponent({
     const cy = 0.28 + seededRandom(h * 7.7) * 0.44;
     // Unique id fragment prevents Def collisions across cells
     const idFrag = safeId(label);
-    // Sunny gets shape variation; other categories stay circles
-    const shapeD = category === 'Sunny'
-      ? SUNNY_SHAPES[h % SUNNY_SHAPES.length]
-      : null;
-    return { pair, cx, cy, idFrag, shapeD };
-  }, [label, category]);
+    return { pair, cx, cy, idFrag };
+  }, [label]);
 
-  const { pair, cx, cy, idFrag, shapeD } = cellVisuals;
+  const { pair, cx, cy, idFrag } = cellVisuals;
   const [colorA, colorB] = pair;
-  const isCustomShape = shapeD !== null;
 
   const bgGradientId = `bg_${idFrag}`;
   const rimGradientId = `rim_${idFrag}`;
@@ -165,18 +107,14 @@ function EmotionCircleComponent({
         style={{
           width: size,
           height: size,
-          borderRadius: isCustomShape ? 0 : size / 2,
+          borderRadius: size / 2,
           overflow: 'hidden',
         }}
       >
         <Svg width={size} height={size} viewBox="0 0 100 100">
           <Defs>
             <ClipPath id={clipId}>
-              {isCustomShape ? (
-                <Path d={shapeD as string} />
-              ) : (
-                <Rect x={0} y={0} width={100} height={100} rx={50} />
-              )}
+              <Rect x={0} y={0} width={100} height={100} rx={50} />
             </ClipPath>
             {/* Bright vivid radial: hotspot color at cx/cy fading to the second color */}
             <RadialGradient
@@ -204,12 +142,8 @@ function EmotionCircleComponent({
             </RadialGradient>
           </Defs>
 
-          {/* Base gradient fill — circle or Sunny custom shape */}
-          {isCustomShape ? (
-            <Path d={shapeD as string} fill={`url(#${bgGradientId})`} />
-          ) : (
-            <Rect x={0} y={0} width={100} height={100} rx={50} fill={`url(#${bgGradientId})`} />
-          )}
+          {/* Base vivid gradient */}
+          <Rect x={0} y={0} width={100} height={100} rx={50} fill={`url(#${bgGradientId})`} />
 
           {/* Subtle grain texture to keep the "matte marble" feel */}
           <G clipPath={`url(#${clipId})`}>
@@ -226,11 +160,7 @@ function EmotionCircleComponent({
           </G>
 
           {/* Bright edge sheen */}
-          {isCustomShape ? (
-            <Path d={shapeD as string} fill={`url(#${rimGradientId})`} />
-          ) : (
-            <Rect x={0} y={0} width={100} height={100} rx={50} fill={`url(#${rimGradientId})`} />
-          )}
+          <Rect x={0} y={0} width={100} height={100} rx={50} fill={`url(#${rimGradientId})`} />
         </Svg>
 
         {/* Label overlay */}
