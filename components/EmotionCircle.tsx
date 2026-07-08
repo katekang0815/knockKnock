@@ -217,13 +217,36 @@ function EmotionCircleComponent({
     );
   }, [label]);
 
+  // Pop-and-part shared values: driven by useAnimatedReaction below.
+  const focusScale = useSharedValue(1);
+  const focusPushX = useSharedValue(0);
+  const focusPushY = useSharedValue(0);
+
+  useAnimatedReaction(
+    () => focusedCell?.value ?? -1,
+    (fc) => {
+      if (fc === -1 || col === undefined || row === undefined) return;
+      const fcol = Math.floor(fc / 10000);
+      const frow = fc % 10000;
+      const isFocused = fcol === col && frow === row;
+      const delta = FOCUS_PUSH_RATIO * size;
+      focusScale.value = withTiming(isFocused ? FOCUS_SCALE : 1, { duration: FOCUS_ANIM_MS });
+      focusPushX.value = withTiming(isFocused ? 0 : Math.sign(col - fcol) * delta, { duration: FOCUS_ANIM_MS });
+      focusPushY.value = withTiming(isFocused ? 0 : Math.sign(row - frow) * delta, { duration: FOCUS_ANIM_MS });
+    },
+    [col, row, size],
+  );
+
   const idleStyle = useAnimatedStyle(() => {
     const t = idleAnim.value;
     const phi = t * Math.PI * 2;
+    const jitterX = (Math.sin(phi * 3) + Math.sin(phi * 5.3)) * 0.5;
+    const jitterY = Math.cos(phi * 4.1) * 0.4;
     return {
       transform: [
-        { translateX: (Math.sin(phi * 3) + Math.sin(phi * 5.3)) * 0.5 },
-        { translateY: Math.cos(phi * 4.1) * 0.4 },
+        { translateX: jitterX + focusPushX.value },
+        { translateY: jitterY + focusPushY.value },
+        { scale: focusScale.value },
       ],
     };
   });

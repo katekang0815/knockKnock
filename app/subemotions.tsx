@@ -98,25 +98,42 @@ export default function SubEmotionsScreen() {
 
   const singleGridWidth = COLUMNS * CIRCLE_SIZE + (COLUMNS - 1) * GAP;
   const totalGridWidth = singleGridWidth * 2 + GAP;
-  const topSectionHeight = sections[0].rowCount * (CIRCLE_SIZE + GAP);
   const totalGridHeight = sections.reduce((h, s) => h + s.rowCount * (CIRCLE_SIZE + GAP), 0);
 
   // Header height (back button area)
   const headerHeight = insets.top + 16 + 40 + 24;
   const viewportH = SCREEN_H - headerHeight;
 
-  // Clamp bounds
-  const minX = -(totalGridWidth - SCREEN_W + HORIZONTAL_PADDING);
-  const maxX = HORIZONTAL_PADDING;
-  const minY = -(totalGridHeight - viewportH + insets.bottom + 24);
-  const maxY = 0;
+  // Focus point + cell math (shared with the focusedCell derived value below)
+  const focusX = SCREEN_W / 2;
+  const focusY = viewportH / 2;
+  const cellStep = CIRCLE_SIZE + GAP;
+  const totalCols = 2 * COLUMNS;
+  const totalRows = sections.reduce((n, s) => n + s.rowCount, 0);
 
-  // Initial offset to show the selected category's quadrant
+  // Translate value needed to place cell (col, row) at the focus point.
+  const cellToTranslate = (col: number, row: number) => ({
+    x: focusX - col * cellStep - CIRCLE_SIZE / 2,
+    y: focusY - row * cellStep - CIRCLE_SIZE / 2,
+  });
+
+  // Clamp bounds — allow any cell (including corners) to be dragged to the focus point.
+  const maxX = cellToTranslate(0, 0).x;
+  const minX = cellToTranslate(totalCols - 1, 0).x;
+  const maxY = cellToTranslate(0, 0).y;
+  const minY = cellToTranslate(0, totalRows - 1).y;
+
+  // Initial offset: center each category's quadrant at the focus point.
+  const quadCol = { left: (COLUMNS - 1) / 2, right: COLUMNS + (COLUMNS - 1) / 2 };
+  const quadRow = {
+    top:    (sections[0].rowCount - 1) / 2,
+    bottom: sections[0].rowCount + (sections[1].rowCount - 1) / 2,
+  };
   const startOffsets: Record<EmotionCategory, { x: number; y: number }> = {
-    Sunny:  { x: maxX, y: maxY },
-    Stormy: { x: -(singleGridWidth + GAP - HORIZONTAL_PADDING), y: maxY },
-    Calm:   { x: maxX, y: -topSectionHeight },
-    Breezy: { x: -(singleGridWidth + GAP - HORIZONTAL_PADDING), y: -topSectionHeight },
+    Sunny:  cellToTranslate(quadCol.left,  quadRow.top),
+    Stormy: cellToTranslate(quadCol.right, quadRow.top),
+    Calm:   cellToTranslate(quadCol.left,  quadRow.bottom),
+    Breezy: cellToTranslate(quadCol.right, quadRow.bottom),
   };
 
   useEffect(() => {
@@ -148,11 +165,6 @@ export default function SubEmotionsScreen() {
         clamp: [minY, maxY],
       });
     });
-
-  // Focus point in the grid container's local frame — center of visible viewport
-  const focusX = SCREEN_W / 2;
-  const focusY = viewportH / 2;
-  const cellStep = CIRCLE_SIZE + GAP;
 
   // Which cell is currently at the focus point?
   // Encoded as `col * 10000 + row` so we can detect transitions with one comparison.
@@ -191,12 +203,18 @@ export default function SubEmotionsScreen() {
         ) : (
         <GestureDetector gesture={panGesture}>
           <Animated.View style={[{ width: totalGridWidth }, animatedStyle]}>
-            {sections.map((section, sectionIndex) => (
+            {sections.map((section, sectionIndex) => {
+              const rowsBefore = sections
+                .slice(0, sectionIndex)
+                .reduce((acc, s) => acc + s.rowCount, 0);
+              return (
               <View key={sectionIndex}>
-                {Array.from({ length: section.rowCount }).map((_, rowIndex) => (
+                {Array.from({ length: section.rowCount }).map((_, rowIndex) => {
+                  const globalRow = rowsBefore + rowIndex;
+                  return (
                   <View key={`${sectionIndex}-${rowIndex}`} style={styles.row}>
                     {/* Left grid row */}
-                    {section.leftRows[rowIndex].map((emotion) => (
+                    {section.leftRows[rowIndex].map((emotion, cIdx) => (
                       <EmotionCircle
                         key={emotion}
                         label={emotion}
@@ -204,6 +222,9 @@ export default function SubEmotionsScreen() {
                         gradientStart={section.leftData.gradientStart}
                         gradientEnd={section.leftData.gradientEnd}
                         size={CIRCLE_SIZE}
+                        col={cIdx}
+                        row={globalRow}
+                        focusedCell={focusedCell}
                       />
                     ))}
                     {section.leftRows[rowIndex].length < COLUMNS &&
@@ -212,7 +233,7 @@ export default function SubEmotionsScreen() {
                       ))}
 
                     {/* Right grid row */}
-                    {section.rightRows[rowIndex].map((emotion) => (
+                    {section.rightRows[rowIndex].map((emotion, cIdx) => (
                       <EmotionCircle
                         key={emotion}
                         label={emotion}
@@ -220,12 +241,17 @@ export default function SubEmotionsScreen() {
                         gradientStart={section.rightData.gradientStart}
                         gradientEnd={section.rightData.gradientEnd}
                         size={CIRCLE_SIZE}
+                        col={COLUMNS + cIdx}
+                        row={globalRow}
+                        focusedCell={focusedCell}
                       />
                     ))}
                   </View>
-                ))}
+                  );
+                })}
               </View>
-            ))}
+              );
+            })}
           </Animated.View>
         </GestureDetector>
         )}
