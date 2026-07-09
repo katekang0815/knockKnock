@@ -114,29 +114,35 @@ export default function SubEmotionsScreen() {
   const totalCols = 2 * COLUMNS;
   const totalRows = sections.reduce((n, s) => n + s.rowCount, 0);
 
-  // Translate value needed to place cell (col, row) at the focus point.
-  const cellToTranslate = (col: number, row: number) => ({
-    x: focusX - col * cellStep - CIRCLE_SIZE / 2,
-    y: focusY - row * cellStep - CIRCLE_SIZE / 2,
+  // Translate value needed to place cell (col, row) at a target viewport position.
+  const positionAt = (col: number, row: number, targetX: number, targetY: number) => ({
+    x: targetX - col * cellStep - CIRCLE_SIZE / 2,
+    y: targetY - row * cellStep - CIRCLE_SIZE / 2,
   });
 
   // Clamp bounds — allow any cell (including corners) to be dragged to the focus point.
-  const maxX = cellToTranslate(0, 0).x;
-  const minX = cellToTranslate(totalCols - 1, 0).x;
-  const maxY = cellToTranslate(0, 0).y;
-  const minY = cellToTranslate(0, totalRows - 1).y;
+  const maxX = positionAt(0, 0, focusX, focusY).x;
+  const minX = positionAt(totalCols - 1, 0, focusX, focusY).x;
+  const maxY = positionAt(0, 0, focusX, focusY).y;
+  const minY = positionAt(0, totalRows - 1, focusX, focusY).y;
 
-  // Initial offset: center each category's quadrant at the focus point.
+  // Initial offset: each category's grid sits in a distinct band of the viewport.
+  // Section 0 (Sunny / Stormy) → category CENTER lands at 2/3 of viewport height
+  //   (grid fills the lower half; upper half is empty).
+  // Section 1 (Calm / Breezy) → category CENTER lands at 1/3 of viewport height
+  //   (grid fills the upper-middle band; section-0 rows peek in from above).
   const quadCol = { left: (COLUMNS - 1) / 2, right: COLUMNS + (COLUMNS - 1) / 2 };
   const quadRow = {
     top:    (sections[0].rowCount - 1) / 2,
     bottom: sections[0].rowCount + (sections[1].rowCount - 1) / 2,
   };
+  const sec0TargetY = viewportH * 2 / 3;
+  const sec1TargetY = viewportH * 1 / 3;
   const startOffsets: Record<EmotionCategory, { x: number; y: number }> = {
-    Sunny:  cellToTranslate(quadCol.left,  quadRow.top),
-    Stormy: cellToTranslate(quadCol.right, quadRow.top),
-    Calm:   cellToTranslate(quadCol.left,  quadRow.bottom),
-    Breezy: cellToTranslate(quadCol.right, quadRow.bottom),
+    Sunny:  positionAt(quadCol.left,  quadRow.top,    focusX, sec0TargetY),
+    Stormy: positionAt(quadCol.right, quadRow.top,    focusX, sec0TargetY),
+    Calm:   positionAt(quadCol.left,  quadRow.bottom, focusX, sec1TargetY),
+    Breezy: positionAt(quadCol.right, quadRow.bottom, focusX, sec1TargetY),
   };
 
   useEffect(() => {
