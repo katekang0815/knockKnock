@@ -142,14 +142,16 @@ const PAIR_OVERRIDE: Record<string, [string, string]> = {
   Annoyed:    ['#4A6B8A', '#EE4E2E'], // snapshot of Disappointed's rendered pair
   Worried:    ['#E85030', '#7A8A9B'], // snapshot of Lonely's rendered pair
   // Breezy internal transplants — copy of another Breezy label's rendered pair.
-  Chill:       ['#FF5E7A', '#7ED4C8'], // snapshot of Loved's rendered pair
+  Loved:       ['#F26A5A', '#5FBEC0'], // snapshot of Appreciated's rendered pair
+  Chill:       ['#7ED4C8', '#F26A5A'], // snapshot of Safe's rendered pair
   Grateful:    ['#7ED4C8', '#F26A5A'], // snapshot of Good's rendered pair
   Peaceful:    ['#F26A5A', '#5FBEC0'], // snapshot of Relaxed's rendered pair
   Comfortable: ['#7ED4C8', '#F26A5A'], // snapshot of Safe's rendered pair
   Content:     ['#FF6E4E', '#66BFB8'], // snapshot of Thankful's rendered pair
   Appreciated: ['#F26A5A', '#5FBEC0'], // snapshot of Connected's rendered pair
   Relieved:    ['#FF6E4E', '#66BFB8'], // snapshot of Understood's rendered pair
-  Supported:   ['#FF5E7A', '#7ED4C8'], // reuses Loved's pair (8 targets vs 7 sources)
+  Supported:   ['#7ED4C8', '#F26A5A'], // snapshot of Grateful's rendered pair
+  Blessed:     ['#F26A5A', '#5FBEC0'], // snapshot of Relaxed's rendered pair
   // Calm internal transplants — copy of another Calm label's rendered pair.
   Tired:       ['#2A6560', '#E85E45'], // snapshot of Sad's rendered pair
   Bored:       ['#E5745A', '#1B5854'], // snapshot of Lonely's rendered pair
