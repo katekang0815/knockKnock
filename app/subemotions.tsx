@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, Dimensions, StyleSheet, TouchableOpacity, InteractionManager, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -189,13 +190,23 @@ export default function SubEmotionsScreen() {
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <View style={{ paddingTop: insets.top + 16, paddingHorizontal: HORIZONTAL_PADDING }}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity
+        style={[styles.backArrow, { top: insets.top + 16 }]}
+        onPress={() => router.back()}
+        activeOpacity={0.7}
+      >
+        <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+          <Path
+            d="M19 12H5M12 19l-7-7 7-7"
+            stroke="#FFFFFF"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      </TouchableOpacity>
 
-      <View style={{ flex: 1, overflow: 'hidden' }}>
+      <View style={{ flex: 1, overflow: 'hidden', paddingTop: insets.top + 80 }}>
         {!ready ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color="#666666" />
@@ -265,20 +276,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  backButton: {
-    marginBottom: 24,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  backText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '300',
-    letterSpacing: 1,
+  backArrow: {
+    position: 'absolute',
+    left: 20,
+    zIndex: 10,
+    padding: 8,
   },
   loadingContainer: {
     flex: 1,
