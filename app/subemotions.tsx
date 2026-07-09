@@ -54,6 +54,8 @@ export default function SubEmotionsScreen() {
   const translateY = useSharedValue(0);
   const contextX = useSharedValue(0);
   const contextY = useSharedValue(0);
+  // Pop-and-part is dormant until the user first drags — cells sit at uniform size on entry.
+  const dragActive = useSharedValue(false);
 
   const [ready, setReady] = useState(false);
 
@@ -151,6 +153,7 @@ export default function SubEmotionsScreen() {
     .onStart(() => {
       contextX.value = translateX.value;
       contextY.value = translateY.value;
+      dragActive.value = true;
     })
     .onUpdate((e) => {
       translateX.value = clamp(contextX.value + e.translationX, minX, maxX);
@@ -236,6 +239,7 @@ export default function SubEmotionsScreen() {
                         col={cIdx}
                         row={globalRow}
                         focusedCell={focusedCell}
+                        dragActive={dragActive}
                       />
                     ))}
                     {section.leftRows[rowIndex].length < COLUMNS &&
@@ -255,6 +259,7 @@ export default function SubEmotionsScreen() {
                         col={COLUMNS + cIdx}
                         row={globalRow}
                         focusedCell={focusedCell}
+                        dragActive={dragActive}
                       />
                     ))}
                   </View>

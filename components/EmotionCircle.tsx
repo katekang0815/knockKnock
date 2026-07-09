@@ -32,6 +32,9 @@ interface EmotionCircleProps {
   col?: number;
   row?: number;
   focusedCell?: SharedValue<number>;
+  // If provided, pop-and-part stays dormant until this flag flips to true
+  // (first user drag). Enables uniform-grid default on screen entry.
+  dragActive?: SharedValue<boolean>;
 }
 
 // Pop-and-part tuning
@@ -166,6 +169,7 @@ function EmotionCircleComponent({
   col,
   row,
   focusedCell,
+  dragActive,
 }: EmotionCircleProps) {
   const handlePress = useCallback(() => {
     router.push({
@@ -226,6 +230,13 @@ function EmotionCircleComponent({
     () => focusedCell?.value ?? -1,
     (fc) => {
       if (fc === -1 || col === undefined || row === undefined) return;
+      // Uniform-grid default: hold everything at rest until the first drag.
+      if (dragActive && !dragActive.value) {
+        focusScale.value = 1;
+        focusPushX.value = 0;
+        focusPushY.value = 0;
+        return;
+      }
       const fcol = Math.floor(fc / 10000);
       const frow = fc % 10000;
       const isFocused = fcol === col && frow === row;
