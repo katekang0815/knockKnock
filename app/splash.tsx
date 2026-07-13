@@ -30,6 +30,10 @@ export default function SplashScreen() {
         style={styles.animation}
       />
 
+      {/* Covers the Jitter.video watermark in the bottom-right corner.
+          Adjust width / height / bottom / right once the Jitter animation is swapped in. */}
+      <View pointerEvents="none" style={styles.watermarkCover} />
+
       {/* Icon buttons overlay */}
       <View style={[styles.buttonsContainer, { bottom: insets.bottom + 60 }]}>
         {/* Replay icon */}
@@ -66,6 +70,14 @@ const styles = StyleSheet.create({
   },
   animation: {
     flex: 1,
+  },
+  watermarkCover: {
+    position: 'absolute',
+    bottom: 20,
+    right: 0,
+    width: 200,
+    height: 80,
+    backgroundColor: '#000000',
   },
   buttonsContainer: {
     position: 'absolute',

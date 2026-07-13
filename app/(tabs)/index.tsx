@@ -1,8 +1,8 @@
 import BouncingBall from "@/components/BouncingBall";
 import { router } from "expo-router";
+import { useEffect } from "react";
 import {
   Dimensions,
-  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -10,13 +10,82 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Path } from "react-native-svg";
+import Svg, {
+  Path,
+  Defs,
+  LinearGradient,
+  Stop,
+  Text as SvgText,
+} from "react-native-svg";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+  Easing,
+} from "react-native-reanimated";
 
 const { height: SCREEN_H } = Dimensions.get("window");
 const SHAPE_SIZE = 120;
 
+const AnimatedText = Animated.createAnimatedComponent(Text);
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+
+  // "Knock Knock" — each word taps like a hand hitting a door, with a rest between pairs.
+  const knock1 = useSharedValue(0);
+  const knock2 = useSharedValue(0);
+
+  useEffect(() => {
+    const HIT = 90;      // fist meeting the door
+    const RELEASE = 200; // pulling back
+    const GAP = 130;     // between the two knocks
+    const REST = 900;    // pause before the pair repeats
+
+    const knockHit = () =>
+      withSequence(
+        withTiming(1, { duration: HIT, easing: Easing.out(Easing.quad) }),
+        withTiming(0, { duration: RELEASE, easing: Easing.out(Easing.quad) }),
+      );
+
+    knock1.value = withRepeat(
+      withSequence(
+        knockHit(),
+        withDelay(GAP + HIT + RELEASE + REST, withTiming(0, { duration: 1 })),
+      ),
+      -1,
+      false,
+    );
+
+    knock2.value = withDelay(
+      HIT + RELEASE + GAP,
+      withRepeat(
+        withSequence(
+          knockHit(),
+          withDelay(HIT + RELEASE + GAP + REST, withTiming(0, { duration: 1 })),
+        ),
+        -1,
+        false,
+      ),
+    );
+  }, []);
+
+  const knock1Style = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: -knock1.value * 5 },
+      { scale: 1 + knock1.value * 0.08 },
+    ],
+  }));
+
+  const knock2Style = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: -knock2.value * 5 },
+      { scale: 1 + knock2.value * 0.08 },
+    ],
+  }));
 
   return (
     <TouchableWithoutFeedback onPress={() => router.push("/checkin")}>
@@ -41,18 +110,20 @@ export default function HomeScreen() {
           </Svg>
         </TouchableOpacity>
 
-        <Text style={[styles.title, { top: insets.top + 20 + 96 }]}>
-          Ready to check in? Take the first step!
-        </Text>
-
-        <View style={[styles.verseCard, { top: insets.top + 20 + 96 + 96 }]}>
-          <Text style={styles.verse}>
-            {`"He saw a stairway resting on the earth,\nwith its top reaching to heaven."`}
-          </Text>
-          <Text style={styles.attribution}>— Genesis 28:12</Text>
+        <View style={[styles.titleContainer, { top: insets.top + 20 + 96 }]}>
+          <View style={styles.titleLine}>
+            <Animated.View style={knock1Style}>
+              <Text style={styles.titleKnock}>Knock</Text>
+            </Animated.View>
+            <Text style={styles.titleKnock}>{' '}</Text>
+            <Animated.View style={knock2Style}>
+              <Text style={styles.titleKnock}>Knock</Text>
+            </Animated.View>
+          </View>
+          <WhisperGradientText id="whisperGrad" />
         </View>
 
-        <Text style={[styles.tapText, { top: insets.top + 20 + 96 + 96 + 130 }]}>
+        <Text style={[styles.tapText, { top: insets.top + 20 + 96 + 130 }]}>
           Tap anywhere to start
         </Text>
 
@@ -65,49 +136,55 @@ export default function HomeScreen() {
   );
 }
 
+// Renders "whenever you're ready" with a vertical gradient matching BouncingBall's
+// warmGrad: coral (#DB533C) → dusty rose (#C78E7D) → cream (#FFF7CE).
+function WhisperGradientText({ id }: { id: string }) {
+  return (
+    <Svg width={320} height={32} viewBox="0 0 320 32">
+      <Defs>
+        <LinearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#DB533C" />
+          <Stop offset="0.5" stopColor="#C78E7D" />
+          <Stop offset="1" stopColor="#FFF7CE" />
+        </LinearGradient>
+      </Defs>
+      <SvgText
+        x={160}
+        y={23}
+        fontSize={24}
+        fontFamily="Jost_700Bold"
+        textAnchor="middle"
+        fill={`url(#${id})`}
+      >
+        whenever you&apos;re ready
+      </SvgText>
+    </Svg>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#000000",
   },
-  title: {
+  titleContainer: {
     position: "absolute",
     alignSelf: "center",
-    color: "#FFFFFF",
-    fontSize: 32,
-    fontFamily: "Jost_700Bold",
-    lineHeight: 34,
-    textAlign: "center",
-    paddingHorizontal: 35,
-    letterSpacing: -0.8,
-  },
-  verseCard: {
-    position: "absolute",
-    alignSelf: "center",
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "rgba(180,180,180,0.55)",
-    borderRadius: 20,
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-    marginHorizontal: 24,
     alignItems: "center",
-    maxWidth: "88%",
+    paddingHorizontal: 35,
+    gap: 8,
   },
-  verse: {
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 16,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    fontStyle: "italic",
-    lineHeight: 24,
+  titleLine: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  titleKnock: {
+    color: "#FFFFFF",
+    fontSize: 44,
+    fontFamily: "Jost_700Bold",
+    lineHeight: 52,
+    letterSpacing: -0.8,
     textAlign: "center",
-  },
-  attribution: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 13,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    letterSpacing: 0.5,
-    marginTop: 10,
   },
   tapText: {
     position: "absolute",

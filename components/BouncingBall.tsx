@@ -251,10 +251,11 @@ function BallPhase({
             <Stop offset="0.5" stopColor="#C78E7D" />
             <Stop offset="1" stopColor="#FFF7CE" />
           </LinearGradient>
+          {/* Star gradient — ember palette from the reference: dark burgundy → coral → pale cream */}
           <LinearGradient id="starGrad" x1="0.5" y1="0" x2="0.5" y2="1">
-            <Stop offset="0" stopColor="#DB533C" />
-            <Stop offset="0.5" stopColor="#C78E7D" />
-            <Stop offset="1" stopColor="#FFF7CE" />
+            <Stop offset="0" stopColor="#5B2018" />
+            <Stop offset="0.5" stopColor="#E85030" />
+            <Stop offset="1" stopColor="#FFDCB8" />
           </LinearGradient>
         </Defs>
 
@@ -289,7 +290,7 @@ function StarShape({ cx, cy, size }: { cx: number; cy: number; size: number }) {
     <SvgPath
       d={d + "Z"}
       fill="url(#starGrad)"
-      stroke="#DB533C"
+      stroke="#5B2018"
       strokeWidth={1}
     />
   );
