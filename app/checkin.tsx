@@ -2,34 +2,27 @@ import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-nati
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import EmotionCircle from '@/components/EmotionCircle';
+import LottieView from 'lottie-react-native';
 
 const { width } = Dimensions.get('window');
 
+// Lottie canvas dimensions
+const LOTTIE_W = 440;
+const LOTTIE_H = 956;
+
+// Available width for the Lottie (with padding)
 const CONTAINER_PADDING = 24;
 const CONTAINER_W = width - CONTAINER_PADDING * 2;
+const SCALE = CONTAINER_W / LOTTIE_W;
+const CONTAINER_H = LOTTIE_H * SCALE;
 
-// Circle grid layout — two columns, gap between.
-const CIRCLE_GAP = 20;
-const CIRCLE_SIZE = Math.min(160, (CONTAINER_W - CIRCLE_GAP) / 2);
-
-// The four Mood-Meter quadrants, rendered with the same frosted EmotionCircle
-// used on the sub-emotions screen for visual continuity.
-//   `seed`     — an emotion word whose palette/hotspot the circle reproduces
-//   `category` — drives the color palette AND the navigation target (subemotions
-//                depends on these keys)
-//   `label`    — the quadrant caption shown inside the circle
-type Quadrant = { seed: string; category: string; label: string };
-
-const QUADRANTS: Quadrant[] = [
-  // High Energy Unpleasant (red/steel — Worried's look)
-  { seed: 'Worried',    category: 'Stormy', label: 'High Energy\nUnpleasant' },
-  // High Energy Pleasant (coral/cream — Successful's look)
-  { seed: 'Successful', category: 'Sunny',  label: 'High Energy\nPleasant' },
-  // Low Energy Unpleasant (teal/coral — Depressed's look)
-  { seed: 'Depressed',  category: 'Calm',   label: 'Low Energy\nUnpleasant' },
-  // Low Energy Pleasant (teal/mint — Thankful's look)
-  { seed: 'Thankful',   category: 'Breezy', label: 'Low Energy\nPleasant' },
+// Icon positions in Lottie coordinates (center x, center y, width, height)
+// Mapped from the JSON analysis
+const ICON_BOUNDS = [
+  { label: 'Sunny',  x: 43 - 85,  y: 357 - 87,  w: 170, h: 174 },
+  { label: 'Stormy', x: 225 - 85, y: 357 - 87,  w: 170, h: 174 },
+  { label: 'Calm',   x: 43 - 86,  y: 541 - 86,  w: 173, h: 172 },
+  { label: 'Breezy', x: 225 - 85, y: 541 - 86,  w: 170, h: 172 },
 ];
 
 export default function CheckInScreen() {
@@ -59,17 +52,28 @@ export default function CheckInScreen() {
           How are you today?
         </Text>
 
-        {/* 2×2 grid — one frosted circle per Mood-Meter quadrant */}
-        <View style={styles.grid}>
-          {QUADRANTS.map((q) => (
-            <EmotionCircle
-              key={q.category}
-              label={q.seed}
-              displayLabel={q.label}
-              labelLines={2}
-              category={q.category}
-              size={CIRCLE_SIZE}
-              onPress={() => router.push({ pathname: '/subemotions', params: { category: q.category } })}
+        {/* Single Lottie with touch overlays — clip to icon region */}
+        <View style={{ width: CONTAINER_W, height: 460 * SCALE, alignSelf: 'center', overflow: 'hidden' }}>
+          <LottieView
+            source={require('../assets/MajorEmotions.json')}
+            autoPlay
+            loop
+            style={{ width: CONTAINER_W, height: CONTAINER_H, marginTop: -270 * SCALE }}
+          />
+
+          {/* Invisible tap targets over each icon */}
+          {ICON_BOUNDS.map((icon) => (
+            <TouchableOpacity
+              key={icon.label}
+              activeOpacity={0.6}
+              onPress={() => router.push({ pathname: '/subemotions', params: { category: icon.label } })}
+              style={{
+                position: 'absolute',
+                left: icon.x * SCALE,
+                top: (icon.y - 270) * SCALE,
+                width: icon.w * SCALE,
+                height: icon.h * SCALE,
+              }}
             />
           ))}
         </View>
@@ -92,16 +96,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: 'Jost_700Bold',
     lineHeight: 34,
-    marginTop: '40%',
-    marginBottom: 40,
+    marginTop: '50%',
+    marginBottom: 32,
     textAlign: 'center',
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    columnGap: CIRCLE_GAP,
-    rowGap: CIRCLE_GAP,
   },
   backArrow: {
     position: 'absolute',

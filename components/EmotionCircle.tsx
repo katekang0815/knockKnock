@@ -27,14 +27,6 @@ interface EmotionCircleProps {
   gradientStart?: string;
   gradientEnd?: string;
   size: number;
-  // Text to render inside the circle. Defaults to `label`. Use this to show a
-  // different caption while keeping `label` as the color/hotspot seed (e.g. the
-  // major-emotions screen shows quadrant names over a specific emotion's look).
-  displayLabel?: string;
-  // Max lines for the caption (default 1). Multi-line captions can pass "\n".
-  labelLines?: number;
-  // Overrides the default tap behavior (navigate to the emotion log).
-  onPress?: () => void;
   // For focus-driven pop-and-part animation: this cell's global grid position
   // and the shared value tracking which cell is at the viewport center.
   col?: number;
@@ -176,24 +168,17 @@ function EmotionCircleComponent({
   label,
   category,
   size,
-  displayLabel,
-  labelLines = 1,
-  onPress,
   col,
   row,
   focusedCell,
   dragActive,
 }: EmotionCircleProps) {
   const handlePress = useCallback(() => {
-    if (onPress) {
-      onPress();
-      return;
-    }
     router.push({
       pathname: '/emotionlog',
       params: { emotion: label, category },
     });
-  }, [label, category, onPress]);
+  }, [label, category]);
 
   const labelColor = LABEL_COLOR;
 
@@ -353,9 +338,9 @@ function EmotionCircleComponent({
           <Text
             style={[styles.label, { fontSize: size * 0.14, color: labelColor }]}
             adjustsFontSizeToFit
-            numberOfLines={labelLines}
+            numberOfLines={1}
           >
-            {displayLabel ?? label}
+            {label}
           </Text>
         </View>
       </Animated.View>
