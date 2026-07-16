@@ -23,9 +23,9 @@ export default function BouncingOrb({ size }: Props) {
   useEffect(() => {
     bounce.value = withRepeat(
       withSequence(
-        withTiming(1, { duration: 420, easing: Easing.out(Easing.quad) }), // rise
-        withTiming(0, { duration: 360, easing: Easing.in(Easing.quad) }),  // fall
-        withTiming(0, { duration: 140 }),                                   // brief rest
+        withTiming(1, { duration: 210, easing: Easing.out(Easing.quad) }), // rise
+        withTiming(0, { duration: 180, easing: Easing.in(Easing.quad) }),  // fall
+        withTiming(0, { duration: 70 }),                                    // brief rest
       ),
       -1,
       false,
@@ -77,8 +77,8 @@ export default function BouncingOrb({ size }: Props) {
             position: "absolute",
             bottom: rest,
             alignSelf: "center",
-            width: ball * 1.1,
-            height: ball * 0.28,
+            width: ball * 0.55,
+            height: ball * 0.14,
             borderRadius: ball,
             backgroundColor: "#FFF7CE",
           },
