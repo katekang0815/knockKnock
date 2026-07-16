@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-nati
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
+import BouncingOrb from '@/components/BouncingOrb';
 
 const { width } = Dimensions.get('window');
 
@@ -49,16 +50,22 @@ export default function CheckInScreen() {
           How are you today?
         </Text>
 
-        {/* 2×2 grid — plain round placeholders, one per Mood-Meter quadrant */}
+        {/* 2×2 grid — Sunny gets the bouncing orb; the rest stay placeholders */}
         <View style={styles.grid}>
           {QUADRANTS.map((q) => (
             <TouchableOpacity
               key={q.category}
               activeOpacity={0.7}
               onPress={() => router.push({ pathname: '/subemotions', params: { category: q.category } })}
-              style={styles.placeholder}
+              style={styles.slot}
             >
-              <Text style={styles.placeholderLabel}>{q.label}</Text>
+              {q.category === 'Sunny' ? (
+                <BouncingOrb size={CIRCLE_SIZE} />
+              ) : (
+                <View style={styles.placeholder}>
+                  <Text style={styles.placeholderLabel}>{q.label}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           ))}
         </View>
@@ -91,6 +98,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     columnGap: CIRCLE_GAP,
     rowGap: CIRCLE_GAP,
+  },
+  slot: {
+    width: CIRCLE_SIZE,
+    height: CIRCLE_SIZE,
   },
   placeholder: {
     width: CIRCLE_SIZE,
