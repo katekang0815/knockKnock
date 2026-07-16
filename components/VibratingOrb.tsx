@@ -21,6 +21,8 @@ export default function VibratingOrb({ size }: Props) {
   const idle = useSharedValue(0);
   // Slow steady pulse for the base.
   const pulse = useSharedValue(0);
+  // Grow/brighten cycle for the halo.
+  const halo = useSharedValue(0);
 
   useEffect(() => {
     idle.value = withRepeat(
@@ -33,16 +35,23 @@ export default function VibratingOrb({ size }: Props) {
       -1,
       true,
     );
+    halo.value = withRepeat(
+      withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true,
+    );
   }, []);
 
-  const ball = size * 0.4;   // ball diameter
-  const rest = size * 0.16;  // resting distance from the bottom (matches BouncingOrb)
+  const ball = size * 0.4;      // ball diameter
+  const rest = size * 0.16;     // base's distance from the bottom (matches BouncingOrb)
+  const baseH = ball * 0.14;    // base thickness
+  const ballBottom = rest + baseH; // ball sits on top of the base, just touching it
 
   // Same jitter formula as EmotionCircle's idle motion.
   const ballStyle = useAnimatedStyle(() => {
     const phi = idle.value * Math.PI * 2;
-    const jitterX = (Math.sin(phi * 3) + Math.sin(phi * 5.3)) * 0.5;
-    const jitterY = Math.cos(phi * 4.1) * 0.4;
+    const jitterX = (Math.sin(phi * 3) + Math.sin(phi * 5.3)) * 1.0;
+    const jitterY = Math.cos(phi * 4.1) * 0.8;
     return { transform: [{ translateX: jitterX }, { translateY: jitterY }] };
   });
 
@@ -51,6 +60,20 @@ export default function VibratingOrb({ size }: Props) {
     opacity: 0.2 + pulse.value * 0.45,
     transform: [{ scaleX: 0.8 + pulse.value * 0.4 }],
   }));
+
+  // Halo grows outward and its fill fades so the bigger circle reads weaker;
+  // eases back to the initial size + opacity, looping. Its bottom stays anchored
+  // to the ball's bottom / base top (grows upward) instead of dipping into the base.
+  const haloStyle = useAnimatedStyle(() => {
+    const grow = halo.value * 0.45;
+    return {
+      opacity: 0.5 - halo.value * 0.2, // strongest at the initial size, weaker as it grows
+      transform: [
+        { translateY: -ball * 0.75 * grow }, // compensate center-scale so bottom holds
+        { scale: 1 + grow },
+      ],
+    };
+  });
 
   return (
     <View style={{ width: size, height: size }}>
@@ -62,7 +85,7 @@ export default function VibratingOrb({ size }: Props) {
             bottom: rest,
             alignSelf: "center",
             width: ball * 0.55,
-            height: ball * 0.14,
+            height: baseH,
             borderRadius: ball,
             backgroundColor: "#FFF7CE",
           },
@@ -70,22 +93,24 @@ export default function VibratingOrb({ size }: Props) {
         ]}
       />
 
-      {/* Halo glow behind the ball */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: rest,
-          alignSelf: "center",
-          width: ball * 1.5,
-          height: ball * 1.5,
-          borderRadius: ball,
-          backgroundColor: "#C78E7D",
-          opacity: 0.32,
-          shadowColor: "#C78E7D",
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.9,
-          shadowRadius: ball * 0.45,
-        }}
+      {/* Halo glow behind the ball — grows/brightens on a repeating cycle */}
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
+            bottom: ballBottom,
+            alignSelf: "center",
+            width: ball * 1.5,
+            height: ball * 1.5,
+            borderRadius: ball,
+            backgroundColor: "#C78E7D",
+            shadowColor: "#C78E7D",
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0.9,
+            shadowRadius: ball * 0.45,
+          },
+          haloStyle,
+        ]}
       />
 
       {/* The vibrating ball */}
@@ -93,7 +118,7 @@ export default function VibratingOrb({ size }: Props) {
         style={[
           {
             position: "absolute",
-            bottom: rest,
+            bottom: ballBottom,
             alignSelf: "center",
             width: ball,
             height: ball,
