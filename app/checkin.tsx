@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Jost_700Bold',
     lineHeight: 34,
     marginTop: '40%',
-    marginBottom: 40,
+    marginBottom: 80,
     textAlign: 'center',
   },
   grid: {
