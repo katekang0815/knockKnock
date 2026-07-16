@@ -13,10 +13,14 @@ interface Props {
   size: number;
 }
 
-// The same gradient orb as BouncingOrb, but jittering in place — the subtle
-// vibration used by the sub-emotion circles, applied to the ball icon.
+// The same gradient orb as BouncingOrb, sitting on the same base — but the ball
+// jitters in place (the sub-emotion circles' vibration) and the base pulses on a
+// steady interval instead of flashing on impact.
 export default function VibratingOrb({ size }: Props) {
+  // Fast jitter for the ball.
   const idle = useSharedValue(0);
+  // Slow steady pulse for the base.
+  const pulse = useSharedValue(0);
 
   useEffect(() => {
     idle.value = withRepeat(
@@ -24,9 +28,15 @@ export default function VibratingOrb({ size }: Props) {
       -1,
       true,
     );
+    pulse.value = withRepeat(
+      withTiming(1, { duration: 700, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true,
+    );
   }, []);
 
-  const ball = size * 0.4;
+  const ball = size * 0.4;   // ball diameter
+  const rest = size * 0.16;  // resting distance from the bottom (matches BouncingOrb)
 
   // Same jitter formula as EmotionCircle's idle motion.
   const ballStyle = useAnimatedStyle(() => {
@@ -36,12 +46,36 @@ export default function VibratingOrb({ size }: Props) {
     return { transform: [{ translateX: jitterX }, { translateY: jitterY }] };
   });
 
+  // Base glow pulses in and out on a regular interval.
+  const baseStyle = useAnimatedStyle(() => ({
+    opacity: 0.2 + pulse.value * 0.45,
+    transform: [{ scaleX: 0.8 + pulse.value * 0.4 }],
+  }));
+
   return (
-    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+    <View style={{ width: size, height: size }}>
+      {/* Ground base glow — pulsing */}
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
+            bottom: rest,
+            alignSelf: "center",
+            width: ball * 0.55,
+            height: ball * 0.14,
+            borderRadius: ball,
+            backgroundColor: "#FFF7CE",
+          },
+          baseStyle,
+        ]}
+      />
+
       {/* Halo glow behind the ball */}
       <View
         style={{
           position: "absolute",
+          bottom: rest,
+          alignSelf: "center",
           width: ball * 1.5,
           height: ball * 1.5,
           borderRadius: ball,
@@ -55,7 +89,18 @@ export default function VibratingOrb({ size }: Props) {
       />
 
       {/* The vibrating ball */}
-      <Animated.View style={[{ width: ball, height: ball }, ballStyle]}>
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
+            bottom: rest,
+            alignSelf: "center",
+            width: ball,
+            height: ball,
+          },
+          ballStyle,
+        ]}
+      >
         <Svg width={ball} height={ball} viewBox="0 0 100 100">
           <Defs>
             {/* Home-screen palette: coral → dusty rose → cream */}
