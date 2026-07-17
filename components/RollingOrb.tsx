@@ -46,7 +46,14 @@ export default function RollingOrb({ size }: Props) {
     const rot = (x / (Math.PI * ball)) * 360; // distance / circumference → degrees
     return {
       opacity: 1 - fade.value * 0.5, // 1 → 0.5 and back
-      transform: [{ translateX: x }, { rotate: `${rot}deg` }],
+      transform: [
+        { translateX: x },
+        // Keep the ball's bottom on the base's top edge while it scales about its
+        // center: shrinking lifts the bottom by (ball/2)(1-scale), so push it down.
+        { translateY: ball * 0.25 * fade.value },
+        { rotate: `${rot}deg` },
+        { scale: 1 - fade.value * 0.5 }, // shrinks to half size as it fades
+      ],
     };
   });
 
