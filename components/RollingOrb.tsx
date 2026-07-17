@@ -18,12 +18,19 @@ interface Props {
 export default function RollingOrb({ size }: Props) {
   // 0 = far left, 1 = far right.
   const roll = useSharedValue(0);
+  // Base fade cycle.
+  const fade = useSharedValue(0);
 
   useEffect(() => {
     roll.value = withRepeat(
       withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.quad) }),
       -1,
       true, // reverse: left→right→left forever
+    );
+    fade.value = withRepeat(
+      withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true,
     );
   }, []);
 
@@ -47,20 +54,31 @@ export default function RollingOrb({ size }: Props) {
     return { transform: [{ translateX: x }] };
   });
 
+  // Base follows the ball's bottom horizontally and fades in and out.
+  const baseStyle = useAnimatedStyle(() => {
+    const x = (roll.value - 0.5) * travel;
+    return {
+      opacity: 0.55 - fade.value * 0.45, // 0.55 → 0.1 and back
+      transform: [{ translateX: x }],
+    };
+  });
+
   return (
     <View style={{ width: size, height: size }}>
-      {/* Ground base — a still surface spanning the roll, ball rides on top */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: bottom - baseH,
-          alignSelf: "center",
-          width: travel + ball * 0.5,
-          height: baseH,
-          borderRadius: baseH,
-          backgroundColor: "#FFF7CE",
-          opacity: 0.55,
-        }}
+      {/* Ground base — follows the ball's bottom as it rolls */}
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
+            bottom: bottom - baseH,
+            alignSelf: "center",
+            width: ball * 0.55,
+            height: baseH,
+            borderRadius: baseH,
+            backgroundColor: "#FFF7CE",
+          },
+          baseStyle,
+        ]}
       />
 
       {/* Halo glow riding with the ball */}
