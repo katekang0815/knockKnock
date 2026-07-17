@@ -25,8 +25,11 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
   const fade = useSharedValue(0);
 
   useEffect(() => {
+    // The bouncing (non-fading) variant bounces at Sunny's rate: it hops once each
+    // time the roll reaches an edge, so 460ms/direction ≈ Sunny's 460ms bounce.
+    const rollDuration = fadeBall ? 2600 : 460;
     roll.value = withRepeat(
-      withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.quad) }),
+      withTiming(1, { duration: rollDuration, easing: Easing.inOut(Easing.quad) }),
       -1,
       true, // reverse: left→right→left forever
     );
@@ -56,10 +59,22 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
     if (!fadeBall) {
       // Bounce: hop up as the ball nears each end of its travel (roll → 0 or 1).
       const edgeness = 2 * Math.abs(roll.value - 0.5); // 0 in the middle → 1 at the edges
-      const hop = Math.pow(edgeness, 4) * bounceHeight; // stays low, rises sharply at the edges
+      const airborne = Math.pow(edgeness, 4); // 0 on the base → 1 at the apex
+      const hop = airborne * bounceHeight; // stays low, rises sharply at the edges
+      // Sunny-style squash-and-stretch: flat on the base, round in the air.
+      const scaleY = 0.86 + 0.14 * airborne;
+      const scaleX = 2 - scaleY; // preserve rough volume
       return {
         opacity: 1,
-        transform: [{ translateX: x }, { translateY: -hop }, { rotate: `${rot}deg` }],
+        // rotate is rightmost (applied first) so the gradient spins; the squash
+        // is applied after it, in world axes, so the ball flattens straight down.
+        transform: [
+          { translateX: x },
+          { translateY: -hop },
+          { scaleX },
+          { scaleY },
+          { rotate: `${rot}deg` },
+        ],
       };
     }
     return {
@@ -75,9 +90,15 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
     };
   });
 
-  // Halo trails along with the ball (no rotation).
+  // Halo trails along with the ball (no rotation), and hops with it on the
+  // non-fading variant's edge bounce.
   const haloStyle = useAnimatedStyle(() => {
     const x = (roll.value - 0.5) * travel;
+    if (!fadeBall) {
+      const edgeness = 2 * Math.abs(roll.value - 0.5);
+      const hop = Math.pow(edgeness, 4) * bounceHeight;
+      return { transform: [{ translateX: x }, { translateY: -hop }] };
+    }
     return { transform: [{ translateX: x }] };
   });
 
