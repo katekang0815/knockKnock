@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import BouncingOrb from '@/components/BouncingOrb';
 import VibratingOrb from '@/components/VibratingOrb';
+import RollingOrb from '@/components/RollingOrb';
 
 const { width } = Dimensions.get('window');
 
@@ -64,6 +65,8 @@ export default function CheckInScreen() {
                 <BouncingOrb size={CIRCLE_SIZE} />
               ) : q.category === 'Stormy' ? (
                 <VibratingOrb size={CIRCLE_SIZE} />
+              ) : q.category === 'Calm' ? (
+                <RollingOrb size={CIRCLE_SIZE} />
               ) : (
                 <View style={styles.placeholder}>
                   <Text style={styles.placeholderLabel}>{q.label}</Text>
