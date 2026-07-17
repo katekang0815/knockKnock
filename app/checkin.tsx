@@ -67,6 +67,8 @@ export default function CheckInScreen() {
                 <VibratingOrb size={CIRCLE_SIZE} />
               ) : q.category === 'Calm' ? (
                 <RollingOrb size={CIRCLE_SIZE} />
+              ) : q.category === 'Breezy' ? (
+                <RollingOrb size={CIRCLE_SIZE} fadeBall={false} />
               ) : (
                 <View style={styles.placeholder}>
                   <Text style={styles.placeholderLabel}>{q.label}</Text>

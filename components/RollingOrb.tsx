@@ -11,11 +11,14 @@ import Svg, { Defs, LinearGradient, Stop, Circle } from "react-native-svg";
 
 interface Props {
   size: number;
+  // When true (default) the ball fades + shrinks on a cycle. When false the ball
+  // holds at its smallest size with full opacity (still rolls; base still fades).
+  fadeBall?: boolean;
 }
 
 // The same gradient orb, slowly rolling left → right and back, repeating. The
 // rotation is tied to the horizontal travel so it reads as a true roll.
-export default function RollingOrb({ size }: Props) {
+export default function RollingOrb({ size, fadeBall = true }: Props) {
   // 0 = far left, 1 = far right.
   const roll = useSharedValue(0);
   // Base fade cycle.
@@ -34,19 +37,36 @@ export default function RollingOrb({ size }: Props) {
     );
   }, []);
 
-  const ball = size * 0.4;    // ball diameter
+  const ball = size * 0.4;    // reference ball diameter (base/halo/positions)
   const travel = size * 0.3;  // total left↔right distance
   const bottom = size * 0.2;  // ball's resting distance from the bottom
   const baseH = ball * 0.14;  // base thickness (matches the other orbs)
+  // Rendered ball diameter: full when it fades, else the fading ball's smallest size.
+  const ballDiameter = fadeBall ? ball : ball * 0.5;
+  // Distinct gradient id per variant so the two instances don't collide.
+  const gradId = fadeBall ? "orbGradRoll" : "orbGradRollSmall";
 
-  // Rolling ball: translate across, rotate by the arc length it covers, and fade
-  // in and out.
+  // Rolling ball: translate across, rotate by the arc length it covers, and (when
+  // enabled) fade + shrink in and out on the same cycle as the base.
   const ballStyle = useAnimatedStyle(() => {
     const x = (roll.value - 0.5) * travel; // -travel/2 → +travel/2
-    const rot = (x / (Math.PI * ball)) * 360; // distance / circumference → degrees
+    const rot = (x / (Math.PI * ballDiameter)) * 360; // distance / circumference → degrees
+    if (!fadeBall) {
+      return {
+        opacity: 1,
+        transform: [{ translateX: x }, { rotate: `${rot}deg` }],
+      };
+    }
     return {
-      opacity: 0.2 + fade.value * 0.8, // fades in and out (0.2 → 1.0)
-      transform: [{ translateX: x }, { rotate: `${rot}deg` }],
+      opacity: 0.2 + fade.value * 0.8, // faded out when big (0.2) → fully in when small (1.0)
+      transform: [
+        { translateX: x },
+        // Keep the ball's bottom on the base's top edge while it scales about its
+        // center: shrinking lifts the bottom by (ball/2)(1-scale), so push it down.
+        { translateY: ball * 0.25 * fade.value },
+        { rotate: `${rot}deg` },
+        { scale: 1 - fade.value * 0.5 }, // shrinks to half size as it fades
+      ],
     };
   });
 
@@ -111,22 +131,22 @@ export default function RollingOrb({ size }: Props) {
             position: "absolute",
             bottom,
             alignSelf: "center",
-            width: ball,
-            height: ball,
+            width: ballDiameter,
+            height: ballDiameter,
           },
           ballStyle,
         ]}
       >
-        <Svg width={ball} height={ball} viewBox="0 0 100 100">
+        <Svg width={ballDiameter} height={ballDiameter} viewBox="0 0 100 100">
           <Defs>
             {/* Home-screen palette: coral → dusty rose → cream */}
-            <LinearGradient id="orbGradRoll" x1="0.5" y1="0" x2="0.5" y2="1">
+            <LinearGradient id={gradId} x1="0.5" y1="0" x2="0.5" y2="1">
               <Stop offset="0" stopColor="#DB533C" />
               <Stop offset="0.5" stopColor="#C78E7D" />
               <Stop offset="1" stopColor="#FFF7CE" />
             </LinearGradient>
           </Defs>
-          <Circle cx={50} cy={50} r={48} fill="url(#orbGradRoll)" />
+          <Circle cx={50} cy={50} r={48} fill={`url(#${gradId})`} />
         </Svg>
       </Animated.View>
     </View>
