@@ -45,6 +45,8 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
   const ballDiameter = fadeBall ? ball : ball * 0.5;
   // Distinct gradient id per variant so the two instances don't collide.
   const gradId = fadeBall ? "orbGradRoll" : "orbGradRollSmall";
+  // Hop height for the non-fading variant's edge bounce.
+  const bounceHeight = ball * 0.4;
 
   // Rolling ball: translate across, rotate by the arc length it covers, and (when
   // enabled) fade + shrink in and out on the same cycle as the base.
@@ -52,9 +54,12 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
     const x = (roll.value - 0.5) * travel; // -travel/2 → +travel/2
     const rot = (x / (Math.PI * ballDiameter)) * 360; // distance / circumference → degrees
     if (!fadeBall) {
+      // Bounce: hop up as the ball nears each end of its travel (roll → 0 or 1).
+      const edgeness = 2 * Math.abs(roll.value - 0.5); // 0 in the middle → 1 at the edges
+      const hop = Math.pow(edgeness, 4) * bounceHeight; // stays low, rises sharply at the edges
       return {
         opacity: 1,
-        transform: [{ translateX: x }, { rotate: `${rot}deg` }],
+        transform: [{ translateX: x }, { translateY: -hop }, { rotate: `${rot}deg` }],
       };
     }
     return {
