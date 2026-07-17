@@ -47,9 +47,9 @@ export default function VibratingOrb({ size }: Props) {
   const baseH = ball * 0.14;    // base thickness
   const ballBottom = rest + baseH; // ball sits on top of the base, just touching it
 
-  // Same jitter formula as EmotionCircle's idle motion, plus a gentle shrink that
-  // rides the halo cycle: ball dips to a bit smaller as the halo grows, and returns
-  // to its current size as the halo shrinks back.
+  // Same jitter formula as EmotionCircle's idle motion, plus a gentle grow that
+  // rides the halo cycle: ball swells slightly as the halo grows, and returns to
+  // its current size as the halo shrinks back.
   const ballStyle = useAnimatedStyle(() => {
     const phi = idle.value * Math.PI * 2;
     const jitterX = (Math.sin(phi * 3) + Math.sin(phi * 5.3)) * 1.0;
@@ -58,7 +58,7 @@ export default function VibratingOrb({ size }: Props) {
       transform: [
         { translateX: jitterX },
         { translateY: jitterY },
-        { scale: 1 - halo.value * 0.1 }, // 1.0 (current) → 0.9 as halo grows
+        { scale: 1 + halo.value * 0.1 }, // 1.0 (current) → 1.1 as halo grows (matches halo)
       ],
     };
   });
