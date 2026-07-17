@@ -40,20 +40,13 @@ export default function RollingOrb({ size }: Props) {
   const baseH = ball * 0.14;  // base thickness (matches the other orbs)
 
   // Rolling ball: translate across, rotate by the arc length it covers, and fade
-  // in and out on the same cycle as the base.
+  // in and out.
   const ballStyle = useAnimatedStyle(() => {
     const x = (roll.value - 0.5) * travel; // -travel/2 → +travel/2
     const rot = (x / (Math.PI * ball)) * 360; // distance / circumference → degrees
     return {
-      opacity: 0.5 + fade.value * 0.5, // faded out when big (0.5) → fully in when small (1.0)
-      transform: [
-        { translateX: x },
-        // Keep the ball's bottom on the base's top edge while it scales about its
-        // center: shrinking lifts the bottom by (ball/2)(1-scale), so push it down.
-        { translateY: ball * 0.25 * fade.value },
-        { rotate: `${rot}deg` },
-        { scale: 1 - fade.value * 0.5 }, // shrinks to half size as it fades
-      ],
+      opacity: 0.2 + fade.value * 0.8, // fades in and out (0.2 → 1.0)
+      transform: [{ translateX: x }, { rotate: `${rot}deg` }],
     };
   });
 
