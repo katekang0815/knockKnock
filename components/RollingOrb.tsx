@@ -39,11 +39,13 @@ export default function RollingOrb({ size }: Props) {
   const bottom = size * 0.2;  // ball's resting distance from the bottom
   const baseH = ball * 0.14;  // base thickness (matches the other orbs)
 
-  // Rolling ball: translate across, and rotate by the arc length it covers.
+  // Rolling ball: translate across, rotate by the arc length it covers, and fade
+  // in and out on the same cycle as the base.
   const ballStyle = useAnimatedStyle(() => {
     const x = (roll.value - 0.5) * travel; // -travel/2 → +travel/2
     const rot = (x / (Math.PI * ball)) * 360; // distance / circumference → degrees
     return {
+      opacity: 1 - fade.value * 0.5, // 1 → 0.5 and back
       transform: [{ translateX: x }, { rotate: `${rot}deg` }],
     };
   });
