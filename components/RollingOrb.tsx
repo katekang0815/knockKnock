@@ -35,7 +35,7 @@ export default function RollingOrb({ size }: Props) {
   }, []);
 
   const ball = size * 0.4;    // ball diameter
-  const travel = size * 0.5;  // total left↔right distance
+  const travel = size * 0.3;  // total left↔right distance
   const bottom = size * 0.2;  // ball's resting distance from the bottom
   const baseH = ball * 0.14;  // base thickness (matches the other orbs)
 
