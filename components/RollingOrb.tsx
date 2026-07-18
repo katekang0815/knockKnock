@@ -12,8 +12,8 @@ import Svg, { Defs, LinearGradient, Stop, Circle } from "react-native-svg";
 
 interface Props {
   size: number;
-  // When true (default) the ball fades + shrinks on a cycle. When false the ball
-  // holds at its smallest size with full opacity (still rolls; base still fades).
+  // true (default) = rain: rolls at a constant small size (base still fades).
+  // false = Breezy: rolls + bounces with a Sunny-style squash and contact base.
   fadeBall?: boolean;
 }
 
@@ -57,8 +57,8 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
   const travel = fadeBall ? size * 0.3 : size * 0.18;
   const bottom = size * 0.2;  // ball's resting distance from the bottom
   const baseH = ball * 0.14;  // base thickness (matches the other orbs)
-  // Rendered ball diameter: full when it fades, else the fading ball's smallest size.
-  const ballDiameter = fadeBall ? ball : ball * 0.5;
+  // Rendered ball diameter — both variants use the small (formerly "smallest") size.
+  const ballDiameter = ball * 0.5;
   // Distinct gradient id per variant so the two instances don't collide.
   const gradId = fadeBall ? "orbGradRoll" : "orbGradRollSmall";
   // Hop height for the non-fading variant's edge bounce.
@@ -68,8 +68,8 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
   // base and the widening contact glow reads as a squash. Rain (fading) is unchanged.
   const ballBottom = fadeBall ? bottom : bottom - baseH * 0.5;
 
-  // Rolling ball: translate across, rotate by the arc length it covers, and (when
-  // enabled) fade + shrink in and out on the same cycle as the base.
+  // Rolling ball: translate across and rotate by the arc length it covers. Breezy
+  // adds a vertical bounce + squash; rain just rolls at a constant size.
   const ballStyle = useAnimatedStyle(() => {
     const x = (roll.value - 0.5) * travel; // -travel/2 → +travel/2
     const rot = (x / (Math.PI * ballDiameter)) * 360; // distance / circumference → degrees
@@ -94,16 +94,10 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
         ],
       };
     }
+    // Rain: no fade, no size shifting — just rolls at a constant small size.
     return {
-      opacity: 0.2 + fade.value * 0.8, // faded out when big (0.2) → fully in when small (1.0)
-      transform: [
-        { translateX: x },
-        // Keep the ball's bottom on the base's top edge while it scales about its
-        // center: shrinking lifts the bottom by (ball/2)(1-scale), so push it down.
-        { translateY: ball * 0.25 * fade.value },
-        { rotate: `${rot}deg` },
-        { scale: 1 - fade.value * 0.5 }, // shrinks to half size as it fades
-      ],
+      opacity: 1,
+      transform: [{ translateX: x }, { rotate: `${rot}deg` }],
     };
   });
 
