@@ -99,6 +99,13 @@ export default function BouncingBall({ size }: Props) {
     );
     const xPos = p >= 3 ? xFinal : x;
     const opacity = interpolate(p, [0, 3, 3.4, 4], [1, 1, 0.5, 0]);
+    // Squash-and-stretch (same as the Sunny icon): the ball is on a stair at each
+    // integer p and at its apex mid-step. Squash briefly right at each landing.
+    const frac = p - Math.floor(p);
+    const arc = 1 - Math.abs(2 * frac - 1); // 0 at a landing → 1 at the apex
+    const grounded = Math.min(arc / 0.15, 1); // 0 on the stair → 1 once airborne
+    const scaleY = 0.86 + 0.14 * grounded; // 0.86 squashed on contact → 1 round in the air
+    const scaleX = 2 - scaleY; // preserve rough volume
     return {
       position: "absolute" as const,
       left: xPos - ballR / 2,
@@ -106,6 +113,7 @@ export default function BouncingBall({ size }: Props) {
       width: ballR,
       height: ballR,
       opacity,
+      transform: [{ scaleX }, { scaleY }],
     };
   });
 

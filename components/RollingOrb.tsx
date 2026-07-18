@@ -29,8 +29,10 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
   const bounce = useSharedValue(0);
 
   useEffect(() => {
+    // Rain (fading) rolls slower than the bouncing (Breezy) variant.
+    const rollDuration = fadeBall ? 2600 : 1300;
     roll.value = withRepeat(
-      withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.quad) }),
+      withTiming(1, { duration: rollDuration, easing: Easing.inOut(Easing.quad) }),
       -1,
       true, // reverse: left→right→left forever
     );
