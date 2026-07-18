@@ -5,6 +5,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Stop, Circle } from "react-native-svg";
@@ -21,15 +22,15 @@ interface Props {
 export default function RollingOrb({ size, fadeBall = true }: Props) {
   // 0 = far left, 1 = far right.
   const roll = useSharedValue(0);
-  // Base fade cycle.
+  // Base fade cycle (rain variant).
   const fade = useSharedValue(0);
+  // Vertical bounce (Breezy variant) — decoupled from the roll so its speed is
+  // independent. 0 = on the base, 1 = apex.
+  const bounce = useSharedValue(0);
 
   useEffect(() => {
-    // The bouncing (non-fading) variant bounces at Sunny's rate: it hops once each
-    // time the roll reaches an edge, so 460ms/direction ≈ Sunny's 460ms bounce.
-    const rollDuration = fadeBall ? 2600 : 460;
     roll.value = withRepeat(
-      withTiming(1, { duration: rollDuration, easing: Easing.inOut(Easing.quad) }),
+      withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.quad) }),
       -1,
       true, // reverse: left→right→left forever
     );
@@ -38,10 +39,20 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
       -1,
       true,
     );
+    // 1000ms per hop = 1.0 hops/second.
+    bounce.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 523, easing: Easing.out(Easing.quad) }), // rise
+        withTiming(0, { duration: 477, easing: Easing.in(Easing.quad) }),  // fall
+      ),
+      -1,
+      false,
+    );
   }, []);
 
   const ball = size * 0.4;    // reference ball diameter (base/halo/positions)
-  const travel = size * 0.3;  // total left↔right distance
+  // Total left↔right distance — the bouncing (Breezy) variant uses a narrower range.
+  const travel = fadeBall ? size * 0.3 : size * 0.18;
   const bottom = size * 0.2;  // ball's resting distance from the bottom
   const baseH = ball * 0.14;  // base thickness (matches the other orbs)
   // Rendered ball diameter: full when it fades, else the fading ball's smallest size.
@@ -50,6 +61,10 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
   const gradId = fadeBall ? "orbGradRoll" : "orbGradRollSmall";
   // Hop height for the non-fading variant's edge bounce.
   const bounceHeight = ball * 0.4;
+  // Ball/halo resting bottom. The bouncing (Breezy) variant sits lower so its
+  // bottom aligns with the base's bottom (like Sunny) — the ball presses into the
+  // base and the widening contact glow reads as a squash. Rain (fading) is unchanged.
+  const ballBottom = fadeBall ? bottom : bottom - baseH * 0.5;
 
   // Rolling ball: translate across, rotate by the arc length it covers, and (when
   // enabled) fade + shrink in and out on the same cycle as the base.
@@ -57,17 +72,17 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
     const x = (roll.value - 0.5) * travel; // -travel/2 → +travel/2
     const rot = (x / (Math.PI * ballDiameter)) * 360; // distance / circumference → degrees
     if (!fadeBall) {
-      // Bounce: hop up as the ball nears each end of its travel (roll → 0 or 1).
-      const edgeness = 2 * Math.abs(roll.value - 0.5); // 0 in the middle → 1 at the edges
-      const airborne = Math.pow(edgeness, 4); // 0 on the base → 1 at the apex
-      const hop = airborne * bounceHeight; // stays low, rises sharply at the edges
-      // Sunny-style squash-and-stretch: flat on the base, round in the air.
-      const scaleY = 0.86 + 0.14 * airborne;
+      // Vertical hop from the dedicated bounce driver (independent of roll speed).
+      const b = bounce.value; // 0 on the base → 1 at the apex
+      const hop = b * bounceHeight;
+      // Sunny-style squash: only a brief pulse right at the base contact.
+      const grounded = Math.min(b / 0.12, 1); // 0 at the base → 1 once airborne
+      const scaleY = 0.86 + 0.14 * grounded; // 0.86 squashed on contact → 1 round in the air
       const scaleX = 2 - scaleY; // preserve rough volume
       return {
         opacity: 1,
-        // rotate is rightmost (applied first) so the gradient spins; the squash
-        // is applied after it, in world axes, so the ball flattens straight down.
+        // rotate rightmost (applied first) so the gradient spins; the squash after
+        // it (world axes) flattens the ball straight down on contact.
         transform: [
           { translateX: x },
           { translateY: -hop },
@@ -95,16 +110,24 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
   const haloStyle = useAnimatedStyle(() => {
     const x = (roll.value - 0.5) * travel;
     if (!fadeBall) {
-      const edgeness = 2 * Math.abs(roll.value - 0.5);
-      const hop = Math.pow(edgeness, 4) * bounceHeight;
+      const hop = bounce.value * bounceHeight;
       return { transform: [{ translateX: x }, { translateY: -hop }] };
     }
     return { transform: [{ translateX: x }] };
   });
 
-  // Base follows the ball's bottom horizontally and fades in and out.
+  // Base follows the ball horizontally. On the bouncing variant it's a Sunny-style
+  // contact glow (bright + wide at base contact, dim + narrow as the ball lifts);
+  // otherwise it fades in and out.
   const baseStyle = useAnimatedStyle(() => {
     const x = (roll.value - 0.5) * travel;
+    if (!fadeBall) {
+      const grounded = 1 - Math.min(bounce.value / 0.5, 1); // 1 at contact → 0 mid-air
+      return {
+        opacity: 0.15 + grounded * 0.45,
+        transform: [{ translateX: x }, { scaleX: 0.7 + grounded * 0.5 }],
+      };
+    }
     return {
       opacity: 0.55 - fade.value * 0.45, // 0.55 → 0.1 and back
       transform: [{ translateX: x }],
@@ -134,7 +157,7 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
         style={[
           {
             position: "absolute",
-            bottom,
+            bottom: ballBottom,
             alignSelf: "center",
             width: ball * 1.4,
             height: ball * 1.4,
@@ -155,7 +178,7 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
         style={[
           {
             position: "absolute",
-            bottom,
+            bottom: ballBottom,
             alignSelf: "center",
             width: ballDiameter,
             height: ballDiameter,
