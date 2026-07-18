@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { View } from "react-native";
+import { Text, View } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -14,11 +14,16 @@ interface Props {
   size: number;
 }
 
+// Sub-emotions cycled by the rotating "base" text.
+const WORDS = ["Happy", "Confident", "Thrilled", "Amazed", "Excited"];
+
 // A single gradient ball that bounces up and down on the same spot — the
 // home-screen BouncingBall's look and warm palette, minus the stair climb.
 export default function BouncingOrb({ size }: Props) {
   // 0 = resting on the ground, 1 = apex of the jump.
   const bounce = useSharedValue(0);
+  // Which word is showing — index into WORDS, animated to scroll the list up.
+  const scroll = useSharedValue(0);
 
   useEffect(() => {
     bounce.value = withRepeat(
@@ -30,11 +35,22 @@ export default function BouncingOrb({ size }: Props) {
       -1,
       false,
     );
+
+    // Step up one word at a time, holding on each. The list renders a duplicate
+    // of the first word at the end, so snapping back to 0 is invisible.
+    const steps: number[] = [];
+    for (let i = 1; i <= WORDS.length; i++) {
+      steps.push(withTiming(i, { duration: 450, easing: Easing.inOut(Easing.quad) }) as number); // shift up
+      steps.push(withTiming(i, { duration: 950 }) as number);                                     // hold
+    }
+    steps.push(withTiming(0, { duration: 0 }) as number); // seamless wrap
+    scroll.value = withRepeat(withSequence(...steps), -1, false);
   }, []);
 
-  const ball = size * 0.4;      // ball diameter
+  const ball = size * 0.36;     // ball diameter (matches VibratingOrb's smallest: 0.9 × 0.4)
   const jump = size * 0.34;     // travel from ground to apex
   const rest = size * 0.16;     // ball's resting distance from the bottom
+  const lineH = size * 0.13;    // height of one word row
 
   // Ball: travels up, with a small squash-and-stretch at the ground.
   const ballStyle = useAnimatedStyle(() => {
@@ -68,23 +84,49 @@ export default function BouncingOrb({ size }: Props) {
     };
   });
 
+  // Vertical word rotation for the base.
+  const scrollStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -scroll.value * lineH }],
+  }));
+
   return (
     <View style={{ width: size, height: size }}>
-      {/* Ground contact glow */}
+      {/* Base — sub-emotion words rotating vertically, keeping the contact
+          glow's brighten/widen animation in place of the old glow bar */}
       <Animated.View
         style={[
           {
             position: "absolute",
-            bottom: rest,
+            bottom: rest - lineH, // sits directly beneath the ball, where the bar was
             alignSelf: "center",
-            width: ball * 0.55,
-            height: ball * 0.14,
-            borderRadius: ball,
-            backgroundColor: "#FFF7CE",
+            width: size,
+            height: lineH,
+            overflow: "hidden",
           },
           contactStyle,
         ]}
-      />
+      >
+        <Animated.View style={scrollStyle}>
+          {[...WORDS, WORDS[0]].map((word, i) => (
+            <View
+              key={`${word}-${i}`}
+              style={{ height: lineH, alignItems: "center", justifyContent: "center" }}
+            >
+              <Text
+                numberOfLines={1}
+                style={{
+                  color: "#FFF7CE",
+                  fontSize: lineH * 0.72,
+                  fontFamily: "Jost_700Bold",
+                  letterSpacing: 0.5,
+                }}
+              >
+                {word}
+              </Text>
+            </View>
+          ))}
+        </Animated.View>
+      </Animated.View>
 
       {/* Halo glow behind the ball */}
       <Animated.View
