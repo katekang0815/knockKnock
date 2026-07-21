@@ -47,7 +47,7 @@ export default function BouncingOrb({ size }: Props) {
     scroll.value = withRepeat(withSequence(...steps), -1, false);
   }, []);
 
-  const ball = 40;              // ball diameter (fixed 40px)
+  const ball = 45;              // ball diameter (fixed 45px)
   const jump = size * 0.34;     // travel from ground to apex
   const rest = size * 0.16;     // ball's resting distance from the bottom
   const lineH = size * 0.13;    // height of one word row
