@@ -58,7 +58,8 @@ export default function VibratingOrb({ size }: Props) {
     scroll.value = withRepeat(withSequence(...steps), -1, false);
   }, []);
 
-  const ball = size * 0.4;      // ball diameter
+  const ball = size * 0.4;      // ball diameter (largest, at scale 1)
+  const minScale = 45 / ball;   // smallest = 45px
   const rest = size * 0.16;     // base's distance from the bottom (matches BouncingOrb)
   const baseH = ball * 0.14;    // base thickness
   const ballBottom = rest + baseH; // ball sits on top of the base, just touching it
@@ -75,7 +76,7 @@ export default function VibratingOrb({ size }: Props) {
       transform: [
         { translateX: jitterX },
         { translateY: jitterY },
-        { scale: 1 - halo.value * 0.1 }, // 1.0 (current) → 0.9 as halo grows
+        { scale: 1 - halo.value * (1 - minScale) }, // largest (size×0.4) → 45px as halo grows
       ],
     };
   });
