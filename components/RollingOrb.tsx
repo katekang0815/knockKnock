@@ -77,6 +77,8 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
   const lineH = size * 0.13;  // height of one word row (rain's text base)
   // Rendered ball diameter — both variants use the small (formerly "smallest") size.
   const ballDiameter = ball * 0.5;
+  // Rain pulses its ball between 12px and ballDiameter (32px at size 160).
+  const rainMinScale = 12 / ballDiameter;
   // Distinct gradient id per variant so the two instances don't collide.
   const gradId = fadeBall ? "orbGradRoll" : "orbGradRollSmall";
   // Hop height for the non-fading variant's edge bounce.
@@ -112,10 +114,17 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
         ],
       };
     }
-    // Rain: no fade, no size shifting — just rolls at a constant small size.
+    // Rain: ball size pulses between 12px and 32px on the fade cycle.
+    const s = 1 - fade.value * (1 - rainMinScale); // 1.0 (32px) → 12px
+    const lift = (ballDiameter / 2) * (1 - s); // keep the bottom on the base as it shrinks
     return {
       opacity: 1,
-      transform: [{ translateX: x }, { rotate: `${rot}deg` }],
+      transform: [
+        { translateX: x },
+        { translateY: lift },
+        { rotate: `${rot}deg` },
+        { scale: s },
+      ],
     };
   });
 
