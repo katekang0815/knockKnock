@@ -40,10 +40,14 @@ export default function HomeScreen() {
   const knock2 = useSharedValue(0);
 
   useEffect(() => {
-    const HIT = 90;      // fist meeting the door
+    // Synced to BouncingBall: it loops every 2500ms and lands on a stair every
+    // 625ms (4 contacts). The two "Knock" taps fire on the first two contacts so
+    // the text knocks exactly when the ball hits the stairs.
+    const CYCLE = 2500;  // matches BouncingBall's climb loop
+    const LAND = 625;    // interval between stair contacts (CYCLE / 4)
+    const HIT = 80;      // fist meeting the door
     const RELEASE = 200; // pulling back
-    const GAP = 130;     // between the two knocks
-    const REST = 900;    // pause before the pair repeats
+    const TAP = HIT + RELEASE;
 
     const knockHit = () =>
       withSequence(
@@ -51,22 +55,18 @@ export default function HomeScreen() {
         withTiming(0, { duration: RELEASE, easing: Easing.out(Easing.quad) }),
       );
 
+    // Knock 1 — taps on the ball's first contact, then waits out the loop.
     knock1.value = withRepeat(
-      withSequence(
-        knockHit(),
-        withDelay(GAP + HIT + RELEASE + REST, withTiming(0, { duration: 1 })),
-      ),
+      withSequence(knockHit(), withTiming(0, { duration: CYCLE - TAP })),
       -1,
       false,
     );
 
+    // Knock 2 — taps on the ball's next contact (one stair later), same loop.
     knock2.value = withDelay(
-      HIT + RELEASE + GAP,
+      LAND,
       withRepeat(
-        withSequence(
-          knockHit(),
-          withDelay(HIT + RELEASE + GAP + REST, withTiming(0, { duration: 1 })),
-        ),
+        withSequence(knockHit(), withTiming(0, { duration: CYCLE - TAP })),
         -1,
         false,
       ),
