@@ -103,9 +103,9 @@ export default function BouncingBall({ size }: Props) {
     // integer p and at its apex mid-step. Squash briefly right at each landing.
     const frac = p - Math.floor(p);
     const arc = 1 - Math.abs(2 * frac - 1); // 0 at a landing → 1 at the apex
-    const grounded = Math.min(arc / 0.15, 1); // 0 on the stair → 1 once airborne
-    const scaleY = 0.86 + 0.14 * grounded; // 0.86 squashed on contact → 1 round in the air
-    const scaleX = 2 - scaleY; // preserve rough volume
+    const grounded = Math.min(arc / 0.22, 1); // 0 on the stair → 1 once airborne (wider window)
+    const scaleY = 0.8 + 0.2 * grounded; // 0.80 squashed on contact → 1 round in the air
+    const scaleX = 2 - scaleY; // preserve rough volume (1.20 stretched on contact)
     return {
       position: "absolute" as const,
       left: xPos - ballR / 2,
