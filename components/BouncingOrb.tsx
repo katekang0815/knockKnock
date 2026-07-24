@@ -14,14 +14,16 @@ interface Props {
   size: number;
 }
 
-// Sub-emotion label shown on the base.
-const WORD = "Happy";
+// Sub-emotions cycled by the rotating "base" text.
+const WORDS = ["Happy", "Confident", "Thrilled", "Amazed", "Excited"];
 
 // A single gradient ball that bounces up and down on the same spot — the
 // home-screen BouncingBall's look and warm palette, minus the stair climb.
 export default function BouncingOrb({ size }: Props) {
   // 0 = resting on the ground, 1 = apex of the jump.
   const bounce = useSharedValue(0);
+  // Which word is showing — index into WORDS, animated to scroll the list up.
+  const scroll = useSharedValue(0);
 
   useEffect(() => {
     bounce.value = withRepeat(
@@ -33,6 +35,16 @@ export default function BouncingOrb({ size }: Props) {
       -1,
       false,
     );
+
+    // Step up one word at a time, holding on each. The list renders a duplicate
+    // of the first word at the end, so snapping back to 0 is invisible.
+    const steps: number[] = [];
+    for (let i = 1; i <= WORDS.length; i++) {
+      steps.push(withTiming(i, { duration: 450, easing: Easing.inOut(Easing.quad) }) as number); // shift up
+      steps.push(withTiming(i, { duration: 950 }) as number);                                     // hold
+    }
+    steps.push(withTiming(0, { duration: 0 }) as number); // seamless wrap
+    scroll.value = withRepeat(withSequence(...steps), -1, false);
   }, []);
 
   const ball = 45;              // ball diameter (fixed 45px)
@@ -62,34 +74,59 @@ export default function BouncingOrb({ size }: Props) {
     transform: [{ translateY: -bounce.value * jump }],
   }));
 
+  // Contact glow on the ground — brightest at the moment of landing.
+  const contactStyle = useAnimatedStyle(() => {
+    const b = bounce.value;
+    const grounded = 1 - Math.min(b / 0.5, 1); // 1 at ground → 0 mid-air
+    return {
+      opacity: 0.15 + grounded * 0.45,
+      transform: [{ scaleX: 0.7 + grounded * 0.5 }],
+    };
+  });
+
+  // Vertical word rotation for the base.
+  const scrollStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -scroll.value * lineH }],
+  }));
+
   return (
     <View style={{ width: size, height: size }}>
-      {/* Base — single sub-emotion label (static) */}
-      <View
-        style={
+      {/* Base — sub-emotion words rotating vertically, keeping the contact
+          glow's brighten/widen animation in place of the old glow bar */}
+      <Animated.View
+        style={[
           {
             position: "absolute",
             bottom: rest - lineH, // sits directly beneath the ball, where the bar was
             alignSelf: "center",
             width: size,
             height: lineH,
-            alignItems: "center",
-            justifyContent: "center",
-          }
-        }
+            overflow: "hidden",
+          },
+          contactStyle,
+        ]}
       >
-        <Text
-          numberOfLines={1}
-          style={{
-            color: "#FFF7CE",
-            fontSize: lineH * 0.72,
-            fontFamily: "Jost_700Bold",
-            letterSpacing: 0.5,
-          }}
-        >
-          {WORD}
-        </Text>
-      </View>
+        <Animated.View style={scrollStyle}>
+          {[...WORDS, WORDS[0]].map((word, i) => (
+            <View
+              key={`${word}-${i}`}
+              style={{ height: lineH, alignItems: "center", justifyContent: "center" }}
+            >
+              <Text
+                numberOfLines={1}
+                style={{
+                  color: "#FFF7CE",
+                  fontSize: lineH * 0.72,
+                  fontFamily: "Jost_700Bold",
+                  letterSpacing: 0.5,
+                }}
+              >
+                {word}
+              </Text>
+            </View>
+          ))}
+        </Animated.View>
+      </Animated.View>
 
       {/* Halo glow behind the ball */}
       <Animated.View

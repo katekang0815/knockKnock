@@ -17,18 +17,20 @@ interface Props {
   fadeBall?: boolean;
 }
 
-// Single sub-emotion label shown on each variant's base.
-const RAIN_WORD = "Sad";
-const BREEZE_WORD = "Calm";
+// Sub-emotions cycled by each variant's rotating "base" text.
+const RAIN_WORDS = ["Sad", "Lonely", "Disappointed", "Insecure", "Burned Out"];
+const BREEZE_WORDS = ["Good", "Grateful", "Safe", "Connected", "Supported"];
 
 // The same gradient orb, slowly rolling left → right and back, repeating. The
 // rotation is tied to the horizontal travel so it reads as a true roll.
 export default function RollingOrb({ size, fadeBall = true }: Props) {
-  const word = fadeBall ? RAIN_WORD : BREEZE_WORD;
+  const words = fadeBall ? RAIN_WORDS : BREEZE_WORDS;
   // 0 = far left, 1 = far right.
   const roll = useSharedValue(0);
   // Base fade cycle (rain variant).
   const fade = useSharedValue(0);
+  // Which word is showing — index into WORDS, animated to scroll the list up.
+  const scroll = useSharedValue(0);
   // Vertical bounce (Breezy variant) — decoupled from the roll so its speed is
   // independent. 0 = on the base, 1 = apex.
   const bounce = useSharedValue(0);
@@ -55,11 +57,21 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
       -1,
       false,
     );
+
+    // Step up one word at a time, holding on each. The list renders a duplicate
+    // of the first word at the end, so snapping back to 0 is invisible.
+    const steps: number[] = [];
+    for (let i = 1; i <= words.length; i++) {
+      steps.push(withTiming(i, { duration: 450, easing: Easing.inOut(Easing.quad) }) as number); // shift up
+      steps.push(withTiming(i, { duration: 950 }) as number);                                     // hold
+    }
+    steps.push(withTiming(0, { duration: 0 }) as number); // seamless wrap
+    scroll.value = withRepeat(withSequence(...steps), -1, false);
   }, []);
 
   const ball = size * 0.4;    // reference ball diameter (base/halo/positions)
-  // No rolling — both variants stay in place (Breeze still bounces; rain fades).
-  const travel = 0;
+  // Total left↔right distance — both variants use the same range.
+  const travel = size * 0.18;
   const bottom = size * 0.2;  // ball's resting distance from the bottom
   const baseH = ball * 0.14;  // base thickness (matches the other orbs)
   const lineH = size * 0.13;  // height of one word row (rain's text base)
@@ -131,32 +143,67 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
     return { transform: [{ translateX: x }] };
   });
 
+  // Base follows the ball horizontally. On the bouncing variant it's a Sunny-style
+  // contact glow (bright + wide at base contact, dim + narrow as the ball lifts);
+  // otherwise it fades in and out.
+  const baseStyle = useAnimatedStyle(() => {
+    const x = (roll.value - 0.5) * travel;
+    if (!fadeBall) {
+      const grounded = 1 - Math.min(bounce.value / 0.5, 1); // 1 at contact → 0 mid-air
+      return {
+        opacity: 0.15 + grounded * 0.45,
+        transform: [{ translateX: x }, { scaleX: 0.7 + grounded * 0.5 }],
+      };
+    }
+    return {
+      opacity: 0.55 - fade.value * 0.45, // 0.55 → 0.1 and back
+      transform: [{ translateX: x }],
+    };
+  });
+
+  // Vertical word rotation for the rain variant's text base.
+  const scrollStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -scroll.value * lineH }],
+  }));
+
   return (
     <View style={{ width: size, height: size }}>
-      {/* Base — single sub-emotion label (static) */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: bottom - lineH, // sits directly beneath the ball, where the bar was
-          alignSelf: "center",
-          width: size,
-          height: lineH,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+      {/* Base — sub-emotion words rotating vertically, each variant keeping its
+          own base animation (rain fades; Breezy flashes on contact) */}
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
+            bottom: bottom - lineH, // sits directly beneath the ball, where the bar was
+            alignSelf: "center",
+            width: size,
+            height: lineH,
+            overflow: "hidden",
+          },
+          baseStyle,
+        ]}
       >
-        <Text
-          numberOfLines={1}
-          style={{
-            color: "#FFF7CE",
-            fontSize: lineH * 0.72,
-            fontFamily: "Jost_700Bold",
-            letterSpacing: 0.5,
-          }}
-        >
-          {word}
-        </Text>
-      </View>
+        <Animated.View style={scrollStyle}>
+          {[...words, words[0]].map((word, i) => (
+            <View
+              key={`${word}-${i}`}
+              style={{ height: lineH, alignItems: "center", justifyContent: "center" }}
+            >
+              <Text
+                numberOfLines={1}
+                style={{
+                  color: "#FFF7CE",
+                  fontSize: lineH * 0.72,
+                  fontFamily: "Jost_700Bold",
+                  letterSpacing: 0.5,
+                }}
+              >
+                {word}
+              </Text>
+            </View>
+          ))}
+        </Animated.View>
+      </Animated.View>
 
       {/* Halo glow riding with the ball */}
       <Animated.View
