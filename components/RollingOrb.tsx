@@ -32,8 +32,6 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
   // Vertical bounce (Breezy variant) — decoupled from the roll so its speed is
   // independent. 0 = on the base, 1 = apex.
   const bounce = useSharedValue(0);
-  // Shared "Stormy" base pulse (same for every icon's base text).
-  const pulse = useSharedValue(0);
 
   useEffect(() => {
     // Rain (fading) rolls slower than the bouncing (Breezy) variant.
@@ -56,12 +54,6 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
       ),
       -1,
       false,
-    );
-
-    pulse.value = withRepeat(
-      withTiming(1, { duration: 700, easing: Easing.inOut(Easing.quad) }),
-      -1,
-      true,
     );
   }, []);
 
@@ -139,28 +131,19 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
     return { transform: [{ translateX: x }] };
   });
 
-  // Base text pulse — same steady pulse as the Stormy icon's base (centered).
-  const baseStyle = useAnimatedStyle(() => ({
-    opacity: 0.2 + pulse.value * 0.45,
-    transform: [{ scaleX: 0.8 + pulse.value * 0.4 }],
-  }));
-
   return (
     <View style={{ width: size, height: size }}>
-      {/* Base — single sub-emotion label with the shared Stormy pulse */}
-      <Animated.View
-        style={[
-          {
-            position: "absolute",
-            bottom: bottom - lineH, // sits directly beneath the ball, where the bar was
-            alignSelf: "center",
-            width: size,
-            height: lineH,
-            alignItems: "center",
-            justifyContent: "center",
-          },
-          baseStyle,
-        ]}
+      {/* Base — single sub-emotion label (static) */}
+      <View
+        style={{
+          position: "absolute",
+          bottom: bottom - lineH, // sits directly beneath the ball, where the bar was
+          alignSelf: "center",
+          width: size,
+          height: lineH,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
         <Text
           numberOfLines={1}
@@ -173,7 +156,7 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
         >
           {word}
         </Text>
-      </Animated.View>
+      </View>
 
       {/* Halo glow riding with the ball */}
       <Animated.View

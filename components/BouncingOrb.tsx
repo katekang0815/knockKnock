@@ -22,8 +22,6 @@ const WORD = "Happy";
 export default function BouncingOrb({ size }: Props) {
   // 0 = resting on the ground, 1 = apex of the jump.
   const bounce = useSharedValue(0);
-  // Shared "Stormy" base pulse (same for every icon's base text).
-  const pulse = useSharedValue(0);
 
   useEffect(() => {
     bounce.value = withRepeat(
@@ -34,12 +32,6 @@ export default function BouncingOrb({ size }: Props) {
       ),
       -1,
       false,
-    );
-
-    pulse.value = withRepeat(
-      withTiming(1, { duration: 700, easing: Easing.inOut(Easing.quad) }),
-      -1,
-      true,
     );
   }, []);
 
@@ -70,17 +62,11 @@ export default function BouncingOrb({ size }: Props) {
     transform: [{ translateY: -bounce.value * jump }],
   }));
 
-  // Base text pulse — same steady pulse as the Stormy icon's base.
-  const baseTextStyle = useAnimatedStyle(() => ({
-    opacity: 0.2 + pulse.value * 0.45,
-    transform: [{ scaleX: 0.8 + pulse.value * 0.4 }],
-  }));
-
   return (
     <View style={{ width: size, height: size }}>
-      {/* Base — single sub-emotion label with the shared Stormy pulse */}
-      <Animated.View
-        style={[
+      {/* Base — single sub-emotion label (static) */}
+      <View
+        style={
           {
             position: "absolute",
             bottom: rest - lineH, // sits directly beneath the ball, where the bar was
@@ -89,9 +75,8 @@ export default function BouncingOrb({ size }: Props) {
             height: lineH,
             alignItems: "center",
             justifyContent: "center",
-          },
-          baseTextStyle,
-        ]}
+          }
+        }
       >
         <Text
           numberOfLines={1}
@@ -104,7 +89,7 @@ export default function BouncingOrb({ size }: Props) {
         >
           {WORD}
         </Text>
-      </Animated.View>
+      </View>
 
       {/* Halo glow behind the ball */}
       <Animated.View

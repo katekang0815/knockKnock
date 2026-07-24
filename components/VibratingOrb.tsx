@@ -22,19 +22,12 @@ const WORD = "Anxious";
 export default function VibratingOrb({ size }: Props) {
   // Fast jitter for the ball.
   const idle = useSharedValue(0);
-  // Slow steady pulse for the base.
-  const pulse = useSharedValue(0);
   // Grow/brighten cycle for the halo.
   const halo = useSharedValue(0);
 
   useEffect(() => {
     idle.value = withRepeat(
       withTiming(1, { duration: 800, easing: Easing.linear }),
-      -1,
-      true,
-    );
-    pulse.value = withRepeat(
-      withTiming(1, { duration: 700, easing: Easing.inOut(Easing.quad) }),
       -1,
       true,
     );
@@ -68,12 +61,6 @@ export default function VibratingOrb({ size }: Props) {
     };
   });
 
-  // Base glow pulses in and out on a regular interval.
-  const baseStyle = useAnimatedStyle(() => ({
-    opacity: 0.2 + pulse.value * 0.45,
-    transform: [{ scaleX: 0.8 + pulse.value * 0.4 }],
-  }));
-
   // Halo grows outward and its fill fades so the bigger circle reads weaker;
   // eases back to the initial size + opacity, looping. Its bottom stays anchored
   // to the ball's bottom / base top (grows upward) instead of dipping into the base.
@@ -90,20 +77,17 @@ export default function VibratingOrb({ size }: Props) {
 
   return (
     <View style={{ width: size, height: size }}>
-      {/* Base — single sub-emotion label with the pulsing animation */}
-      <Animated.View
-        style={[
-          {
-            position: "absolute",
-            bottom: rest - lineH, // sits directly beneath the ball, where the bar was
-            alignSelf: "center",
-            width: size,
-            height: lineH,
-            alignItems: "center",
-            justifyContent: "center",
-          },
-          baseStyle,
-        ]}
+      {/* Base — single sub-emotion label (static) */}
+      <View
+        style={{
+          position: "absolute",
+          bottom: rest - lineH, // sits directly beneath the ball, where the bar was
+          alignSelf: "center",
+          width: size,
+          height: lineH,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
         <Text
           numberOfLines={1}
@@ -116,7 +100,7 @@ export default function VibratingOrb({ size }: Props) {
         >
           {WORD}
         </Text>
-      </Animated.View>
+      </View>
 
       {/* Halo glow behind the ball — grows/brightens on a repeating cycle */}
       <Animated.View
