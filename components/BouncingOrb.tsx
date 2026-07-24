@@ -24,6 +24,8 @@ export default function BouncingOrb({ size }: Props) {
   const bounce = useSharedValue(0);
   // Which word is showing — index into WORDS, animated to scroll the list up.
   const scroll = useSharedValue(0);
+  // Shared "Stormy" base pulse (same for every icon's base text).
+  const pulse = useSharedValue(0);
 
   useEffect(() => {
     bounce.value = withRepeat(
@@ -34,6 +36,12 @@ export default function BouncingOrb({ size }: Props) {
       ),
       -1,
       false,
+    );
+
+    pulse.value = withRepeat(
+      withTiming(1, { duration: 700, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true,
     );
 
     // Step up one word at a time, holding on each. The list renders a duplicate
@@ -74,15 +82,11 @@ export default function BouncingOrb({ size }: Props) {
     transform: [{ translateY: -bounce.value * jump }],
   }));
 
-  // Contact glow on the ground — brightest at the moment of landing.
-  const contactStyle = useAnimatedStyle(() => {
-    const b = bounce.value;
-    const grounded = 1 - Math.min(b / 0.5, 1); // 1 at ground → 0 mid-air
-    return {
-      opacity: 0.15 + grounded * 0.45,
-      transform: [{ scaleX: 0.7 + grounded * 0.5 }],
-    };
-  });
+  // Base text pulse — same steady pulse as the Stormy icon's base.
+  const baseTextStyle = useAnimatedStyle(() => ({
+    opacity: 0.2 + pulse.value * 0.45,
+    transform: [{ scaleX: 0.8 + pulse.value * 0.4 }],
+  }));
 
   // Vertical word rotation for the base.
   const scrollStyle = useAnimatedStyle(() => ({
@@ -91,8 +95,7 @@ export default function BouncingOrb({ size }: Props) {
 
   return (
     <View style={{ width: size, height: size }}>
-      {/* Base — sub-emotion words rotating vertically, keeping the contact
-          glow's brighten/widen animation in place of the old glow bar */}
+      {/* Base — sub-emotion words rotating vertically, with the shared Stormy pulse */}
       <Animated.View
         style={[
           {
@@ -103,7 +106,7 @@ export default function BouncingOrb({ size }: Props) {
             height: lineH,
             overflow: "hidden",
           },
-          contactStyle,
+          baseTextStyle,
         ]}
       >
         <Animated.View style={scrollStyle}>

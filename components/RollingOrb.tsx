@@ -34,6 +34,8 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
   // Vertical bounce (Breezy variant) — decoupled from the roll so its speed is
   // independent. 0 = on the base, 1 = apex.
   const bounce = useSharedValue(0);
+  // Shared "Stormy" base pulse (same for every icon's base text).
+  const pulse = useSharedValue(0);
 
   useEffect(() => {
     // Rain (fading) rolls slower than the bouncing (Breezy) variant.
@@ -67,6 +69,12 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
     }
     steps.push(withTiming(0, { duration: 0 }) as number); // seamless wrap
     scroll.value = withRepeat(withSequence(...steps), -1, false);
+
+    pulse.value = withRepeat(
+      withTiming(1, { duration: 700, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true,
+    );
   }, []);
 
   const ball = size * 0.4;    // reference ball diameter (base/halo/positions)
@@ -143,23 +151,11 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
     return { transform: [{ translateX: x }] };
   });
 
-  // Base follows the ball horizontally. On the bouncing variant it's a Sunny-style
-  // contact glow (bright + wide at base contact, dim + narrow as the ball lifts);
-  // otherwise it fades in and out.
-  const baseStyle = useAnimatedStyle(() => {
-    const x = (roll.value - 0.5) * travel;
-    if (!fadeBall) {
-      const grounded = 1 - Math.min(bounce.value / 0.5, 1); // 1 at contact → 0 mid-air
-      return {
-        opacity: 0.15 + grounded * 0.45,
-        transform: [{ translateX: x }, { scaleX: 0.7 + grounded * 0.5 }],
-      };
-    }
-    return {
-      opacity: 0.55 - fade.value * 0.45, // 0.55 → 0.1 and back
-      transform: [{ translateX: x }],
-    };
-  });
+  // Base text pulse — same steady pulse as the Stormy icon's base (centered).
+  const baseStyle = useAnimatedStyle(() => ({
+    opacity: 0.2 + pulse.value * 0.45,
+    transform: [{ scaleX: 0.8 + pulse.value * 0.4 }],
+  }));
 
   // Vertical word rotation for the rain variant's text base.
   const scrollStyle = useAnimatedStyle(() => ({
