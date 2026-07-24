@@ -14,16 +14,14 @@ interface Props {
   size: number;
 }
 
-// Sub-emotions cycled by the rotating "base" text.
-const WORDS = ["Happy", "Confident", "Thrilled", "Amazed", "Excited"];
+// Sub-emotion label shown on the base.
+const WORD = "Happy";
 
 // A single gradient ball that bounces up and down on the same spot — the
 // home-screen BouncingBall's look and warm palette, minus the stair climb.
 export default function BouncingOrb({ size }: Props) {
   // 0 = resting on the ground, 1 = apex of the jump.
   const bounce = useSharedValue(0);
-  // Which word is showing — index into WORDS, animated to scroll the list up.
-  const scroll = useSharedValue(0);
   // Shared "Stormy" base pulse (same for every icon's base text).
   const pulse = useSharedValue(0);
 
@@ -43,16 +41,6 @@ export default function BouncingOrb({ size }: Props) {
       -1,
       true,
     );
-
-    // Step up one word at a time, holding on each. The list renders a duplicate
-    // of the first word at the end, so snapping back to 0 is invisible.
-    const steps: number[] = [];
-    for (let i = 1; i <= WORDS.length; i++) {
-      steps.push(withTiming(i, { duration: 450, easing: Easing.inOut(Easing.quad) }) as number); // shift up
-      steps.push(withTiming(i, { duration: 950 }) as number);                                     // hold
-    }
-    steps.push(withTiming(0, { duration: 0 }) as number); // seamless wrap
-    scroll.value = withRepeat(withSequence(...steps), -1, false);
   }, []);
 
   const ball = 45;              // ball diameter (fixed 45px)
@@ -88,14 +76,9 @@ export default function BouncingOrb({ size }: Props) {
     transform: [{ scaleX: 0.8 + pulse.value * 0.4 }],
   }));
 
-  // Vertical word rotation for the base.
-  const scrollStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: -scroll.value * lineH }],
-  }));
-
   return (
     <View style={{ width: size, height: size }}>
-      {/* Base — sub-emotion words rotating vertically, with the shared Stormy pulse */}
+      {/* Base — single sub-emotion label with the shared Stormy pulse */}
       <Animated.View
         style={[
           {
@@ -104,31 +87,23 @@ export default function BouncingOrb({ size }: Props) {
             alignSelf: "center",
             width: size,
             height: lineH,
-            overflow: "hidden",
+            alignItems: "center",
+            justifyContent: "center",
           },
           baseTextStyle,
         ]}
       >
-        <Animated.View style={scrollStyle}>
-          {[...WORDS, WORDS[0]].map((word, i) => (
-            <View
-              key={`${word}-${i}`}
-              style={{ height: lineH, alignItems: "center", justifyContent: "center" }}
-            >
-              <Text
-                numberOfLines={1}
-                style={{
-                  color: "#FFF7CE",
-                  fontSize: lineH * 0.72,
-                  fontFamily: "Jost_700Bold",
-                  letterSpacing: 0.5,
-                }}
-              >
-                {word}
-              </Text>
-            </View>
-          ))}
-        </Animated.View>
+        <Text
+          numberOfLines={1}
+          style={{
+            color: "#FFF7CE",
+            fontSize: lineH * 0.72,
+            fontFamily: "Jost_700Bold",
+            letterSpacing: 0.5,
+          }}
+        >
+          {WORD}
+        </Text>
       </Animated.View>
 
       {/* Halo glow behind the ball */}

@@ -5,7 +5,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
-  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Stop, Circle } from "react-native-svg";
@@ -14,8 +13,8 @@ interface Props {
   size: number;
 }
 
-// Sub-emotions cycled by the rotating "base" text.
-const WORDS = ["Anxious", "Overwhelmed", "Nervous", "Annoyed", "Jealous"];
+// Sub-emotion label shown on the base.
+const WORD = "Anxious";
 
 // The same gradient orb as BouncingOrb, sitting on the same base — but the ball
 // jitters in place (the sub-emotion circles' vibration) and the base pulses on a
@@ -27,8 +26,6 @@ export default function VibratingOrb({ size }: Props) {
   const pulse = useSharedValue(0);
   // Grow/brighten cycle for the halo.
   const halo = useSharedValue(0);
-  // Which word is showing — index into WORDS, animated to scroll the list up.
-  const scroll = useSharedValue(0);
 
   useEffect(() => {
     idle.value = withRepeat(
@@ -46,16 +43,6 @@ export default function VibratingOrb({ size }: Props) {
       -1,
       true,
     );
-
-    // Step up one word at a time, holding on each. The list renders a duplicate
-    // of the first word at the end, so snapping back to 0 is invisible.
-    const steps: number[] = [];
-    for (let i = 1; i <= WORDS.length; i++) {
-      steps.push(withTiming(i, { duration: 450, easing: Easing.inOut(Easing.quad) }) as number); // shift up
-      steps.push(withTiming(i, { duration: 950 }) as number);                                     // hold
-    }
-    steps.push(withTiming(0, { duration: 0 }) as number); // seamless wrap
-    scroll.value = withRepeat(withSequence(...steps), -1, false);
   }, []);
 
   const ball = size * 0.4;      // ball diameter (largest, at scale 1)
@@ -87,11 +74,6 @@ export default function VibratingOrb({ size }: Props) {
     transform: [{ scaleX: 0.8 + pulse.value * 0.4 }],
   }));
 
-  // Vertical word rotation for the base.
-  const scrollStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: -scroll.value * lineH }],
-  }));
-
   // Halo grows outward and its fill fades so the bigger circle reads weaker;
   // eases back to the initial size + opacity, looping. Its bottom stays anchored
   // to the ball's bottom / base top (grows upward) instead of dipping into the base.
@@ -108,8 +90,7 @@ export default function VibratingOrb({ size }: Props) {
 
   return (
     <View style={{ width: size, height: size }}>
-      {/* Base — sub-emotion words rotating vertically, keeping the base glow's
-          pulsing animation in place of the old glow bar */}
+      {/* Base — single sub-emotion label with the pulsing animation */}
       <Animated.View
         style={[
           {
@@ -118,31 +99,23 @@ export default function VibratingOrb({ size }: Props) {
             alignSelf: "center",
             width: size,
             height: lineH,
-            overflow: "hidden",
+            alignItems: "center",
+            justifyContent: "center",
           },
           baseStyle,
         ]}
       >
-        <Animated.View style={scrollStyle}>
-          {[...WORDS, WORDS[0]].map((word, i) => (
-            <View
-              key={`${word}-${i}`}
-              style={{ height: lineH, alignItems: "center", justifyContent: "center" }}
-            >
-              <Text
-                numberOfLines={1}
-                style={{
-                  color: "#FFF7CE",
-                  fontSize: lineH * 0.72,
-                  fontFamily: "Jost_700Bold",
-                  letterSpacing: 0.5,
-                }}
-              >
-                {word}
-              </Text>
-            </View>
-          ))}
-        </Animated.View>
+        <Text
+          numberOfLines={1}
+          style={{
+            color: "#FFF7CE",
+            fontSize: lineH * 0.72,
+            fontFamily: "Jost_700Bold",
+            letterSpacing: 0.5,
+          }}
+        >
+          {WORD}
+        </Text>
       </Animated.View>
 
       {/* Halo glow behind the ball — grows/brightens on a repeating cycle */}
