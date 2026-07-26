@@ -76,8 +76,8 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
   const bottom = size * 0.2;  // ball's resting distance from the bottom
   const baseH = ball * 0.14;  // base thickness (matches the other orbs)
   const lineH = size * 0.13;  // height of one word row (rain's text base)
-  // Rendered ball diameter — both variants use the small (formerly "smallest") size.
-  const ballDiameter = ball * 0.5;
+  // Rendered ball diameter — 45px, matching the Sunny icon's ball.
+  const ballDiameter = 45;
   // Distinct gradient id per variant so the two instances don't collide.
   const gradId = fadeBall ? "orbGradRoll" : "orbGradRollSmall";
   // Hop height for the non-fading variant's edge bounce.
