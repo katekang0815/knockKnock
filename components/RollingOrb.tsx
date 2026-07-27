@@ -138,20 +138,10 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
   // Base follows the ball horizontally. On the bouncing variant it's a Sunny-style
   // contact glow (bright + wide at base contact, dim + narrow as the ball lifts);
   // otherwise it fades in and out.
-  const baseStyle = useAnimatedStyle(() => {
-    const x = (roll.value - 0.5) * travel;
-    if (!fadeBall) {
-      const grounded = 1 - Math.min(bounce.value / 0.5, 1); // 1 at contact → 0 mid-air
-      return {
-        opacity: 0.15 + grounded * 0.45,
-        transform: [{ translateX: x }, { scaleX: 0.7 + grounded * 0.5 }],
-      };
-    }
-    return {
-      opacity: 0.55 - fade.value * 0.45, // 0.55 → 0.1 and back
-      transform: [{ translateX: x }],
-    };
-  });
+  // Base text fades in and out (same for every icon).
+  const baseStyle = useAnimatedStyle(() => ({
+    opacity: 0.55 - fade.value * 0.45, // 0.55 → 0.1 and back
+  }));
 
   // Vertical word rotation for the base (static single word for rain).
   const scrollStyle = useAnimatedStyle(() => ({

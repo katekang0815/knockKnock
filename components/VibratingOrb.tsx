@@ -37,7 +37,7 @@ export default function VibratingOrb({ size }: Props) {
       true,
     );
     pulse.value = withRepeat(
-      withTiming(1, { duration: 700, easing: Easing.inOut(Easing.quad) }),
+      withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.quad) }),
       -1,
       true,
     );
@@ -82,9 +82,9 @@ export default function VibratingOrb({ size }: Props) {
   });
 
   // Base glow pulses in and out on a regular interval.
+  // Base text fades in and out (same as the rain icon).
   const baseStyle = useAnimatedStyle(() => ({
-    opacity: 0.2 + pulse.value * 0.45,
-    transform: [{ scaleX: 0.8 + pulse.value * 0.4 }],
+    opacity: 0.55 - pulse.value * 0.45, // 0.55 → 0.1 and back
   }));
 
   // Halo grows upward only (bottom anchored via transformOrigin) and its fill

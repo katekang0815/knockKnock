@@ -24,6 +24,8 @@ export default function BouncingOrb({ size }: Props) {
   const bounce = useSharedValue(0);
   // Which word is showing — index into WORDS, animated to scroll the list up.
   const scroll = useSharedValue(0);
+  // Base text fade cycle (same as the rain icon).
+  const fade = useSharedValue(0);
 
   useEffect(() => {
     bounce.value = withRepeat(
@@ -34,6 +36,12 @@ export default function BouncingOrb({ size }: Props) {
       ),
       -1,
       false,
+    );
+
+    fade.value = withRepeat(
+      withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true,
     );
 
     // Step up one word at a time, holding on each. The list renders a duplicate
@@ -74,15 +82,10 @@ export default function BouncingOrb({ size }: Props) {
     transform: [{ translateY: -bounce.value * jump }],
   }));
 
-  // Contact glow on the ground — brightest at the moment of landing.
-  const contactStyle = useAnimatedStyle(() => {
-    const b = bounce.value;
-    const grounded = 1 - Math.min(b / 0.5, 1); // 1 at ground → 0 mid-air
-    return {
-      opacity: 0.15 + grounded * 0.45,
-      transform: [{ scaleX: 0.7 + grounded * 0.5 }],
-    };
-  });
+  // Base text fades in and out (same as the rain icon).
+  const contactStyle = useAnimatedStyle(() => ({
+    opacity: 0.55 - fade.value * 0.45, // 0.55 → 0.1 and back
+  }));
 
   // Vertical word rotation for the base.
   const scrollStyle = useAnimatedStyle(() => ({
