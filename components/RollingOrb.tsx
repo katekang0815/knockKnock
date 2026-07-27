@@ -82,10 +82,8 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
   const gradId = fadeBall ? "orbGradRoll" : "orbGradRollSmall";
   // Hop height for the non-fading variant's edge bounce.
   const bounceHeight = ball * 0.4;
-  // Ball/halo resting bottom. The bouncing (Breezy) variant sits lower so its
-  // bottom aligns with the base's bottom (like Sunny) — the ball presses into the
-  // base and the widening contact glow reads as a squash. Rain (fading) is unchanged.
-  const ballBottom = fadeBall ? bottom : bottom - baseH * 0.5;
+  // Ball/halo resting bottom — baseH above the text base top (same gap as Stormy).
+  const ballBottom = bottom + baseH;
 
   // Rolling ball: translate across and rotate by the arc length it covers. Breezy
   // adds a vertical bounce + squash; rain just rolls at a constant size.

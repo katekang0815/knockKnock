@@ -78,7 +78,7 @@ export default function VibratingOrb({ size }: Props) {
       transform: [
         { translateX: jitterX },
         { translateY: jitterY },
-        { scale: minScale + halo.value * (1 - minScale) }, // 45px → largest (size×0.4), growing with the halo
+        { scale: minScale }, // constant smallest size (45px), no size animation
       ],
     };
   });
@@ -169,6 +169,7 @@ export default function VibratingOrb({ size }: Props) {
             alignSelf: "center",
             width: ball,
             height: ball,
+            transformOrigin: "center bottom", // scale shrinks toward the bottom, pinning it to the halo's base
           },
           ballStyle,
         ]}

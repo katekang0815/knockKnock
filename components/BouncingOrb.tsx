@@ -57,8 +57,10 @@ export default function BouncingOrb({ size }: Props) {
 
   const ball = 45;              // ball diameter (fixed 45px)
   const jump = size * 0.34;     // travel from ground to apex
-  const rest = size * 0.16;     // ball's resting distance from the bottom
+  const rest = size * 0.16;     // text base's distance from the bottom
   const lineH = size * 0.13;    // height of one word row
+  // Ball/halo resting bottom — sits size×0.056 above the text base top (same gap as Stormy).
+  const ballBottom = rest + size * 0.056;
 
   // Ball: travels up, with a small squash-and-stretch at the ground.
   const ballStyle = useAnimatedStyle(() => {
@@ -135,7 +137,7 @@ export default function BouncingOrb({ size }: Props) {
         style={[
           {
             position: "absolute",
-            bottom: rest,
+            bottom: ballBottom,
             alignSelf: "center",
             width: size * 0.56, // matches the Calm (Breeze) icon's halo (ball×1.4)
             height: size * 0.56,
@@ -155,7 +157,7 @@ export default function BouncingOrb({ size }: Props) {
         style={[
           {
             position: "absolute",
-            bottom: rest,
+            bottom: ballBottom,
             alignSelf: "center",
             width: ball,
             height: ball,
