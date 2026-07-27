@@ -64,6 +64,8 @@ export default function VibratingOrb({ size }: Props) {
   const baseH = ball * 0.14;    // base thickness
   const ballBottom = rest + baseH; // ball sits on top of the base, just touching it
   const lineH = size * 0.13;    // height of one word row
+  // Halo base sized so its largest (× 1.45 growth) reaches size × 0.70.
+  const haloBase = (size * 0.7) / 1.45;
 
   // Same jitter formula as EmotionCircle's idle motion, plus a gentle shrink that
   // rides the halo cycle: ball dips to a bit smaller as the halo grows, and returns
@@ -144,15 +146,15 @@ export default function VibratingOrb({ size }: Props) {
             position: "absolute",
             bottom: ballBottom,
             alignSelf: "center",
-            width: ball * 1.5,
-            height: ball * 1.5,
-            borderRadius: ball,
+            width: haloBase,
+            height: haloBase,
+            borderRadius: haloBase / 2,
             backgroundColor: "#C78E7D",
             transformOrigin: "center bottom", // scale grows upward, bottom pinned
             shadowColor: "#C78E7D",
             shadowOffset: { width: 0, height: 0 },
             shadowOpacity: 0.9,
-            shadowRadius: ball * 0.45,
+            shadowRadius: haloBase * 0.3,
           },
           haloStyle,
         ]}
