@@ -9,31 +9,22 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Stop, Circle } from "react-native-svg";
-import RotatingBaseText from "./RotatingBaseText";
 
 interface Props {
   size: number;
   // true (default) = rain: rolls at a constant small size (base still fades).
   // false = Breezy: rolls + bounces with a Sunny-style squash and contact base.
   fadeBall?: boolean;
-  showBase?: boolean; // show the rotating sub-emotion label under the ball
 }
-
-// Base text: each variant rotates through four sub-emotions.
-const RAIN_WORDS = ["Sad", "Tired", "Bored", "Lost"];
-const BREEZE_WORDS = ["Calm", "Loved", "Blessed", "Safe"];
 
 // The same gradient orb, slowly rolling left → right and back, repeating. The
 // rotation is tied to the horizontal travel so it reads as a true roll.
-export default function RollingOrb({ size, fadeBall = true, showBase = true }: Props) {
-  const words = fadeBall ? RAIN_WORDS : BREEZE_WORDS;
+export default function RollingOrb({ size, fadeBall = true }: Props) {
   // 0 = far left, 1 = far right.
   const roll = useSharedValue(0);
   // Vertical bounce (Breezy variant) — decoupled from the roll so its speed is
   // independent. 0 = on the base, 1 = apex.
   const bounce = useSharedValue(0);
-  // Which word is showing — index into `words`, animated to scroll the list up.
-  const scroll = useSharedValue(0);
 
   useEffect(() => {
     // Rain (fading) rolls slower than the bouncing (Breezy) variant.
@@ -52,17 +43,6 @@ export default function RollingOrb({ size, fadeBall = true, showBase = true }: P
       -1,
       false,
     );
-
-    // Rotate the base words (only when there's more than one — i.e. Breeze).
-    if (words.length > 1) {
-      const steps: number[] = [];
-      for (let i = 1; i <= words.length; i++) {
-        steps.push(withTiming(i, { duration: 450, easing: Easing.inOut(Easing.quad) }) as number); // shift up
-        steps.push(withTiming(i, { duration: 950 }) as number);                                     // hold
-      }
-      steps.push(withTiming(0, { duration: 0 }) as number); // seamless wrap
-      scroll.value = withRepeat(withSequence(...steps), -1, false);
-    }
   }, []);
 
   const ball = size * 0.4;    // reference ball diameter (base/halo scaling)
@@ -79,7 +59,8 @@ export default function RollingOrb({ size, fadeBall = true, showBase = true }: P
   // Hop height for the non-fading variant's edge bounce.
   const bounceHeight = ball * 0.4;
   // Ball/halo resting bottom — baseH above the text base top (same gap as Stormy).
-  const ballBottom = bottom + baseH;
+  // Rain is nudged up 5px; Breeze stays put.
+  const ballBottom = bottom + baseH + (fadeBall ? 5 : 0);
 
   // Rolling ball: translate across and rotate by the arc length it covers. Breezy
   // adds a vertical bounce + squash; rain just rolls at a constant size.
@@ -94,15 +75,13 @@ export default function RollingOrb({ size, fadeBall = true, showBase = true }: P
       const grounded = Math.min(b / 0.12, 1); // 0 at the base → 1 once airborne
       const scaleY = 0.86 + 0.14 * grounded; // 0.86 squashed on contact → 1 round in the air
       const scaleX = 2 - scaleY; // preserve rough volume
-      // Center-squash lifts the bottom by (h/2)(1−scaleY); push down to keep it on the base.
-      const squashLift = (ballDiameter / 2) * (1 - scaleY);
       return {
         opacity: 1,
-        // rotate rightmost (applied first) so the gradient spins about the center;
-        // the squash keeps its bottom on the base via the translateY compensation.
+        // rotate rightmost (applied first) so the gradient spins; the squash after
+        // it (world axes) flattens the ball straight down on contact.
         transform: [
           { translateX: x },
-          { translateY: -hop + squashLift },
+          { translateY: -hop },
           { scaleX },
           { scaleY },
           { rotate: `${rot}deg` },
@@ -133,19 +112,6 @@ export default function RollingOrb({ size, fadeBall = true, showBase = true }: P
 
   return (
     <View style={{ width: size, height: size }}>
-      {/* Base — sub-emotion words rotating up, each fading only as it rises */}
-      {showBase && (
-        <View
-          style={{
-            position: "absolute",
-            bottom: bottom - lineH, // sits directly beneath the ball
-            alignSelf: "center",
-          }}
-        >
-          <RotatingBaseText words={words} scroll={scroll} lineH={lineH} width={size} />
-        </View>
-      )}
-
       {/* Halo glow riding with the ball */}
       <Animated.View
         style={[

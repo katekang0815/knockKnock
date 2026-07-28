@@ -9,23 +9,16 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Stop, Circle } from "react-native-svg";
-import RotatingBaseText from "./RotatingBaseText";
 
 interface Props {
   size: number;
-  showBase?: boolean; // show the rotating sub-emotion label under the ball
 }
-
-// Sub-emotions cycled by the rotating "base" text.
-const WORDS = ["Happy", "Excited", "Proud", "Confident"];
 
 // A single gradient ball that bounces up and down on the same spot — the
 // home-screen BouncingBall's look and warm palette, minus the stair climb.
-export default function BouncingOrb({ size, showBase = true }: Props) {
+export default function BouncingOrb({ size }: Props) {
   // 0 = resting on the ground, 1 = apex of the jump.
   const bounce = useSharedValue(0);
-  // Which word is showing — index into WORDS, animated to scroll the list up.
-  const scroll = useSharedValue(0);
 
   useEffect(() => {
     bounce.value = withRepeat(
@@ -37,16 +30,6 @@ export default function BouncingOrb({ size, showBase = true }: Props) {
       -1,
       false,
     );
-
-    // Step up one word at a time, holding on each. The list renders a duplicate
-    // of the first word at the end, so snapping back to 0 is invisible.
-    const steps: number[] = [];
-    for (let i = 1; i <= WORDS.length; i++) {
-      steps.push(withTiming(i, { duration: 450, easing: Easing.inOut(Easing.quad) }) as number); // shift up
-      steps.push(withTiming(i, { duration: 950 }) as number);                                     // hold
-    }
-    steps.push(withTiming(0, { duration: 0 }) as number); // seamless wrap
-    scroll.value = withRepeat(withSequence(...steps), -1, false);
   }, []);
 
   const ball = 45;              // ball diameter (fixed 45px)
@@ -83,19 +66,6 @@ export default function BouncingOrb({ size, showBase = true }: Props) {
 
   return (
     <View style={{ width: size, height: size }}>
-      {/* Base — sub-emotion words rotating up, each fading only as it rises */}
-      {showBase && (
-        <View
-          style={{
-            position: "absolute",
-            bottom: rest - lineH, // sits directly beneath the ball
-            alignSelf: "center",
-          }}
-        >
-          <RotatingBaseText words={WORDS} scroll={scroll} lineH={lineH} width={size} />
-        </View>
-      )}
-
       {/* Halo glow behind the ball */}
       <Animated.View
         style={[
@@ -125,7 +95,6 @@ export default function BouncingOrb({ size, showBase = true }: Props) {
             alignSelf: "center",
             width: ball,
             height: ball,
-            transformOrigin: "center bottom", // squash keeps the bottom on the base
           },
           ballStyle,
         ]}
