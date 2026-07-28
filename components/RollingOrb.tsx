@@ -16,6 +16,7 @@ interface Props {
   // true (default) = rain: rolls at a constant small size (base still fades).
   // false = Breezy: rolls + bounces with a Sunny-style squash and contact base.
   fadeBall?: boolean;
+  showBase?: boolean; // show the rotating sub-emotion label under the ball
 }
 
 // Base text: each variant rotates through four sub-emotions.
@@ -24,7 +25,7 @@ const BREEZE_WORDS = ["Calm", "Loved", "Blessed", "Safe"];
 
 // The same gradient orb, slowly rolling left → right and back, repeating. The
 // rotation is tied to the horizontal travel so it reads as a true roll.
-export default function RollingOrb({ size, fadeBall = true }: Props) {
+export default function RollingOrb({ size, fadeBall = true, showBase = true }: Props) {
   const words = fadeBall ? RAIN_WORDS : BREEZE_WORDS;
   // 0 = far left, 1 = far right.
   const roll = useSharedValue(0);
@@ -131,15 +132,17 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
   return (
     <View style={{ width: size, height: size }}>
       {/* Base — sub-emotion words rotating up, each fading only as it rises */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: bottom - lineH, // sits directly beneath the ball
-          alignSelf: "center",
-        }}
-      >
-        <RotatingBaseText words={words} scroll={scroll} lineH={lineH} width={size} />
-      </View>
+      {showBase && (
+        <View
+          style={{
+            position: "absolute",
+            bottom: bottom - lineH, // sits directly beneath the ball
+            alignSelf: "center",
+          }}
+        >
+          <RotatingBaseText words={words} scroll={scroll} lineH={lineH} width={size} />
+        </View>
+      )}
 
       {/* Halo glow riding with the ball */}
       <Animated.View

@@ -13,6 +13,7 @@ import RotatingBaseText from "./RotatingBaseText";
 
 interface Props {
   size: number;
+  showBase?: boolean; // show the rotating sub-emotion label under the ball
 }
 
 // Sub-emotions cycled by the rotating "base" text.
@@ -20,7 +21,7 @@ const WORDS = ["Happy", "Excited", "Proud", "Confident"];
 
 // A single gradient ball that bounces up and down on the same spot — the
 // home-screen BouncingBall's look and warm palette, minus the stair climb.
-export default function BouncingOrb({ size }: Props) {
+export default function BouncingOrb({ size, showBase = true }: Props) {
   // 0 = resting on the ground, 1 = apex of the jump.
   const bounce = useSharedValue(0);
   // Which word is showing — index into WORDS, animated to scroll the list up.
@@ -83,15 +84,17 @@ export default function BouncingOrb({ size }: Props) {
   return (
     <View style={{ width: size, height: size }}>
       {/* Base — sub-emotion words rotating up, each fading only as it rises */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: rest - lineH, // sits directly beneath the ball
-          alignSelf: "center",
-        }}
-      >
-        <RotatingBaseText words={WORDS} scroll={scroll} lineH={lineH} width={size} />
-      </View>
+      {showBase && (
+        <View
+          style={{
+            position: "absolute",
+            bottom: rest - lineH, // sits directly beneath the ball
+            alignSelf: "center",
+          }}
+        >
+          <RotatingBaseText words={WORDS} scroll={scroll} lineH={lineH} width={size} />
+        </View>
+      )}
 
       {/* Halo glow behind the ball */}
       <Animated.View

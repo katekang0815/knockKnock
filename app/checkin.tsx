@@ -15,6 +15,7 @@ import Animated, {
 import BouncingOrb from '@/components/BouncingOrb';
 import VibratingOrb from '@/components/VibratingOrb';
 import RollingOrb from '@/components/RollingOrb';
+import { EMOTION_DATA, EmotionCategory } from '@/constants/emotions';
 
 const { width, height: SCREEN_H } = Dimensions.get('window');
 
@@ -22,23 +23,29 @@ const CONTAINER_PADDING = 24;
 const ICON_SIZE = 180;
 
 // The four major emotions, ordered unpleasant → pleasant across the bar.
-// `render` draws the icon (each keeps its own ball + base-text animation).
-const EMOTIONS: { category: string; render: (s: number) => React.ReactNode }[] = [
-  { category: 'Stormy', render: (s) => <VibratingOrb size={s} /> },
-  { category: 'Calm',   render: (s) => <RollingOrb size={s} /> },
-  { category: 'Breezy', render: (s) => <RollingOrb size={s} fadeBall={false} /> },
-  { category: 'Sunny',  render: (s) => <BouncingOrb size={s} /> },
+const EMOTIONS: { category: EmotionCategory; render: (s: number) => React.ReactNode }[] = [
+  { category: 'Stormy', render: (s) => <VibratingOrb size={s} showBase={false} /> },
+  { category: 'Calm',   render: (s) => <RollingOrb size={s} showBase={false} /> },
+  { category: 'Breezy', render: (s) => <RollingOrb size={s} fadeBall={false} showBase={false} /> },
+  { category: 'Sunny',  render: (s) => <BouncingOrb size={s} showBase={false} /> },
 ];
 
 const SECTIONS = EMOTIONS.length;
 // Breeze is the default selection when the screen opens.
 const DEFAULT_INDEX = EMOTIONS.findIndex((e) => e.category === 'Breezy');
-// Twice the side space of CONTAINER_PADDING (24 → 48 on each side).
-const BAR_W = width - CONTAINER_PADDING * 4;
+const BAR_W = ((width - CONTAINER_PADDING * 4) * 2) / 3;
 const SECTION_W = BAR_W / SECTIONS;
 const LINE_H = 3;   // track line thickness
 const THUMB = 22;   // dot diameter
 const HALO = 56;    // soft glow diameter behind the dot
+
+// Sub-emotion grid geometry (3 columns).
+const GRID_PAD = 24;
+const GRID_GAP = 12;
+const GRID_W = width - GRID_PAD * 2;
+// −1 gives sub-pixel slack so three columns always fit (exact fit otherwise wraps to 2).
+const SQUARE_W = (GRID_W - GRID_GAP * 2) / 3 - 1;
+const SQUARE_H = 46;
 
 function clampWorklet(v: number, min: number, max: number) {
   'worklet';
@@ -48,6 +55,10 @@ function clampWorklet(v: number, min: number, max: number) {
 export default function CheckInScreen() {
   const insets = useSafeAreaInsets();
   const [active, setActive] = useState(DEFAULT_INDEX);
+
+  const category = EMOTIONS[active].category;
+  // 3 columns × 4 rows = 12 sub-emotions.
+  const subEmotions = EMOTION_DATA[category].subEmotions.slice(0, 12);
 
   // Thumb center X within the bar. Starts at the center of the default section.
   const thumbC = useSharedValue((DEFAULT_INDEX + 0.5) * SECTION_W);
@@ -67,7 +78,6 @@ export default function CheckInScreen() {
       thumbC.value = withTiming((idx + 0.5) * SECTION_W, { duration: 160 });
     });
 
-  // Which section the thumb is over (live, while dragging).
   const index = useDerivedValue(() =>
     clampWorklet(Math.floor(thumbC.value / SECTION_W), 0, SECTIONS - 1),
   );
@@ -82,13 +92,7 @@ export default function CheckInScreen() {
   const thumbStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: thumbC.value - THUMB / 2 }],
   }));
-
-  // Filled portion of the line, left of the dot.
-  const activeStyle = useAnimatedStyle(() => ({
-    width: thumbC.value,
-  }));
-
-  // Soft glow behind the dot, riding with it.
+  const activeStyle = useAnimatedStyle(() => ({ width: thumbC.value }));
   const haloStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: thumbC.value - HALO / 2 }],
   }));
@@ -114,27 +118,35 @@ export default function CheckInScreen() {
 
       <Text style={[styles.title, { top: insets.top + 80 }]}>How are you today?</Text>
 
-      {/* Selected emotion icon — a bit above center, scaling with screen height */}
-      <TouchableOpacity
-        style={[styles.iconArea, { top: SCREEN_H * 0.42 - ICON_SIZE / 2 }]}
-        activeOpacity={0.85}
-        onPress={() =>
-          router.push({ pathname: '/subemotions', params: { category: EMOTIONS[active].category } })
-        }
-      >
+      {/* Selected emotion icon */}
+      <View style={[styles.iconArea, { top: SCREEN_H * 0.32 - ICON_SIZE / 2 }]}>
         {EMOTIONS[active].render(ICON_SIZE)}
-      </TouchableOpacity>
+      </View>
+
+      {/* Sub-emotions of the selected category, filled into frosted squares */}
+      <View style={[styles.grid, { top: SCREEN_H * 0.32 + ICON_SIZE / 2 + 12 }]}>
+        {subEmotions.map((word) => (
+          <TouchableOpacity
+            key={word}
+            style={styles.square}
+            activeOpacity={0.6}
+            onPress={() =>
+              router.push({ pathname: '/emotionlog', params: { emotion: word, category } })
+            }
+          >
+            <Text numberOfLines={1} style={styles.squareText}>
+              {word}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {/* Thin line + glowing dot; drag anywhere to move, snaps to four sections */}
       <GestureDetector gesture={pan}>
         <View style={[styles.barWrap, { bottom: SCREEN_H * 0.18 }]}>
-          {/* faded dotted line (inactive, right of the dot) */}
           <View style={styles.trackBase} />
-          {/* solid line (active, left of the dot) */}
           <Animated.View style={[styles.trackActive, activeStyle]} />
-          {/* soft glow halo behind the dot */}
           <Animated.View style={[styles.halo, haloStyle]} />
-          {/* the dot */}
           <Animated.View style={[styles.thumb, thumbStyle]} />
         </View>
       </GestureDetector>
@@ -161,6 +173,31 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: ICON_SIZE,
     height: ICON_SIZE,
+  },
+  grid: {
+    position: 'absolute',
+    left: GRID_PAD,
+    width: GRID_W,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: GRID_GAP,
+  },
+  square: {
+    width: SQUARE_W,
+    height: SQUARE_H,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.45)',
+    backgroundColor: 'rgba(255,255,255,0.05)', // subtle frosted fill
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  squareText: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 13,
+    fontFamily: 'Jost_400Regular',
+    textAlign: 'center',
   },
   barWrap: {
     position: 'absolute',

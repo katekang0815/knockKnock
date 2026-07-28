@@ -13,6 +13,7 @@ import RotatingBaseText from "./RotatingBaseText";
 
 interface Props {
   size: number;
+  showBase?: boolean; // show the rotating sub-emotion label under the ball
 }
 
 // Sub-emotions cycled by the rotating "base" text.
@@ -21,7 +22,7 @@ const WORDS = ["Anxious", "Nervous", "Annoyed", "Worried"];
 // The same gradient orb as BouncingOrb, sitting on the same base — but the ball
 // jitters in place (the sub-emotion circles' vibration) and the base pulses on a
 // steady interval instead of flashing on impact.
-export default function VibratingOrb({ size }: Props) {
+export default function VibratingOrb({ size, showBase = true }: Props) {
   // Fast jitter for the ball.
   const idle = useSharedValue(0);
   // Grow/brighten cycle for the halo.
@@ -88,15 +89,17 @@ export default function VibratingOrb({ size }: Props) {
   return (
     <View style={{ width: size, height: size }}>
       {/* Base — sub-emotion words rotating up, each fading only as it rises */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: rest - lineH, // sits directly beneath the ball
-          alignSelf: "center",
-        }}
-      >
-        <RotatingBaseText words={WORDS} scroll={scroll} lineH={lineH} width={size} />
-      </View>
+      {showBase && (
+        <View
+          style={{
+            position: "absolute",
+            bottom: rest - lineH, // sits directly beneath the ball
+            alignSelf: "center",
+          }}
+        >
+          <RotatingBaseText words={WORDS} scroll={scroll} lineH={lineH} width={size} />
+        </View>
+      )}
 
       {/* Halo glow behind the ball — grows/brightens on a repeating cycle */}
       <Animated.View
