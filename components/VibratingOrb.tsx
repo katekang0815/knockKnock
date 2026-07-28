@@ -58,12 +58,13 @@ export default function VibratingOrb({ size }: Props) {
     scroll.value = withRepeat(withSequence(...steps), -1, false);
   }, []);
 
-  const ball = size * 0.4;      // ball diameter (largest, at scale 1)
+  const ball = size * 0.4;      // ball box (rendered at 45px via minScale)
   const minScale = 45 / ball;   // smallest = 45px
-  const rest = size * 0.16;     // base's distance from the bottom (matches BouncingOrb)
-  const baseH = ball * 0.14;    // base thickness
-  const ballBottom = rest + baseH; // ball sits on top of the base, just touching it
+  const baseH = ball * 0.14;    // base thickness / ball-to-text gap
   const lineH = size * 0.13;    // height of one word row
+  // Vertically center the ball(45) + gap(baseH) + text(lineH) cluster in the container.
+  const rest = (size - (baseH + 45 + lineH)) / 2 + lineH; // text base top
+  const ballBottom = rest + baseH; // ball sits `baseH` above the text base top
   // Halo base sized so its largest (× 1.45 growth) reaches size × 0.70.
   const haloBase = (size * 0.7) / 1.45;
 

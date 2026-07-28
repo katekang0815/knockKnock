@@ -57,10 +57,13 @@ export default function BouncingOrb({ size }: Props) {
 
   const ball = 45;              // ball diameter (fixed 45px)
   const jump = size * 0.34;     // travel from ground to apex
-  const rest = size * 0.16;     // text base's distance from the bottom
   const lineH = size * 0.13;    // height of one word row
-  // Ball/halo resting bottom — sits size×0.056 above the text base top (same gap as Stormy).
-  const ballBottom = rest + size * 0.056;
+  const gap = size * 0.056;     // ball-to-text gap (same as the other icons)
+  // Vertically center the ball + gap + text cluster in the container.
+  // `rest` is the text base top; the cluster spans [rest - lineH, rest + gap + ball].
+  const rest = (size - (gap + ball + lineH)) / 2 + lineH;
+  // Ball/halo resting bottom — `gap` above the text base top.
+  const ballBottom = rest + gap;
 
   // Ball: travels up, with a small squash-and-stretch at the ground.
   const ballStyle = useAnimatedStyle(() => {

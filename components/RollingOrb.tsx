@@ -70,14 +70,15 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
     }
   }, []);
 
-  const ball = size * 0.4;    // reference ball diameter (base/halo/positions)
+  const ball = size * 0.4;    // reference ball diameter (base/halo scaling)
   // Total left↔right distance — both variants use the same range.
   const travel = size * 0.18;
-  const bottom = size * 0.16; // text base's distance from the bottom (matches the other icons)
-  const baseH = ball * 0.14;  // base thickness (matches the other orbs)
-  const lineH = size * 0.13;  // height of one word row (rain's text base)
+  const baseH = ball * 0.14;  // base thickness / ball-to-text gap (matches the other orbs)
+  const lineH = size * 0.13;  // height of one word row (text base)
   // Rendered ball diameter — 45px, matching the Sunny icon's ball.
   const ballDiameter = 45;
+  // Vertically center the ball(45) + gap(baseH) + text(lineH) cluster in the container.
+  const bottom = (size - (baseH + ballDiameter + lineH)) / 2 + lineH; // text base top
   // Distinct gradient id per variant so the two instances don't collide.
   const gradId = fadeBall ? "orbGradRoll" : "orbGradRollSmall";
   // Hop height for the non-fading variant's edge bounce.
