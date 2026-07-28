@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useLayoutEffect } from 'react';
 import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +12,8 @@ import Animated, {
   useAnimatedReaction,
   withTiming,
   runOnJS,
+  Easing,
+  type SharedValue,
 } from 'react-native-reanimated';
 import BouncingOrb from '@/components/BouncingOrb';
 import VibratingOrb from '@/components/VibratingOrb';
@@ -57,6 +59,47 @@ function clampWorklet(v: number, min: number, max: number) {
   return Math.min(Math.max(v, min), max);
 }
 
+// One frosted card. Reveals in a diagonal wave from the top-left, driven by
+// `reveal` (0 → 1); its delay grows with row + column so (0,0) appears first.
+function SubCard({
+  word,
+  index,
+  reveal,
+  category,
+}: {
+  word: string;
+  index: number;
+  reveal: SharedValue<number>;
+  category: EmotionCategory;
+}) {
+  const diag = Math.floor(index / 3) + (index % 3); // top-left = 0, bottom-right = largest
+  const style = useAnimatedStyle(() => {
+    const start = diag / 10; // stagger start per diagonal
+    const local = Math.min(Math.max((reveal.value - start) / 0.4, 0), 1);
+    return {
+      opacity: local,
+      transform: [{ translateY: (1 - local) * 12 }, { scale: 0.9 + 0.1 * local }],
+    };
+  });
+  return (
+    <Animated.View style={[styles.card, style]}>
+      <TouchableOpacity
+        style={styles.cardTouch}
+        activeOpacity={0.6}
+        onPress={() =>
+          router.push({ pathname: '/emotionlog', params: { emotion: word, category } })
+        }
+      >
+        <BlurView intensity={28} tint="light" style={styles.cardBlur}>
+          <Text numberOfLines={1} style={styles.cardText}>
+            {word}
+          </Text>
+        </BlurView>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
 export default function CheckInScreen() {
   const insets = useSafeAreaInsets();
   const [active, setActive] = useState(DEFAULT_INDEX);
@@ -64,6 +107,14 @@ export default function CheckInScreen() {
   const category = EMOTIONS[active].category;
   // 3 columns × 5 rows = 15 sub-emotions of the selected category.
   const subEmotions = EMOTION_DATA[category].subEmotions.slice(0, 15);
+
+  // Re-run the top-left → out reveal each time the major emotion changes.
+  // useLayoutEffect resets before paint so the fresh grid never flashes fully in.
+  const reveal = useSharedValue(0);
+  useLayoutEffect(() => {
+    reveal.value = 0;
+    reveal.value = withTiming(1, { duration: 650, easing: Easing.out(Easing.quad) });
+  }, [active]);
 
   // Thumb center X within the bar. Starts at the center of the default section.
   const thumbC = useSharedValue((DEFAULT_INDEX + 0.5) * SECTION_W);
@@ -141,23 +192,11 @@ export default function CheckInScreen() {
         {EMOTIONS[active].render(ICON_SIZE)}
       </TouchableOpacity>
 
-      {/* Sub-emotions of the selected category — 3 × 5 outlined cards */}
+      {/* Sub-emotions of the selected category — 3 × 5 frosted cards, revealing
+          in a top-left → out wave whenever the major emotion changes */}
       <View style={styles.grid}>
-        {subEmotions.map((word) => (
-          <TouchableOpacity
-            key={word}
-            style={styles.card}
-            activeOpacity={0.6}
-            onPress={() =>
-              router.push({ pathname: '/emotionlog', params: { emotion: word, category } })
-            }
-          >
-            <BlurView intensity={28} tint="light" style={styles.cardBlur}>
-              <Text numberOfLines={1} style={styles.cardText}>
-                {word}
-              </Text>
-            </BlurView>
-          </TouchableOpacity>
+        {subEmotions.map((word, i) => (
+          <SubCard key={`${category}-${word}`} word={word} index={i} reveal={reveal} category={category} />
         ))}
       </View>
 
@@ -212,9 +251,10 @@ const styles = StyleSheet.create({
     width: CARD_W,
     height: CARD_H,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
     overflow: 'hidden', // clip the blur to the rounded corners
+  },
+  cardTouch: {
+    flex: 1,
   },
   cardBlur: {
     flex: 1,
