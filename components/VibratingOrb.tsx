@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Stop, Circle } from "react-native-svg";
+import RotatingBaseText from "./RotatingBaseText";
 
 interface Props {
   size: number;
@@ -23,8 +24,6 @@ const WORDS = ["Anxious", "Nervous", "Annoyed", "Worried"];
 export default function VibratingOrb({ size }: Props) {
   // Fast jitter for the ball.
   const idle = useSharedValue(0);
-  // Slow steady pulse for the base.
-  const pulse = useSharedValue(0);
   // Grow/brighten cycle for the halo.
   const halo = useSharedValue(0);
   // Which word is showing — index into WORDS, animated to scroll the list up.
@@ -33,11 +32,6 @@ export default function VibratingOrb({ size }: Props) {
   useEffect(() => {
     idle.value = withRepeat(
       withTiming(1, { duration: 800, easing: Easing.linear }),
-      -1,
-      true,
-    );
-    pulse.value = withRepeat(
-      withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.quad) }),
       -1,
       true,
     );
@@ -84,12 +78,6 @@ export default function VibratingOrb({ size }: Props) {
     };
   });
 
-  // Base glow pulses in and out on a regular interval.
-  // Base text fades in and out (same as the rain icon).
-  const baseStyle = useAnimatedStyle(() => ({
-    opacity: 0.55 - pulse.value * 0.45, // 0.55 → 0.1 and back
-  }));
-
   // Halo grows upward only (bottom anchored via transformOrigin) and its fill
   // fades in to mid-size then back out, looping.
   const haloStyle = useAnimatedStyle(() => ({
@@ -97,48 +85,18 @@ export default function VibratingOrb({ size }: Props) {
     transform: [{ scale: 1 + halo.value * 0.45 }],
   }));
 
-  // Vertical word rotation for the base.
-  const scrollStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: -scroll.value * lineH }],
-  }));
-
   return (
     <View style={{ width: size, height: size }}>
-      {/* Base — sub-emotion words rotating vertically, keeping the base pulse */}
-      <Animated.View
-        style={[
-          {
-            position: "absolute",
-            bottom: rest - lineH, // sits directly beneath the ball, where the bar was
-            alignSelf: "center",
-            width: size,
-            height: lineH,
-            overflow: "hidden",
-          },
-          baseStyle,
-        ]}
+      {/* Base — sub-emotion words rotating up, each fading only as it rises */}
+      <View
+        style={{
+          position: "absolute",
+          bottom: rest - lineH, // sits directly beneath the ball
+          alignSelf: "center",
+        }}
       >
-        <Animated.View style={scrollStyle}>
-          {[...WORDS, WORDS[0]].map((word, i) => (
-            <View
-              key={`${word}-${i}`}
-              style={{ height: lineH, alignItems: "center", justifyContent: "center" }}
-            >
-              <Text
-                numberOfLines={1}
-                style={{
-                  color: "#FFF7CE",
-                  fontSize: lineH * 0.72,
-                  fontFamily: "Jost_700Bold",
-                  letterSpacing: 0.5,
-                }}
-              >
-                {word}
-              </Text>
-            </View>
-          ))}
-        </Animated.View>
-      </Animated.View>
+        <RotatingBaseText words={WORDS} scroll={scroll} lineH={lineH} width={size} />
+      </View>
 
       {/* Halo glow behind the ball — grows/brightens on a repeating cycle */}
       <Animated.View

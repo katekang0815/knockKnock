@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Stop, Circle } from "react-native-svg";
+import RotatingBaseText from "./RotatingBaseText";
 
 interface Props {
   size: number;
@@ -27,8 +28,6 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
   const words = fadeBall ? RAIN_WORDS : BREEZE_WORDS;
   // 0 = far left, 1 = far right.
   const roll = useSharedValue(0);
-  // Base fade cycle (rain variant).
-  const fade = useSharedValue(0);
   // Vertical bounce (Breezy variant) — decoupled from the roll so its speed is
   // independent. 0 = on the base, 1 = apex.
   const bounce = useSharedValue(0);
@@ -42,11 +41,6 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
       withTiming(1, { duration: rollDuration, easing: Easing.inOut(Easing.quad) }),
       -1,
       true, // reverse: left→right→left forever
-    );
-    fade.value = withRepeat(
-      withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.quad) }),
-      -1,
-      true,
     );
     // 1000ms per hop = 1.0 hops/second.
     bounce.value = withRepeat(
@@ -134,56 +128,18 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
     return { transform: [{ translateX: x }] };
   });
 
-  // Base follows the ball horizontally. On the bouncing variant it's a Sunny-style
-  // contact glow (bright + wide at base contact, dim + narrow as the ball lifts);
-  // otherwise it fades in and out.
-  // Base text fades in and out (same for every icon).
-  const baseStyle = useAnimatedStyle(() => ({
-    opacity: 0.55 - fade.value * 0.45, // 0.55 → 0.1 and back
-  }));
-
-  // Vertical word rotation for the base (static single word for rain).
-  const scrollStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: -scroll.value * lineH }],
-  }));
-
   return (
     <View style={{ width: size, height: size }}>
-      {/* Base — sub-emotion word(s), keeping its base animation */}
-      <Animated.View
-        style={[
-          {
-            position: "absolute",
-            bottom: bottom - lineH, // sits directly beneath the ball, where the bar was
-            alignSelf: "center",
-            width: size,
-            height: lineH,
-            overflow: "hidden",
-          },
-          baseStyle,
-        ]}
+      {/* Base — sub-emotion words rotating up, each fading only as it rises */}
+      <View
+        style={{
+          position: "absolute",
+          bottom: bottom - lineH, // sits directly beneath the ball
+          alignSelf: "center",
+        }}
       >
-        <Animated.View style={scrollStyle}>
-          {[...words, words[0]].map((word, i) => (
-            <View
-              key={`${word}-${i}`}
-              style={{ height: lineH, alignItems: "center", justifyContent: "center" }}
-            >
-              <Text
-                numberOfLines={1}
-                style={{
-                  color: "#FFF7CE",
-                  fontSize: lineH * 0.72,
-                  fontFamily: "Jost_700Bold",
-                  letterSpacing: 0.5,
-                }}
-              >
-                {word}
-              </Text>
-            </View>
-          ))}
-        </Animated.View>
-      </Animated.View>
+        <RotatingBaseText words={words} scroll={scroll} lineH={lineH} width={size} />
+      </View>
 
       {/* Halo glow riding with the ball */}
       <Animated.View
