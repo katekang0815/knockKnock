@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-nati
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
+import { BlurView } from 'expo-blur';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -151,9 +152,11 @@ export default function CheckInScreen() {
               router.push({ pathname: '/emotionlog', params: { emotion: word, category } })
             }
           >
-            <Text numberOfLines={1} style={styles.cardText}>
-              {word}
-            </Text>
+            <BlurView intensity={28} tint="light" style={styles.cardBlur}>
+              <Text numberOfLines={1} style={styles.cardText}>
+                {word}
+              </Text>
+            </BlurView>
           </TouchableOpacity>
         ))}
       </View>
@@ -197,7 +200,7 @@ const styles = StyleSheet.create({
   },
   grid: {
     position: 'absolute',
-    top: GRID_TOP,
+    top: GRID_TOP - 50,
     left: GRID_PAD,
     width: GRID_W,
     flexDirection: 'row',
@@ -208,12 +211,17 @@ const styles = StyleSheet.create({
   card: {
     width: CARD_W,
     height: CARD_H,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.6)',
+    borderColor: 'rgba(255,255,255,0.35)',
+    overflow: 'hidden', // clip the blur to the rounded corners
+  },
+  cardBlur: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 6,
+    backgroundColor: 'rgba(255,255,255,0.06)', // faint frosted tint over the blur
   },
   cardText: {
     color: '#FFFFFF',
