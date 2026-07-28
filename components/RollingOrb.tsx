@@ -73,7 +73,7 @@ export default function RollingOrb({ size, fadeBall = true }: Props) {
   const ball = size * 0.4;    // reference ball diameter (base/halo/positions)
   // Total left↔right distance — both variants use the same range.
   const travel = size * 0.18;
-  const bottom = size * 0.2;  // ball's resting distance from the bottom
+  const bottom = size * 0.16; // text base's distance from the bottom (matches the other icons)
   const baseH = ball * 0.14;  // base thickness (matches the other orbs)
   const lineH = size * 0.13;  // height of one word row (rain's text base)
   // Rendered ball diameter — 45px, matching the Sunny icon's ball.
