@@ -94,13 +94,15 @@ export default function RollingOrb({ size, fadeBall = true, showBase = true }: P
       const grounded = Math.min(b / 0.12, 1); // 0 at the base → 1 once airborne
       const scaleY = 0.86 + 0.14 * grounded; // 0.86 squashed on contact → 1 round in the air
       const scaleX = 2 - scaleY; // preserve rough volume
+      // Center-squash lifts the bottom by (h/2)(1−scaleY); push down to keep it on the base.
+      const squashLift = (ballDiameter / 2) * (1 - scaleY);
       return {
         opacity: 1,
-        // rotate rightmost (applied first) so the gradient spins; the squash after
-        // it (world axes) flattens the ball straight down on contact.
+        // rotate rightmost (applied first) so the gradient spins about the center;
+        // the squash keeps its bottom on the base via the translateY compensation.
         transform: [
           { translateX: x },
-          { translateY: -hop },
+          { translateY: -hop + squashLift },
           { scaleX },
           { scaleY },
           { rotate: `${rot}deg` },

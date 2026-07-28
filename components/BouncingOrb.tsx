@@ -125,6 +125,7 @@ export default function BouncingOrb({ size, showBase = true }: Props) {
             alignSelf: "center",
             width: ball,
             height: ball,
+            transformOrigin: "center bottom", // squash keeps the bottom on the base
           },
           ballStyle,
         ]}

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-nati
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
+import { BlurView } from 'expo-blur';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -119,12 +120,12 @@ export default function CheckInScreen() {
       <Text style={[styles.title, { top: insets.top + 80 }]}>How are you today?</Text>
 
       {/* Selected emotion icon */}
-      <View style={[styles.iconArea, { top: SCREEN_H * 0.32 - ICON_SIZE / 2 }]}>
+      <View style={[styles.iconArea, { top: SCREEN_H * 0.36 - ICON_SIZE / 2 }]}>
         {EMOTIONS[active].render(ICON_SIZE)}
       </View>
 
       {/* Sub-emotions of the selected category, filled into frosted squares */}
-      <View style={[styles.grid, { top: SCREEN_H * 0.32 + ICON_SIZE / 2 + 12 }]}>
+      <View style={[styles.grid, { top: SCREEN_H * 0.36 + ICON_SIZE / 2 + 12 }]}>
         {subEmotions.map((word) => (
           <TouchableOpacity
             key={word}
@@ -134,9 +135,11 @@ export default function CheckInScreen() {
               router.push({ pathname: '/emotionlog', params: { emotion: word, category } })
             }
           >
-            <Text numberOfLines={1} style={styles.squareText}>
-              {word}
-            </Text>
+            <BlurView intensity={28} tint="light" style={styles.squareBlur}>
+              <Text numberOfLines={1} style={styles.squareText}>
+                {word}
+              </Text>
+            </BlurView>
           </TouchableOpacity>
         ))}
       </View>
@@ -185,13 +188,17 @@ const styles = StyleSheet.create({
   square: {
     width: SQUARE_W,
     height: SQUARE_H,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.45)',
-    backgroundColor: 'rgba(255,255,255,0.05)', // subtle frosted fill
+    borderColor: 'rgba(255,255,255,0.35)',
+    overflow: 'hidden', // clip the blur to the rounded corners
+  },
+  squareBlur: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 6,
+    backgroundColor: 'rgba(255,255,255,0.06)', // faint frosted tint over the blur
   },
   squareText: {
     color: 'rgba(255,255,255,0.9)',
