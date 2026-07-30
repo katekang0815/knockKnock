@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path, G, Text as SvgText } from 'react-native-svg';
+import Svg, { Path, G, Circle, Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -12,6 +12,7 @@ import Animated, {
   useAnimatedReaction,
   withTiming,
   withSequence,
+  withRepeat,
   Easing,
   runOnJS,
 } from 'react-native-reanimated';
@@ -41,6 +42,8 @@ const R = width * 0.36;   // bottom track arc radius
 const DOT = 22;           // draggable dot diameter
 const HIT = 46;           // dot touch target
 const RAD = Math.PI / 180;
+const SPIN_S = 2 * (R + 34);   // default-screen full-circle spinner canvas
+const DIAL_SIZE = 2 * (R + 50); // transparent touch area covering the dial
 
 // Bottom track arc — 108° (120° reduced by 1/10), centered at the bottom.
 const ARC_A = 144; // left end (deg, screen coords: 0 = right, 90 = down)
@@ -175,6 +178,14 @@ export default function CheckInScreen() {
   const t = useSharedValue((DEFAULT_INDEX + 0.5) / SECTIONS);
   // Pill pulse (0 → 1 → 0). Fires on each emotion change.
   const pulse = useSharedValue(0);
+  // Default-screen ring: continuous rotation (ball + fading track spin together).
+  const spin = useSharedValue(0);
+  useEffect(() => {
+    spin.value = withRepeat(withTiming(1, { duration: 6000, easing: Easing.linear }), -1, false);
+  }, [spin]);
+  const spinStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${spin.value * 360}deg` }],
+  }));
 
   const pan = Gesture.Pan()
     .onBegin((e) => {
@@ -240,27 +251,39 @@ export default function CheckInScreen() {
 
       <Text style={[styles.title, { top: insets.top + 80 }]}>How are you today?</Text>
 
+      {/* Transparent dial touch area — first touch starts the flow and drives the dot.
+          Rendered below the icon so the icon's tap still works. */}
+      <GestureDetector gesture={pan}>
+        <View
+          style={[styles.dialArea, { top: CENTER_Y - DIAL_SIZE / 2, left: CENTER_X - DIAL_SIZE / 2 }]}
+        />
+      </GestureDetector>
+
       {/* Dial: bottom track arc + top radial sub-emotion labels */}
       <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
         {/* solid track (inactive) — breeze halo color at its brightest */}
-        <Path
-          d={TRACK_ARC}
-          stroke="#C78E7D"
-          strokeOpacity={0.35}
-          strokeWidth={2}
-          strokeLinecap="round"
-          fill="none"
-        />
+        {started && (
+          <Path
+            d={TRACK_ARC}
+            stroke="#C78E7D"
+            strokeOpacity={0.35}
+            strokeWidth={2}
+            strokeLinecap="round"
+            fill="none"
+          />
+        )}
         {/* solid coral fill from the left up to the dot */}
-        <AnimatedPath
-          d={TRACK_ARC}
-          stroke="#DB533C"
-          strokeWidth={3}
-          strokeLinecap="round"
-          fill="none"
-          strokeDasharray={ARC_LEN}
-          animatedProps={arcProps}
-        />
+        {started && (
+          <AnimatedPath
+            d={TRACK_ARC}
+            stroke="#DB533C"
+            strokeWidth={3}
+            strokeLinecap="round"
+            fill="none"
+            strokeDasharray={ARC_LEN}
+            animatedProps={arcProps}
+          />
+        )}
         {started && subEmotions.map((word, i) => {
           const n = subEmotions.length;
           const phi = n === 1 ? 270 : CAP_START + ((CAP_END - CAP_START) * i) / (n - 1);
@@ -324,13 +347,48 @@ export default function CheckInScreen() {
         )}
       </TouchableOpacity>
 
-      {/* Draggable dot on the top arc */}
-      <GestureDetector gesture={pan}>
-        <Animated.View style={[styles.dotHit, dotStyle]}>
+      {/* Default screen: full-circle track with a half-fading stroke and a ball
+          that rotates around it (ring + ball spin together). */}
+      {!started && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.spinner,
+            { top: CENTER_Y - SPIN_S / 2, left: CENTER_X - SPIN_S / 2 },
+            spinStyle,
+          ]}
+        >
+          <Svg width={SPIN_S} height={SPIN_S}>
+            <Defs>
+              {/* Half-fading track: bright at the ball (top), fading around. */}
+              <LinearGradient id="fadeRing" x1="0.5" y1="0" x2="0.5" y2="1">
+                <Stop offset="0" stopColor="#C78E7D" stopOpacity={0.9} />
+                <Stop offset="0.5" stopColor="#C78E7D" stopOpacity={0.28} />
+                <Stop offset="1" stopColor="#C78E7D" stopOpacity={0.03} />
+              </LinearGradient>
+            </Defs>
+            <Circle
+              cx={SPIN_S / 2}
+              cy={SPIN_S / 2}
+              r={R}
+              stroke="url(#fadeRing)"
+              strokeWidth={3}
+              fill="none"
+            />
+            {/* Rotating ball at the bright head */}
+            <Circle cx={SPIN_S / 2} cy={SPIN_S / 2 - R} r={16} fill="#C78E7D" opacity={0.3} />
+            <Circle cx={SPIN_S / 2} cy={SPIN_S / 2 - R} r={DOT / 2} fill="#DB533C" />
+          </Svg>
+        </Animated.View>
+      )}
+
+      {/* Draggable dot on the arc — only once started */}
+      {started && (
+        <Animated.View pointerEvents="none" style={[styles.dotHit, dotStyle]}>
           <View style={styles.dotHalo} />
           <View style={styles.dot} />
         </Animated.View>
-      </GestureDetector>
+      )}
     </GestureHandlerRootView>
   );
 }
@@ -353,6 +411,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: ICON_SIZE,
     height: ICON_SIZE,
+  },
+  spinner: {
+    position: 'absolute',
+    width: SPIN_S,
+    height: SPIN_S,
+  },
+  dialArea: {
+    position: 'absolute',
+    width: DIAL_SIZE,
+    height: DIAL_SIZE,
   },
   dotHit: {
     position: 'absolute',
