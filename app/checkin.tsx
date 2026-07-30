@@ -108,20 +108,23 @@ export default function CheckInScreen() {
   // 15 sub-emotions, arranged longest-at-top → shortest-at-edges.
   const subEmotions = arrangeByLength(EMOTION_DATA[category].subEmotions.slice(0, 15));
 
-  // Grow the ring as large as possible while keeping every pill on-screen: the
-  // widest pill lands SIDE_MARGIN from the edge, and the top pill stays below
-  // the title. capInner = the shared inner-edge radius all pills start from.
+  // Size the ring ONCE from the worst case across ALL categories, so every
+  // emotion shares the exact same arc (the widest pill of any category lands
+  // SIDE_MARGIN from the edge, and the tallest top pill stays below the title).
   const targetHalf = width / 2 - SIDE_MARGIN;
   const topLimit = insets.top + 116; // just below the title
   let capInner = R * 1.4;
-  subEmotions.forEach((word, i) => {
-    const n = subEmotions.length;
-    const phi = (n === 1 ? 270 : CAP_START + ((CAP_END - CAP_START) * i) / (n - 1)) * RAD;
-    const pillL = word.length * CAP_CHAR + CAP_PAD;
-    const c = Math.abs(Math.cos(phi));
-    const s = Math.sin(phi);
-    if (c > 0.02) capInner = Math.min(capInner, targetHalf / c - pillL - CAP_W_OUT / 2);
-    if (s < -0.02) capInner = Math.min(capInner, (CENTER_Y - topLimit) / -s - pillL);
+  (Object.keys(EMOTION_DATA) as EmotionCategory[]).forEach((cat) => {
+    const words = arrangeByLength(EMOTION_DATA[cat].subEmotions.slice(0, 15));
+    const n = words.length;
+    words.forEach((word, i) => {
+      const phi = (n === 1 ? 270 : CAP_START + ((CAP_END - CAP_START) * i) / (n - 1)) * RAD;
+      const pillL = word.length * CAP_CHAR + CAP_PAD;
+      const c = Math.abs(Math.cos(phi));
+      const s = Math.sin(phi);
+      if (c > 0.02) capInner = Math.min(capInner, targetHalf / c - pillL - CAP_W_OUT / 2);
+      if (s < -0.02) capInner = Math.min(capInner, (CENTER_Y - topLimit) / -s - pillL);
+    });
   });
   capInner = Math.max(R * 0.55, capInner);
 
@@ -239,9 +242,7 @@ export default function CheckInScreen() {
             <G key={word}>
               <Path
                 d={d}
-                fill="#000000"
-                stroke="rgba(255,255,255,0.9)"
-                strokeWidth={1.5}
+                fill="rgba(255,255,255,0.14)"
                 transform={shapeRot}
               />
               <SvgText
