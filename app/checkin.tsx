@@ -34,16 +34,16 @@ const DEFAULT_INDEX = EMOTIONS.findIndex((e) => e.category === 'Breezy');
 
 // Dial geometry — a circle centered on the icon (moved ~100px down).
 const CENTER_X = width / 2;
-const CENTER_Y = SCREEN_H * 0.42 + 70;
+const CENTER_Y = SCREEN_H * 0.42 + 110;
 const R = width * 0.36;   // bottom track arc radius
 const DOT = 22;           // draggable dot diameter
 const HIT = 46;           // dot touch target
 const RAD = Math.PI / 180;
 
-// Bottom track arc — 120° (two-thirds of a semicircle), centered at the bottom.
-const ARC_A = 150; // left end (deg, screen coords: 0 = right, 90 = down)
-const ARC_B = 30;  // right end (deg)
-const ARC_SPAN = ARC_A - ARC_B; // 120°
+// Bottom track arc — 108° (120° reduced by 1/10), centered at the bottom.
+const ARC_A = 144; // left end (deg, screen coords: 0 = right, 90 = down)
+const ARC_B = 36;  // right end (deg)
+const ARC_SPAN = ARC_A - ARC_B; // 108°
 const TRACK_A_X = CENTER_X + R * Math.cos(ARC_A * RAD);
 const TRACK_A_Y = CENTER_Y + R * Math.sin(ARC_A * RAD);
 const TRACK_B_X = CENTER_X + R * Math.cos(ARC_B * RAD);
@@ -193,6 +193,7 @@ export default function CheckInScreen() {
         <Path
           d={TRACK_ARC}
           stroke="#C78E7D"
+          strokeOpacity={0.35}
           strokeWidth={2}
           strokeLinecap="round"
           fill="none"
@@ -251,7 +252,7 @@ export default function CheckInScreen() {
                 dy={CAP_FONT * 0.35}
                 fill="#FFFFFF"
                 fontSize={CAP_FONT}
-                fontFamily="Jost_400Regular"
+                fontFamily="Jost_700Bold"
                 textAnchor="middle"
                 transform={textRot}
               >
@@ -265,7 +266,7 @@ export default function CheckInScreen() {
       {/* Selected emotion icon — nudged down so the halo (which renders high in the
           container) lands on the circle center */}
       <TouchableOpacity
-        style={[styles.iconArea, { top: CENTER_Y - ICON_SIZE / 2 + 45, left: CENTER_X - ICON_SIZE / 2 }]}
+        style={[styles.iconArea, { top: CENTER_Y - ICON_SIZE / 2 + 65, left: CENTER_X - ICON_SIZE / 2 }]}
         activeOpacity={0.85}
         onPress={() => router.push({ pathname: '/subemotions', params: { category } })}
       >
