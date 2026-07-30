@@ -1,19 +1,17 @@
-import { useState, useLayoutEffect } from 'react';
+import { useState } from 'react';
 import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
-import { BlurView } from 'expo-blur';
+import Svg, { Path, G, Text as SvgText } from 'react-native-svg';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useAnimatedProps,
   useDerivedValue,
   useAnimatedReaction,
   withTiming,
   runOnJS,
-  Easing,
-  type SharedValue,
 } from 'react-native-reanimated';
 import BouncingOrb from '@/components/BouncingOrb';
 import VibratingOrb from '@/components/VibratingOrb';
@@ -22,82 +20,84 @@ import { EMOTION_DATA, EmotionCategory } from '@/constants/emotions';
 
 const { width, height: SCREEN_H } = Dimensions.get('window');
 
-const CONTAINER_PADDING = 24;
 const ICON_SIZE = 180;
 
-// The four major emotions, ordered unpleasant → pleasant across the bar.
-// `render` draws the icon (each keeps its own ball + base-text animation).
+// The four major emotions, ordered unpleasant → pleasant around the top arc.
 const EMOTIONS: { category: EmotionCategory; render: (s: number) => React.ReactNode }[] = [
   { category: 'Stormy', render: (s) => <VibratingOrb size={s} /> },
   { category: 'Calm',   render: (s) => <RollingOrb size={s} /> },
   { category: 'Breezy', render: (s) => <RollingOrb size={s} fadeBall={false} /> },
   { category: 'Sunny',  render: (s) => <BouncingOrb size={s} /> },
 ];
-
 const SECTIONS = EMOTIONS.length;
-// Breeze is the default selection when the screen opens.
 const DEFAULT_INDEX = EMOTIONS.findIndex((e) => e.category === 'Breezy');
-// Twice the side space of CONTAINER_PADDING (24 → 48 on each side).
-const BAR_W = ((width - CONTAINER_PADDING * 4) * 2) / 3;
-const SECTION_W = BAR_W / SECTIONS;
-const LINE_H = 3;   // track line thickness
-const THUMB = 22;   // dot diameter
-const HALO = 56;    // soft glow diameter behind the dot
 
-// Sub-emotion grid — 3 columns × 5 rows, fitted between the icon and the track.
-const GRID_PAD = 44;
-const GRID_COL_GAP = 12;
-const GRID_ROW_GAP = 8;
-const GRID_W = width - GRID_PAD * 2;
-const CARD_W = (GRID_W - GRID_COL_GAP * 2) / 3 - 1; // −1 for sub-pixel 3-column fit
-const GRID_TOP = SCREEN_H * 0.42 + ICON_SIZE / 2 + 16; // just below the icon (unchanged)
-const TRACK_TOP = SCREEN_H * 0.82 - 6; // the track's top on screen (bottom: 0.18H−50, height HALO)
-const CARD_H = (TRACK_TOP - 16 - GRID_TOP - GRID_ROW_GAP * 4) / 5; // fit 5 rows in the gap
+// Dial geometry — a circle centered on the icon (moved ~100px down).
+const CENTER_X = width / 2;
+const CENTER_Y = SCREEN_H * 0.42 + 70;
+const R = width * 0.36;   // bottom track arc radius
+const DOT = 22;           // draggable dot diameter
+const HIT = 46;           // dot touch target
+const RAD = Math.PI / 180;
+
+// Bottom track arc — 120° (two-thirds of a semicircle), centered at the bottom.
+const ARC_A = 150; // left end (deg, screen coords: 0 = right, 90 = down)
+const ARC_B = 30;  // right end (deg)
+const ARC_SPAN = ARC_A - ARC_B; // 120°
+const TRACK_A_X = CENTER_X + R * Math.cos(ARC_A * RAD);
+const TRACK_A_Y = CENTER_Y + R * Math.sin(ARC_A * RAD);
+const TRACK_B_X = CENTER_X + R * Math.cos(ARC_B * RAD);
+const TRACK_B_Y = CENTER_Y + R * Math.sin(ARC_B * RAD);
+const TRACK_ARC = `M ${TRACK_A_X.toFixed(1)} ${TRACK_A_Y.toFixed(1)} A ${R} ${R} 0 0 0 ${TRACK_B_X.toFixed(1)} ${TRACK_B_Y.toFixed(1)}`;
+const ARC_LEN = R * ARC_SPAN * RAD; // arc length (for the fill reveal)
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+// Sub-emotion pills fan around the top — from just above the left track end,
+// over the top, to just above the right track end (the complement of the arc).
+// Every pill's inner edge sits at CAP_INNER; its length grows outward to fit
+// its text, so short words get short pills (which fit near the screen edges).
+const CAP_START = 158; // lower-left (just above ARC_A = 150)
+const CAP_END = 382;   // lower-right (= 22°, just above ARC_B = 30)
+const CAP_W_OUT = R * 0.28;  // wide tail (outer) diameter
+const CAP_W_IN = R * 0.14;   // narrow head (inner) diameter
+const CAP_FONT = 15;         // sub-emotion text size
+const CAP_CHAR = CAP_FONT * 0.6; // approx per-character width
+const CAP_PAD = 26;          // total end padding added to the text length
+const SIDE_MARGIN = 10;      // min gap from the pills to the left/right screen edges
+
+// Reorder words so the longest sit at the top of the arc (most room) and the
+// shortest fall to the left/right edges (where the screen is narrowest).
+function arrangeByLength(words: string[]) {
+  const byLen = [...words].sort((a, b) => b.length - a.length); // longest first
+  const n = words.length;
+  const mid = Math.floor(n / 2);
+  const order: number[] = [mid];
+  for (let d = 1; d <= mid; d++) {
+    order.push(mid - d);
+    if (mid + d < n) order.push(mid + d);
+  }
+  const out = new Array<string>(n);
+  order.forEach((pos, k) => {
+    out[pos] = byLen[k];
+  });
+  return out;
+}
 
 function clampWorklet(v: number, min: number, max: number) {
   'worklet';
   return Math.min(Math.max(v, min), max);
 }
 
-// One frosted card. Reveals in a diagonal wave from the top-left, driven by
-// `reveal` (0 → 1); its delay grows with row + column so (0,0) appears first.
-function SubCard({
-  word,
-  index,
-  reveal,
-  category,
-}: {
-  word: string;
-  index: number;
-  reveal: SharedValue<number>;
-  category: EmotionCategory;
-}) {
-  const diag = Math.floor(index / 3) + (index % 3); // top-left = 0, bottom-right = largest
-  const style = useAnimatedStyle(() => {
-    const start = diag / 10; // stagger start per diagonal
-    const local = Math.min(Math.max((reveal.value - start) / 0.4, 0), 1);
-    return {
-      opacity: local,
-      transform: [{ translateY: (1 - local) * 12 }, { scale: 0.9 + 0.1 * local }],
-    };
-  });
-  return (
-    <Animated.View style={[styles.card, style]}>
-      <TouchableOpacity
-        style={styles.cardTouch}
-        activeOpacity={0.6}
-        onPress={() =>
-          router.push({ pathname: '/emotionlog', params: { emotion: word, category } })
-        }
-      >
-        <BlurView intensity={28} tint="light" style={styles.cardBlur}>
-          <Text numberOfLines={1} style={styles.cardText}>
-            {word}
-          </Text>
-        </BlurView>
-      </TouchableOpacity>
-    </Animated.View>
-  );
+// Map a touch to a position on the bottom track arc (0 = left end, 1 = right end).
+// Above the center is the top gap → clamp to the nearest end so the dot
+// stops at the arc's ends instead of wrapping back to the start.
+function angleToT(absX: number, absY: number) {
+  'worklet';
+  const dx = absX - CENTER_X;
+  const dy = absY - CENTER_Y;
+  if (dy < 0) return dx >= 0 ? 1 : 0;
+  const a = (Math.atan2(dy, dx) * 180) / Math.PI; // 0..180 on the lower half
+  return clampWorklet((ARC_A - a) / ARC_SPAN, 0, 1);
 }
 
 export default function CheckInScreen() {
@@ -105,40 +105,44 @@ export default function CheckInScreen() {
   const [active, setActive] = useState(DEFAULT_INDEX);
 
   const category = EMOTIONS[active].category;
-  // 3 columns × 5 rows = 15 sub-emotions of the selected category.
-  const subEmotions = EMOTION_DATA[category].subEmotions.slice(0, 15);
+  // 15 sub-emotions, arranged longest-at-top → shortest-at-edges.
+  const subEmotions = arrangeByLength(EMOTION_DATA[category].subEmotions.slice(0, 15));
 
-  // Re-run the top-left → out reveal each time the major emotion changes.
-  // useLayoutEffect resets before paint so the fresh grid never flashes fully in.
-  const reveal = useSharedValue(0);
-  useLayoutEffect(() => {
-    reveal.value = 0;
-    reveal.value = withTiming(1, { duration: 650, easing: Easing.out(Easing.quad) });
-  }, [active]);
+  // Grow the ring as large as possible while keeping every pill on-screen: the
+  // widest pill lands SIDE_MARGIN from the edge, and the top pill stays below
+  // the title. capInner = the shared inner-edge radius all pills start from.
+  const targetHalf = width / 2 - SIDE_MARGIN;
+  const topLimit = insets.top + 116; // just below the title
+  let capInner = R * 1.4;
+  subEmotions.forEach((word, i) => {
+    const n = subEmotions.length;
+    const phi = (n === 1 ? 270 : CAP_START + ((CAP_END - CAP_START) * i) / (n - 1)) * RAD;
+    const pillL = word.length * CAP_CHAR + CAP_PAD;
+    const c = Math.abs(Math.cos(phi));
+    const s = Math.sin(phi);
+    if (c > 0.02) capInner = Math.min(capInner, targetHalf / c - pillL - CAP_W_OUT / 2);
+    if (s < -0.02) capInner = Math.min(capInner, (CENTER_Y - topLimit) / -s - pillL);
+  });
+  capInner = Math.max(R * 0.55, capInner);
 
-  // Thumb center X within the bar. Starts at the center of the default section.
-  const thumbC = useSharedValue((DEFAULT_INDEX + 0.5) * SECTION_W);
-
-  const minC = THUMB / 2;
-  const maxC = BAR_W - THUMB / 2;
+  // Position along the top arc, 0 (left) → 1 (right). Default = Breeze's section center.
+  const t = useSharedValue((DEFAULT_INDEX + 0.5) / SECTIONS);
 
   const pan = Gesture.Pan()
     .onBegin((e) => {
-      thumbC.value = clampWorklet(e.x, minC, maxC);
+      t.value = angleToT(e.absoluteX, e.absoluteY);
     })
     .onUpdate((e) => {
-      thumbC.value = clampWorklet(e.x, minC, maxC);
+      t.value = angleToT(e.absoluteX, e.absoluteY);
     })
     .onEnd(() => {
-      const idx = clampWorklet(Math.floor(thumbC.value / SECTION_W), 0, SECTIONS - 1);
-      thumbC.value = withTiming((idx + 0.5) * SECTION_W, { duration: 160 });
+      const idx = clampWorklet(Math.floor(t.value * SECTIONS), 0, SECTIONS - 1);
+      t.value = withTiming((idx + 0.5) / SECTIONS, { duration: 160 });
     });
 
-  // Which section the thumb is over (live, while dragging).
   const index = useDerivedValue(() =>
-    clampWorklet(Math.floor(thumbC.value / SECTION_W), 0, SECTIONS - 1),
+    clampWorklet(Math.floor(t.value * SECTIONS), 0, SECTIONS - 1),
   );
-
   useAnimatedReaction(
     () => index.value,
     (cur, prev) => {
@@ -146,19 +150,18 @@ export default function CheckInScreen() {
     },
   );
 
-  const thumbStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: thumbC.value - THUMB / 2 }],
+  // Solid arc fills from the left up to the dot; the rest stays faded.
+  const arcProps = useAnimatedProps(() => ({
+    strokeDashoffset: ARC_LEN * (1 - t.value),
   }));
 
-  // Filled portion of the line, left of the dot.
-  const activeStyle = useAnimatedStyle(() => ({
-    width: thumbC.value,
-  }));
-
-  // Soft glow behind the dot, riding with it.
-  const haloStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: thumbC.value - HALO / 2 }],
-  }));
+  // Dot rides the bottom track arc.
+  const dotStyle = useAnimatedStyle(() => {
+    const phi = (ARC_A - ARC_SPAN * t.value) * RAD;
+    const x = CENTER_X + R * Math.cos(phi);
+    const y = CENTER_Y + R * Math.sin(phi);
+    return { transform: [{ translateX: x - HIT / 2 }, { translateY: y - HIT / 2 }] };
+  });
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -181,37 +184,99 @@ export default function CheckInScreen() {
 
       <Text style={[styles.title, { top: insets.top + 80 }]}>How are you today?</Text>
 
-      {/* Selected emotion icon — a bit above center, scaling with screen height */}
+      {/* Dial: bottom track arc + top radial sub-emotion labels */}
+      <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+        {/* solid track (inactive) — breeze halo color at its brightest */}
+        <Path
+          d={TRACK_ARC}
+          stroke="#C78E7D"
+          strokeWidth={2}
+          strokeLinecap="round"
+          fill="none"
+        />
+        {/* solid coral fill from the left up to the dot */}
+        <AnimatedPath
+          d={TRACK_ARC}
+          stroke="#DB533C"
+          strokeWidth={3}
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={ARC_LEN}
+          animatedProps={arcProps}
+        />
+        {subEmotions.map((word, i) => {
+          const n = subEmotions.length;
+          const phi = n === 1 ? 270 : CAP_START + ((CAP_END - CAP_START) * i) / (n - 1);
+          const rad = phi * RAD;
+          // Pill length fits the word; inner edge stays at capInner, grows outward.
+          const pillL = word.length * CAP_CHAR + CAP_PAD;
+          const capR = capInner + pillL / 2;
+          const cx = CENTER_X + capR * Math.cos(rad);
+          const cy = CENTER_Y + capR * Math.sin(rad);
+          // Tapered pill: narrow head at the inner end, wide tail at the outer end.
+          // Built horizontally (+x = outward) then rotated by the true angle so the
+          // taper always points outward. Straight sides + semicircular end caps.
+          const xi = cx - pillL / 2; // inner (head)
+          const xo = cx + pillL / 2; // outer (tail)
+          const wIn = CAP_W_IN / 2;
+          const wOut = CAP_W_OUT / 2;
+          const d =
+            `M ${xi.toFixed(1)} ${(cy - wIn).toFixed(1)} ` +
+            `L ${xo.toFixed(1)} ${(cy - wOut).toFixed(1)} ` +
+            `A ${wOut} ${wOut} 0 0 1 ${xo.toFixed(1)} ${(cy + wOut).toFixed(1)} ` +
+            `L ${xi.toFixed(1)} ${(cy + wIn).toFixed(1)} ` +
+            `A ${wIn} ${wIn} 0 0 0 ${xi.toFixed(1)} ${(cy - wIn).toFixed(1)} Z`;
+          const shapeRot = `rotate(${phi.toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})`;
+          // Text uses the upright-normalized angle so it stays readable.
+          let rot = phi % 180;
+          if (rot > 90) rot -= 180;
+          // Bias the text outward toward the wider tail so it clears the narrow head.
+          const tShift = pillL * 0.08;
+          const tx = CENTER_X + (capR + tShift) * Math.cos(rad);
+          const ty = CENTER_Y + (capR + tShift) * Math.sin(rad);
+          const textRot = `rotate(${rot.toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)})`;
+          return (
+            <G key={word}>
+              <Path
+                d={d}
+                fill="#000000"
+                stroke="rgba(255,255,255,0.9)"
+                strokeWidth={1.5}
+                transform={shapeRot}
+              />
+              <SvgText
+                x={tx}
+                y={ty}
+                dy={CAP_FONT * 0.35}
+                fill="#FFFFFF"
+                fontSize={CAP_FONT}
+                fontFamily="Jost_400Regular"
+                textAnchor="middle"
+                transform={textRot}
+              >
+                {word}
+              </SvgText>
+            </G>
+          );
+        })}
+      </Svg>
+
+      {/* Selected emotion icon — nudged down so the halo (which renders high in the
+          container) lands on the circle center */}
       <TouchableOpacity
-        style={[styles.iconArea, { top: SCREEN_H * 0.42 - ICON_SIZE / 2 }]}
+        style={[styles.iconArea, { top: CENTER_Y - ICON_SIZE / 2 + 45, left: CENTER_X - ICON_SIZE / 2 }]}
         activeOpacity={0.85}
-        onPress={() =>
-          router.push({ pathname: '/subemotions', params: { category: EMOTIONS[active].category } })
-        }
+        onPress={() => router.push({ pathname: '/subemotions', params: { category } })}
       >
         {EMOTIONS[active].render(ICON_SIZE)}
       </TouchableOpacity>
 
-      {/* Sub-emotions of the selected category — 3 × 5 frosted cards, revealing
-          in a top-left → out wave whenever the major emotion changes */}
-      <View style={styles.grid}>
-        {subEmotions.map((word, i) => (
-          <SubCard key={`${category}-${word}`} word={word} index={i} reveal={reveal} category={category} />
-        ))}
-      </View>
-
-      {/* Thin line + glowing dot; drag anywhere to move, snaps to four sections */}
+      {/* Draggable dot on the top arc */}
       <GestureDetector gesture={pan}>
-        <View style={[styles.barWrap, { bottom: SCREEN_H * 0.18 - 50 }]}>
-          {/* faded dotted line (inactive, right of the dot) */}
-          <View style={styles.trackBase} />
-          {/* solid line (active, left of the dot) */}
-          <Animated.View style={[styles.trackActive, activeStyle]} />
-          {/* soft glow halo behind the dot */}
-          <Animated.View style={[styles.halo, haloStyle]} />
-          {/* the dot */}
-          <Animated.View style={[styles.thumb, thumbStyle]} />
-        </View>
+        <Animated.View style={[styles.dotHit, dotStyle]}>
+          <View style={styles.dotHalo} />
+          <View style={styles.dot} />
+        </Animated.View>
       </GestureDetector>
     </GestureHandlerRootView>
   );
@@ -233,83 +298,29 @@ const styles = StyleSheet.create({
   },
   iconArea: {
     position: 'absolute',
-    alignSelf: 'center',
     width: ICON_SIZE,
     height: ICON_SIZE,
   },
-  grid: {
-    position: 'absolute',
-    top: GRID_TOP - 50,
-    left: GRID_PAD,
-    width: GRID_W,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    columnGap: GRID_COL_GAP,
-    rowGap: GRID_ROW_GAP,
-  },
-  card: {
-    width: CARD_W,
-    height: CARD_H,
-    borderRadius: 12,
-    overflow: 'hidden', // clip the blur to the rounded corners
-  },
-  cardTouch: {
-    flex: 1,
-  },
-  cardBlur: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-    backgroundColor: 'rgba(255,255,255,0.06)', // faint frosted tint over the blur
-  },
-  cardText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontFamily: 'Jost_700Bold',
-    textAlign: 'center',
-  },
-  barWrap: {
-    position: 'absolute',
-    alignSelf: 'center',
-    width: BAR_W,
-    height: HALO,
-    justifyContent: 'center',
-  },
-  trackBase: {
-    position: 'absolute',
-    left: 0,
-    width: BAR_W,
-    top: HALO / 2 - 1,
-    height: 0,
-    borderTopWidth: 2,
-    borderStyle: 'dotted',
-    borderColor: 'rgba(219,83,60,0.4)',
-  },
-  trackActive: {
-    position: 'absolute',
-    left: 0,
-    top: (HALO - LINE_H) / 2,
-    height: LINE_H,
-    borderRadius: LINE_H / 2,
-    backgroundColor: '#DB533C',
-  },
-  halo: {
+  dotHit: {
     position: 'absolute',
     left: 0,
     top: 0,
-    width: HALO,
-    height: HALO,
-    borderRadius: HALO / 2,
-    backgroundColor: 'rgba(199,142,125,0.22)',
+    width: HIT,
+    height: HIT,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  thumb: {
+  dotHalo: {
     position: 'absolute',
-    left: 0,
-    top: (HALO - THUMB) / 2,
-    width: THUMB,
-    height: THUMB,
-    borderRadius: THUMB / 2,
+    width: HIT,
+    height: HIT,
+    borderRadius: HIT / 2,
+    backgroundColor: 'rgba(199,142,125,0.28)',
+  },
+  dot: {
+    width: DOT,
+    height: DOT,
+    borderRadius: DOT / 2,
     backgroundColor: '#DB533C',
     shadowColor: '#DB533C',
     shadowOffset: { width: 0, height: 0 },

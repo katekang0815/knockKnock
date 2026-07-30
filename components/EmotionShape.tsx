@@ -7,6 +7,54 @@ interface EmotionShapeProps {
   size: number;
 }
 
+// Home-screen bouncing-ball palette: coral → dusty rose → cream.
+const WARM: [string, string, string] = ['#DB533C', '#C78E7D', '#FFF7CE'];
+export const HOME_ACCENT = WARM[0]; // coral, for matching text color
+
+// Circle in the home warm gradient.
+export function HomeCircle({ size }: { size: number }) {
+  const r = size / 2;
+  return (
+    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <Defs>
+        <LinearGradient id="homeCircleGrad" x1="0.5" y1="0" x2="0.5" y2="1">
+          <Stop offset="0" stopColor={WARM[0]} />
+          <Stop offset="0.5" stopColor={WARM[1]} />
+          <Stop offset="1" stopColor={WARM[2]} />
+        </LinearGradient>
+      </Defs>
+      <SvgCircle cx={r} cy={r} r={r} fill="url(#homeCircleGrad)" />
+    </Svg>
+  );
+}
+
+// 8-point star / sparkle in the home warm gradient (matches the home ball's star phase).
+export function HomeStar({ size }: { size: number }) {
+  const cx = 50;
+  const cy = 50;
+  const outer = 48;
+  const inner = 8;
+  let d = '';
+  for (let i = 0; i < 8; i++) {
+    const angle = (Math.PI * i) / 4 - Math.PI / 2;
+    const r = i % 2 === 0 ? outer : inner;
+    d += `${i === 0 ? 'M' : 'L'}${(cx + r * Math.cos(angle)).toFixed(1)},${(cy + r * Math.sin(angle)).toFixed(1)} `;
+  }
+  d += 'Z';
+  return (
+    <Svg width={size} height={size} viewBox="0 0 100 100">
+      <Defs>
+        <LinearGradient id="homeStarGrad" x1="0.5" y1="0" x2="0.5" y2="1">
+          <Stop offset="0" stopColor={WARM[0]} />
+          <Stop offset="0.5" stopColor={WARM[1]} />
+          <Stop offset="1" stopColor={WARM[2]} />
+        </LinearGradient>
+      </Defs>
+      <Path d={d} fill="url(#homeStarGrad)" />
+    </Svg>
+  );
+}
+
 function GinkgoLeaf({ gradientStart, gradientEnd, size }: Omit<EmotionShapeProps, 'emotion'>) {
   return (
     <Svg width={size} height={size} viewBox="0 0 200 220" fill="none">

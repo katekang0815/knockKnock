@@ -11,7 +11,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path } from 'react-native-svg';
-import EmotionShape from '@/components/EmotionShape';
+import { HomeCircle, HomeStar, HOME_ACCENT } from '@/components/EmotionShape';
 import { EMOTION_DATA, EmotionCategory } from '@/constants/emotions';
 import { sendChatMessage } from '@/services/aiService';
 
@@ -147,8 +147,6 @@ export default function EmotionLogScreen() {
   const categoryKey = category as EmotionCategory;
   const data = EMOTION_DATA[categoryKey];
   const accentColor = data?.accentColor ?? '#FFFFFF';
-  const gradientStart = data?.gradientStart ?? '#FFFFFF';
-  const gradientEnd = data?.gradientEnd ?? '#FFFFFF';
 
   const scrollViewRef = useRef<Animated.ScrollView>(null);
   const scrollY = useSharedValue(0);
@@ -242,6 +240,14 @@ export default function EmotionLogScreen() {
     return { width: size, height: size };
   });
 
+  // Cross-fade: circle at the top → star ("cross") as the user scrolls up.
+  const circleFade = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [0, SCROLL_RANGE], [1, 0], Extrapolation.CLAMP),
+  }));
+  const starFade = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [0, SCROLL_RANGE], [0, 1], Extrapolation.CLAMP),
+  }));
+
   const handleComplete = async () => {
     try {
       const existing = await AsyncStorage.getItem('emotion_logs');
@@ -282,12 +288,12 @@ export default function EmotionLogScreen() {
         </TouchableOpacity>
 
         <Animated.View style={[styles.shapeWrapper, shapeStyle]}>
-          <EmotionShape
-            emotion={emotion ?? ''}
-            gradientStart={gradientStart}
-            gradientEnd={gradientEnd}
-            size={SHAPE_MAX}
-          />
+          <Animated.View style={[styles.shapeLayer, circleFade]}>
+            <HomeCircle size={SHAPE_MAX} />
+          </Animated.View>
+          <Animated.View style={[styles.shapeLayer, starFade]}>
+            <HomeStar size={SHAPE_MAX} />
+          </Animated.View>
         </Animated.View>
       </Animated.View>
 
@@ -306,7 +312,7 @@ export default function EmotionLogScreen() {
         {/* I'm feeling text */}
         <View style={styles.textContainer}>
           <Text style={styles.feelingText}>I{`'`}m feeling</Text>
-          <Text style={[styles.emotionWord, { color: accentColor }]}>
+          <Text style={[styles.emotionWord, { color: HOME_ACCENT }]}>
             {emotion}
           </Text>
         </View>
@@ -508,6 +514,11 @@ const styles = StyleSheet.create({
   },
   shapeWrapper: {
     overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shapeLayer: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
   },
