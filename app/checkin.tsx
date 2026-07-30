@@ -11,6 +11,8 @@ import Animated, {
   useDerivedValue,
   useAnimatedReaction,
   withTiming,
+  withSequence,
+  Easing,
   runOnJS,
 } from 'react-native-reanimated';
 import BouncingOrb from '@/components/BouncingOrb';
@@ -51,6 +53,7 @@ const TRACK_B_Y = CENTER_Y + R * Math.sin(ARC_B * RAD);
 const TRACK_ARC = `M ${TRACK_A_X.toFixed(1)} ${TRACK_A_Y.toFixed(1)} A ${R} ${R} 0 0 0 ${TRACK_B_X.toFixed(1)} ${TRACK_B_Y.toFixed(1)}`;
 const ARC_LEN = R * ARC_SPAN * RAD; // arc length (for the fill reveal)
 const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedG = Animated.createAnimatedComponent(G);
 
 // Sub-emotion pills fan around the top — from just above the left track end,
 // over the top, to just above the right track end (the complement of the arc).
@@ -100,9 +103,49 @@ function angleToT(absX: number, absY: number) {
   return clampWorklet((ARC_A - a) / ARC_SPAN, 0, 1);
 }
 
+// One sub-emotion pill. It scales up and back (a pulse) when `pulse` runs
+// 0 → 1 → 0, scaling about its own center (originX/originY).
+type PillProps = {
+  d: string;
+  shapeRot: string;
+  tx: number;
+  ty: number;
+  textRot: string;
+  word: string;
+  cx: number;
+  cy: number;
+  pulse: { value: number };
+};
+
+function Pill({ d, shapeRot, tx, ty, textRot, word, cx, cy, pulse }: PillProps) {
+  const animatedProps = useAnimatedProps(() => ({
+    scale: 1 + pulse.value * 0.12,
+  }));
+  return (
+    <AnimatedG animatedProps={animatedProps} originX={cx} originY={cy}>
+      <Path d={d} fill="rgba(255,255,255,0.14)" transform={shapeRot} />
+      <SvgText
+        x={tx}
+        y={ty}
+        dy={CAP_FONT * 0.35}
+        fill="#FFFFFF"
+        fontSize={CAP_FONT}
+        fontFamily="Jost_700Bold"
+        textAnchor="middle"
+        transform={textRot}
+      >
+        {word}
+      </SvgText>
+    </AnimatedG>
+  );
+}
+
 export default function CheckInScreen() {
   const insets = useSafeAreaInsets();
   const [active, setActive] = useState(DEFAULT_INDEX);
+  // Default (freshly-arrived) state: bounce-only Breeze icon, track only, no pills.
+  // Flips true the first time the user touches the track.
+  const [started, setStarted] = useState(false);
 
   const category = EMOTIONS[active].category;
   // 15 sub-emotions, arranged longest-at-top → shortest-at-edges.
@@ -130,9 +173,12 @@ export default function CheckInScreen() {
 
   // Position along the top arc, 0 (left) → 1 (right). Default = Breeze's section center.
   const t = useSharedValue((DEFAULT_INDEX + 0.5) / SECTIONS);
+  // Pill pulse (0 → 1 → 0). Fires on each emotion change.
+  const pulse = useSharedValue(0);
 
   const pan = Gesture.Pan()
     .onBegin((e) => {
+      runOnJS(setStarted)(true);
       t.value = angleToT(e.absoluteX, e.absoluteY);
     })
     .onUpdate((e) => {
@@ -149,7 +195,14 @@ export default function CheckInScreen() {
   useAnimatedReaction(
     () => index.value,
     (cur, prev) => {
-      if (cur !== prev) runOnJS(setActive)(cur);
+      if (cur !== prev) {
+        runOnJS(setActive)(cur);
+        // Pop the pills on navigation.
+        pulse.value = withSequence(
+          withTiming(1, { duration: 150, easing: Easing.out(Easing.quad) }),
+          withTiming(0, { duration: 320, easing: Easing.in(Easing.quad) }),
+        );
+      }
     },
   );
 
@@ -208,7 +261,7 @@ export default function CheckInScreen() {
           strokeDasharray={ARC_LEN}
           animatedProps={arcProps}
         />
-        {subEmotions.map((word, i) => {
+        {started && subEmotions.map((word, i) => {
           const n = subEmotions.length;
           const phi = n === 1 ? 270 : CAP_START + ((CAP_END - CAP_START) * i) / (n - 1);
           const rad = phi * RAD;
@@ -240,25 +293,18 @@ export default function CheckInScreen() {
           const ty = CENTER_Y + (capR + tShift) * Math.sin(rad);
           const textRot = `rotate(${rot.toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)})`;
           return (
-            <G key={word}>
-              <Path
-                d={d}
-                fill="rgba(255,255,255,0.14)"
-                transform={shapeRot}
-              />
-              <SvgText
-                x={tx}
-                y={ty}
-                dy={CAP_FONT * 0.35}
-                fill="#FFFFFF"
-                fontSize={CAP_FONT}
-                fontFamily="Jost_700Bold"
-                textAnchor="middle"
-                transform={textRot}
-              >
-                {word}
-              </SvgText>
-            </G>
+            <Pill
+              key={word}
+              d={d}
+              shapeRot={shapeRot}
+              tx={tx}
+              ty={ty}
+              textRot={textRot}
+              word={word}
+              cx={cx}
+              cy={cy}
+              pulse={pulse}
+            />
           );
         })}
       </Svg>
@@ -270,7 +316,12 @@ export default function CheckInScreen() {
         activeOpacity={0.85}
         onPress={() => router.push({ pathname: '/subemotions', params: { category } })}
       >
-        {EMOTIONS[active].render(ICON_SIZE)}
+        {started ? (
+          EMOTIONS[active].render(ICON_SIZE)
+        ) : (
+          // Default screen: dedicated Breeze icon that only bounces (no roll).
+          <RollingOrb size={ICON_SIZE} fadeBall={false} rolling={false} />
+        )}
       </TouchableOpacity>
 
       {/* Draggable dot on the top arc */}
