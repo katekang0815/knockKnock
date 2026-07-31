@@ -45,6 +45,84 @@ const RAD = Math.PI / 180;
 const SPIN_S = 2 * (R + 34);   // default-screen full-circle spinner canvas
 const DIAL_SIZE = 2 * (R + 50); // transparent touch area covering the dial
 
+// ── Default-screen quadrant trapezoids: the four major-emotion categories ──
+const PETAL_D_IN = R * 0.52;   // inner edge distance from center
+const PETAL_D_OUT = R * 0.92;  // outer edge distance from center
+const PETAL_W_IN = R * 0.18;   // half-width at the inner (narrow) edge
+const PETAL_W_OUT = R * 0.46;  // half-width at the outer (wide) edge
+const PETAL_ROUND = 16;        // corner rounding
+const QUAD_FONT = 14;          // label text size (stretched horizontally to fit)
+
+const QUADRANTS: { dir: number; lines: string[] }[] = [
+  { dir: 0,   lines: ['High Energy', 'Pleasant'] },   // top
+  { dir: 90,  lines: ['High Energy', 'Unpleasant'] }, // right
+  { dir: 180, lines: ['Low Energy', 'Unpleasant'] },  // bottom
+  { dir: 270, lines: ['Low Energy', 'Pleasant'] },    // left
+];
+
+// Rotate a local petal point (up = -y) by `dir` degrees (clockwise) about center.
+function petalPoint(lx: number, ly: number, dir: number): [number, number] {
+  const a = dir * RAD;
+  return [
+    CENTER_X + lx * Math.cos(a) - ly * Math.sin(a),
+    CENTER_Y + lx * Math.sin(a) + ly * Math.cos(a),
+  ];
+}
+
+// Rounded-corner polygon path from a list of screen points.
+function roundedPath(pts: [number, number][], r: number) {
+  const n = pts.length;
+  let d = '';
+  for (let i = 0; i < n; i++) {
+    const [px, py] = pts[(i - 1 + n) % n];
+    const [cx, cy] = pts[i];
+    const [nx, ny] = pts[(i + 1) % n];
+    const l1 = Math.hypot(cx - px, cy - py) || 1;
+    const l2 = Math.hypot(nx - cx, ny - cy) || 1;
+    const r1 = Math.min(r, l1 / 2);
+    const r2 = Math.min(r, l2 / 2);
+    const a1x = cx + ((px - cx) / l1) * r1;
+    const a1y = cy + ((py - cy) / l1) * r1;
+    const a2x = cx + ((nx - cx) / l2) * r2;
+    const a2y = cy + ((ny - cy) / l2) * r2;
+    d += `${i === 0 ? 'M' : 'L'} ${a1x.toFixed(1)} ${a1y.toFixed(1)} `;
+    d += `Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${a2x.toFixed(1)} ${a2y.toFixed(1)} `;
+  }
+  return `${d}Z`;
+}
+
+// Precompute each quadrant's rounded outline + per-line horizontal stretch so the
+// text fills the trapezoid (wider where the trapezoid is wide, narrower where narrow).
+const QUAD_MID_R = (PETAL_D_IN + PETAL_D_OUT) / 2;
+const QUAD_LS = QUAD_FONT * 1.18; // line height
+const QUAD_RENDER = QUADRANTS.map(({ dir, lines }) => {
+  const corners: [number, number][] = [
+    petalPoint(-PETAL_W_IN, -PETAL_D_IN, dir),
+    petalPoint(PETAL_W_IN, -PETAL_D_IN, dir),
+    petalPoint(PETAL_W_OUT, -PETAL_D_OUT, dir),
+    petalPoint(-PETAL_W_OUT, -PETAL_D_OUT, dir),
+  ];
+  const path = roundedPath(corners, PETAL_ROUND);
+  const vertical = dir % 180 === 0; // top/bottom petals narrow along the vertical axis
+  const [cx, cy] = petalPoint(0, -QUAD_MID_R, dir);
+  const labels = lines.map((text, li) => {
+    const off = (li - (lines.length - 1) / 2) * QUAD_LS; // screen-y offset from centroid
+    let avail: number;
+    if (vertical) {
+      // Moving along the vertical axis changes the radius → the local width.
+      const radius = QUAD_MID_R + (dir === 0 ? -off : off);
+      const frac = Math.min(1, Math.max(0, (radius - PETAL_D_IN) / (PETAL_D_OUT - PETAL_D_IN)));
+      avail = 2 * (PETAL_W_IN + (PETAL_W_OUT - PETAL_W_IN) * frac) * 0.9;
+    } else {
+      avail = (PETAL_D_OUT - PETAL_D_IN) * 0.9;
+    }
+    const natural = text.length * QUAD_FONT * 0.6;
+    const sx = Math.min(2.2, Math.max(0.5, avail / natural));
+    return { text, x: cx, y: cy + off, sx };
+  });
+  return { path, labels };
+});
+
 // Bottom track arc — 108° (120° reduced by 1/10), centered at the bottom.
 const ARC_A = 144; // left end (deg, screen coords: 0 = right, 90 = down)
 const ARC_B = 36;  // right end (deg)
@@ -181,7 +259,7 @@ export default function CheckInScreen() {
   // Default-screen ring: continuous rotation (ball + fading track spin together).
   const spin = useSharedValue(0);
   useEffect(() => {
-    spin.value = withRepeat(withTiming(1, { duration: 6000, easing: Easing.linear }), -1, false);
+    spin.value = withRepeat(withTiming(1, { duration: 12000, easing: Easing.linear }), -1, false);
   }, [spin]);
   const spinStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${spin.value * 360}deg` }],
@@ -346,6 +424,33 @@ export default function CheckInScreen() {
           <RollingOrb size={ICON_SIZE} fadeBall={false} rolling={false} />
         )}
       </TouchableOpacity>
+
+      {/* Default screen: four quadrant trapezoids (major-emotion categories),
+          each label stretched horizontally to fit its trapezoid. */}
+      {!started && (
+        <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+          {QUAD_RENDER.map((q, qi) => (
+            <G key={qi}>
+              <Path d={q.path} fill="#000000" stroke="rgba(255,255,255,0.9)" strokeWidth={1.5} />
+              {q.labels.map((l, li) => (
+                <SvgText
+                  key={li}
+                  x={l.x}
+                  y={l.y}
+                  dy={QUAD_FONT * 0.35}
+                  fill="#FFFFFF"
+                  fontSize={QUAD_FONT}
+                  fontFamily="Jost_700Bold"
+                  textAnchor="middle"
+                  transform={`translate(${(l.x * (1 - l.sx)).toFixed(2)} 0) scale(${l.sx.toFixed(3)} 1)`}
+                >
+                  {l.text}
+                </SvgText>
+              ))}
+            </G>
+          ))}
+        </Svg>
+      )}
 
       {/* Default screen: full-circle track with a half-fading stroke and a ball
           that rotates around it (ring + ball spin together). */}
