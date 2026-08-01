@@ -53,11 +53,11 @@ const PETAL_W_OUT = R * 0.46;  // half-width at the outer (wide) edge
 const PETAL_ROUND = 16;        // corner rounding
 const QUAD_FONT = 14;          // label text size (stretched horizontally to fit)
 
-const QUADRANTS: { dir: number; lines: string[]; align: 'center' | 'left'; skew?: number }[] = [
-  { dir: 0,   lines: ['High Energy', 'Pleasant'],      align: 'center' },            // top
-  { dir: 90,  lines: ['High', 'Energy', 'Unpleasant'], align: 'left', skew: -24 },   // right (slanted)
-  { dir: 180, lines: ['Low Energy', 'Unpleasant'],     align: 'center' },            // bottom
-  { dir: 270, lines: ['Low', 'Energy', 'Pleasant'],    align: 'left' },              // left
+const QUADRANTS: { dir: number; lines: string[]; align: 'center' | 'left' }[] = [
+  { dir: 0,   lines: ['High Energy', 'Pleasant'],      align: 'center' }, // top
+  { dir: 90,  lines: ['High', 'Energy', 'Unpleasant'], align: 'left' },   // right
+  { dir: 180, lines: ['Low Energy', 'Unpleasant'],     align: 'center' }, // bottom
+  { dir: 270, lines: ['Low', 'Energy', 'Pleasant'],    align: 'left' },   // left
 ];
 
 // Rotate a local petal point (up = -y) by `dir` degrees (clockwise) about center.
@@ -95,7 +95,7 @@ function roundedPath(pts: [number, number][], r: number) {
 // text fills the trapezoid (wider where the trapezoid is wide, narrower where narrow).
 const QUAD_MID_R = (PETAL_D_IN + PETAL_D_OUT) / 2;
 const QUAD_LS = QUAD_FONT * 1.18; // line height
-const QUAD_RENDER = QUADRANTS.map(({ dir, lines, align, skew }) => {
+const QUAD_RENDER = QUADRANTS.map(({ dir, lines, align }) => {
   const corners: [number, number][] = [
     petalPoint(-PETAL_W_IN, -PETAL_D_IN, dir),
     petalPoint(PETAL_W_IN, -PETAL_D_IN, dir),
@@ -104,10 +104,6 @@ const QUAD_RENDER = QUADRANTS.map(({ dir, lines, align, skew }) => {
   ];
   const path = roundedPath(corners, PETAL_ROUND);
   const [cx, cy] = petalPoint(0, -QUAD_MID_R, dir);
-  // Optional shear so the text block slants along the trapezoid (TYPECRAFT look).
-  const skewPrefix = skew
-    ? `translate(${cx.toFixed(1)} ${cy.toFixed(1)}) skewY(${skew}) translate(${(-cx).toFixed(1)} ${(-cy).toFixed(1)}) `
-    : '';
 
   let labels: { text: string; x: number; y: number; sx: number; anchor: 'middle' | 'start' }[];
   if (align === 'left') {
@@ -125,25 +121,19 @@ const QUAD_RENDER = QUADRANTS.map(({ dir, lines, align, skew }) => {
       anchor: 'start',
     }));
   } else {
-    // Top/bottom petals: spread the lines across the full radial extent and
-    // stretch each to the trapezoid width at its radius, so the text fans out to
-    // follow the shape (wide line at the wide edge, narrow line at the narrow edge).
-    const inset = QUAD_FONT * 1.1;
-    const rLo = PETAL_D_IN + inset;
-    const rHi = PETAL_D_OUT - inset;
+    // Top/bottom petals: centered lines, each stretched to the trapezoid width
+    // at its radius (wider toward the wide edge).
     labels = lines.map((text, li) => {
-      const f = lines.length === 1 ? 0.5 : li / (lines.length - 1); // 0..1 line order
-      const frac = dir === 0 ? 1 - f : f; // radius fraction: outer for top's first line
-      const radius = rLo + (rHi - rLo) * frac;
-      const halfW = PETAL_W_IN + (PETAL_W_OUT - PETAL_W_IN) * ((radius - PETAL_D_IN) / (PETAL_D_OUT - PETAL_D_IN));
-      const avail = 2 * halfW * 0.96;
+      const off = (li - (lines.length - 1) / 2) * QUAD_LS;
+      const radius = QUAD_MID_R + (dir === 0 ? -off : off);
+      const frac = Math.min(1, Math.max(0, (radius - PETAL_D_IN) / (PETAL_D_OUT - PETAL_D_IN)));
+      const avail = 2 * (PETAL_W_IN + (PETAL_W_OUT - PETAL_W_IN) * frac) * 0.9;
       const natural = text.length * QUAD_FONT * 0.6;
-      const sx = Math.min(2.6, Math.max(0.5, avail / natural));
-      const y = dir === 0 ? CENTER_Y - radius : CENTER_Y + radius;
-      return { text, x: CENTER_X, y, sx, anchor: 'middle' };
+      const sx = Math.min(2.2, Math.max(0.5, avail / natural));
+      return { text, x: cx, y: cy + off, sx, anchor: 'middle' };
     });
   }
-  return { path, labels, skewPrefix };
+  return { path, labels };
 });
 
 // Bottom track arc — 108° (120° reduced by 1/10), centered at the bottom.
@@ -240,6 +230,42 @@ function Pill({ d, shapeRot, tx, ty, textRot, word, cx, cy, pulse }: PillProps) 
       >
         {word}
       </SvgText>
+    </AnimatedG>
+  );
+}
+
+// One default-screen quadrant. Its text fades in as the orbiting ball enters the
+// zone (spin near pCenter) and fades out as it leaves. `spin` sawtooths 0 → 1.
+type QuadrantSectionProps = {
+  q: (typeof QUAD_RENDER)[number];
+  spin: { value: number };
+  pCenter: number;
+};
+
+function QuadrantSection({ q, spin, pCenter }: QuadrantSectionProps) {
+  const animatedProps = useAnimatedProps(() => {
+    let d = Math.abs(spin.value - pCenter);
+    d = Math.min(d, 1 - d); // circular distance around the ring
+    return { opacity: clampWorklet((0.16 - d) / 0.1, 0, 1) };
+  });
+  return (
+    <AnimatedG animatedProps={animatedProps}>
+      <Path d={q.path} fill="#000000" />
+      {q.labels.map((l, li) => (
+        <SvgText
+          key={li}
+          x={l.x}
+          y={l.y}
+          dy={QUAD_FONT * 0.35}
+          fill="#FFFFFF"
+          fontSize={QUAD_FONT}
+          fontFamily="Jost_700Bold"
+          textAnchor={l.anchor}
+          transform={`translate(${(l.x * (1 - l.sx)).toFixed(2)} 0) scale(${l.sx.toFixed(3)} 1)`}
+        >
+          {l.text}
+        </SvgText>
+      ))}
     </AnimatedG>
   );
 }
@@ -453,24 +479,7 @@ export default function CheckInScreen() {
       {!started && (
         <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
           {QUAD_RENDER.map((q, qi) => (
-            <G key={qi}>
-              <Path d={q.path} fill="#000000" stroke="rgba(255,255,255,0.9)" strokeWidth={1.5} />
-              {q.labels.map((l, li) => (
-                <SvgText
-                  key={li}
-                  x={l.x}
-                  y={l.y}
-                  dy={QUAD_FONT * 0.35}
-                  fill="#FFFFFF"
-                  fontSize={QUAD_FONT}
-                  fontFamily="Jost_700Bold"
-                  textAnchor={l.anchor}
-                  transform={`${q.skewPrefix}translate(${(l.x * (1 - l.sx)).toFixed(2)} 0) scale(${l.sx.toFixed(3)} 1)`}
-                >
-                  {l.text}
-                </SvgText>
-              ))}
-            </G>
+            <QuadrantSection key={qi} q={q} spin={spin} pCenter={qi * 0.25} />
           ))}
         </Svg>
       )}
