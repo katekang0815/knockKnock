@@ -53,11 +53,11 @@ const PETAL_W_OUT = R * 0.46;  // half-width at the outer (wide) edge
 const PETAL_ROUND = 16;        // corner rounding
 const QUAD_FONT = 14;          // label text size (stretched horizontally to fit)
 
-const QUADRANTS: { dir: number; lines: string[] }[] = [
-  { dir: 0,   lines: ['High Energy', 'Pleasant'] },   // top
-  { dir: 90,  lines: ['High Energy', 'Unpleasant'] }, // right
-  { dir: 180, lines: ['Low Energy', 'Unpleasant'] },  // bottom
-  { dir: 270, lines: ['Low Energy', 'Pleasant'] },    // left
+const QUADRANTS: { dir: number; lines: string[]; align: 'center' | 'left'; skew?: number }[] = [
+  { dir: 0,   lines: ['High Energy', 'Pleasant'],      align: 'center' },            // top
+  { dir: 90,  lines: ['High', 'Energy', 'Unpleasant'], align: 'left', skew: -24 },   // right (slanted)
+  { dir: 180, lines: ['Low Energy', 'Unpleasant'],     align: 'center' },            // bottom
+  { dir: 270, lines: ['Low', 'Energy', 'Pleasant'],    align: 'left' },              // left
 ];
 
 // Rotate a local petal point (up = -y) by `dir` degrees (clockwise) about center.
@@ -95,7 +95,7 @@ function roundedPath(pts: [number, number][], r: number) {
 // text fills the trapezoid (wider where the trapezoid is wide, narrower where narrow).
 const QUAD_MID_R = (PETAL_D_IN + PETAL_D_OUT) / 2;
 const QUAD_LS = QUAD_FONT * 1.18; // line height
-const QUAD_RENDER = QUADRANTS.map(({ dir, lines }) => {
+const QUAD_RENDER = QUADRANTS.map(({ dir, lines, align, skew }) => {
   const corners: [number, number][] = [
     petalPoint(-PETAL_W_IN, -PETAL_D_IN, dir),
     petalPoint(PETAL_W_IN, -PETAL_D_IN, dir),
@@ -103,24 +103,47 @@ const QUAD_RENDER = QUADRANTS.map(({ dir, lines }) => {
     petalPoint(-PETAL_W_OUT, -PETAL_D_OUT, dir),
   ];
   const path = roundedPath(corners, PETAL_ROUND);
-  const vertical = dir % 180 === 0; // top/bottom petals narrow along the vertical axis
   const [cx, cy] = petalPoint(0, -QUAD_MID_R, dir);
-  const labels = lines.map((text, li) => {
-    const off = (li - (lines.length - 1) / 2) * QUAD_LS; // screen-y offset from centroid
-    let avail: number;
-    if (vertical) {
-      // Moving along the vertical axis changes the radius → the local width.
-      const radius = QUAD_MID_R + (dir === 0 ? -off : off);
-      const frac = Math.min(1, Math.max(0, (radius - PETAL_D_IN) / (PETAL_D_OUT - PETAL_D_IN)));
-      avail = 2 * (PETAL_W_IN + (PETAL_W_OUT - PETAL_W_IN) * frac) * 0.9;
-    } else {
-      avail = (PETAL_D_OUT - PETAL_D_IN) * 0.9;
-    }
-    const natural = text.length * QUAD_FONT * 0.6;
-    const sx = Math.min(2.2, Math.max(0.5, avail / natural));
-    return { text, x: cx, y: cy + off, sx };
-  });
-  return { path, labels };
+  // Optional shear so the text block slants along the trapezoid (TYPECRAFT look).
+  const skewPrefix = skew
+    ? `translate(${cx.toFixed(1)} ${cy.toFixed(1)}) skewY(${skew}) translate(${(-cx).toFixed(1)} ${(-cy).toFixed(1)}) `
+    : '';
+
+  let labels: { text: string; x: number; y: number; sx: number; anchor: 'middle' | 'start' }[];
+  if (align === 'left') {
+    // Left/right petals: one word per line, left-aligned (ragged right). One
+    // shared stretch fits the longest word to the petal's radial width.
+    const maxNat = Math.max(...lines.map((t) => t.length)) * QUAD_FONT * 0.6;
+    const avail = (PETAL_D_OUT - PETAL_D_IN) * 0.94;
+    const sx = Math.min(1.05, Math.max(0.55, avail / maxNat));
+    const xLeft = cx - (maxNat * sx) / 2;
+    labels = lines.map((text, li) => ({
+      text,
+      x: xLeft,
+      y: cy + (li - (lines.length - 1) / 2) * QUAD_LS,
+      sx,
+      anchor: 'start',
+    }));
+  } else {
+    // Top/bottom petals: spread the lines across the full radial extent and
+    // stretch each to the trapezoid width at its radius, so the text fans out to
+    // follow the shape (wide line at the wide edge, narrow line at the narrow edge).
+    const inset = QUAD_FONT * 1.1;
+    const rLo = PETAL_D_IN + inset;
+    const rHi = PETAL_D_OUT - inset;
+    labels = lines.map((text, li) => {
+      const f = lines.length === 1 ? 0.5 : li / (lines.length - 1); // 0..1 line order
+      const frac = dir === 0 ? 1 - f : f; // radius fraction: outer for top's first line
+      const radius = rLo + (rHi - rLo) * frac;
+      const halfW = PETAL_W_IN + (PETAL_W_OUT - PETAL_W_IN) * ((radius - PETAL_D_IN) / (PETAL_D_OUT - PETAL_D_IN));
+      const avail = 2 * halfW * 0.96;
+      const natural = text.length * QUAD_FONT * 0.6;
+      const sx = Math.min(2.6, Math.max(0.5, avail / natural));
+      const y = dir === 0 ? CENTER_Y - radius : CENTER_Y + radius;
+      return { text, x: CENTER_X, y, sx, anchor: 'middle' };
+    });
+  }
+  return { path, labels, skewPrefix };
 });
 
 // Bottom track arc — 108° (120° reduced by 1/10), centered at the bottom.
@@ -441,8 +464,8 @@ export default function CheckInScreen() {
                   fill="#FFFFFF"
                   fontSize={QUAD_FONT}
                   fontFamily="Jost_700Bold"
-                  textAnchor="middle"
-                  transform={`translate(${(l.x * (1 - l.sx)).toFixed(2)} 0) scale(${l.sx.toFixed(3)} 1)`}
+                  textAnchor={l.anchor}
+                  transform={`${q.skewPrefix}translate(${(l.x * (1 - l.sx)).toFixed(2)} 0) scale(${l.sx.toFixed(3)} 1)`}
                 >
                   {l.text}
                 </SvgText>
