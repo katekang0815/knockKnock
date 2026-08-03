@@ -59,6 +59,7 @@ const CAP_W_IN = R * 0.14;   // narrow head (inner) diameter
 const CAP_FONT = 15;         // sub-emotion text size
 const CAP_CHAR = CAP_FONT * 0.6; // approx per-character width
 const CAP_PAD = 26;          // total end padding added to the text length
+const PILL_ROUND = 12;       // pill corner rounding (rounded trapezoid)
 const SIDE_MARGIN = 10;      // min gap from the pills to the left/right screen edges
 const FAN_HALF = 120;        // pills span ±FAN_HALF around the point opposite the handle
 
@@ -86,6 +87,28 @@ function arrangeByLength(words: string[]) {
     out[pos] = byLen[k];
   });
   return out;
+}
+
+// Rounded-corner polygon path from a list of screen points.
+function roundedPath(pts: [number, number][], r: number) {
+  const n = pts.length;
+  let d = '';
+  for (let i = 0; i < n; i++) {
+    const [px, py] = pts[(i - 1 + n) % n];
+    const [vx, vy] = pts[i];
+    const [nx, ny] = pts[(i + 1) % n];
+    const l1 = Math.hypot(vx - px, vy - py) || 1;
+    const l2 = Math.hypot(nx - vx, ny - vy) || 1;
+    const r1 = Math.min(r, l1 / 2);
+    const r2 = Math.min(r, l2 / 2);
+    const a1x = vx + ((px - vx) / l1) * r1;
+    const a1y = vy + ((py - vy) / l1) * r1;
+    const a2x = vx + ((nx - vx) / l2) * r2;
+    const a2y = vy + ((ny - vy) / l2) * r2;
+    d += `${i === 0 ? 'M' : 'L'} ${a1x.toFixed(1)} ${a1y.toFixed(1)} `;
+    d += `Q ${vx.toFixed(1)} ${vy.toFixed(1)} ${a2x.toFixed(1)} ${a2y.toFixed(1)} `;
+  }
+  return `${d}Z`;
 }
 
 // Touch → angle on the full-circle track (degrees, 0 = right, 90 = down), 0..360.
@@ -178,7 +201,7 @@ export default function CheckInScreen() {
       });
     });
   });
-  capInner = Math.max(R * 0.5, capInner);
+  capInner = Math.max(100, capInner); // push the pills' inner edge out to ≥100pt
 
   // Pills fan on the side opposite the active section's handle.
   const fanCenter = (SECTION_HANDLE[active] ?? 45) + 180;
@@ -282,19 +305,21 @@ export default function CheckInScreen() {
           const capR = capInner + pillL / 2;
           const cx = CENTER_X + capR * Math.cos(rad);
           const cy = CENTER_Y + capR * Math.sin(rad);
-          // Tapered pill: narrow head at the inner end, wide tail at the outer end.
-          // Built horizontally (+x = outward) then rotated by the true angle so the
-          // taper always points outward. Straight sides + semicircular end caps.
-          const xi = cx - pillL / 2; // inner (head)
-          const xo = cx + pillL / 2; // outer (tail)
+          // Rounded trapezoid: wide flat outer edge, narrow flat inner edge, straight
+          // sides, rounded corners. Built horizontally (+x = outward) then rotated.
+          const xi = cx - pillL / 2; // inner (narrow)
+          const xo = cx + pillL / 2; // outer (wide)
           const wIn = CAP_W_IN / 2;
           const wOut = CAP_W_OUT / 2;
-          const d =
-            `M ${xi.toFixed(1)} ${(cy - wIn).toFixed(1)} ` +
-            `L ${xo.toFixed(1)} ${(cy - wOut).toFixed(1)} ` +
-            `A ${wOut} ${wOut} 0 0 1 ${xo.toFixed(1)} ${(cy + wOut).toFixed(1)} ` +
-            `L ${xi.toFixed(1)} ${(cy + wIn).toFixed(1)} ` +
-            `A ${wIn} ${wIn} 0 0 0 ${xi.toFixed(1)} ${(cy - wIn).toFixed(1)} Z`;
+          const d = roundedPath(
+            [
+              [xi, cy - wIn],
+              [xo, cy - wOut],
+              [xo, cy + wOut],
+              [xi, cy + wIn],
+            ],
+            PILL_ROUND,
+          );
           const shapeRot = `rotate(${phi.toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})`;
           // Text uses the upright-normalized angle so it stays readable.
           let rot = phi % 180;
