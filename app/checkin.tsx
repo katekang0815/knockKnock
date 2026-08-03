@@ -43,7 +43,7 @@ const DOT = 22;           // handle dot diameter
 const HIT = 46;           // handle container
 const RAD = Math.PI / 180;
 const SPIN_S = 2 * (R + 34);   // rotating fade-ring canvas
-const DIAL_SIZE = 2 * (R + 50); // transparent touch area covering the dial
+const DIAL_SIZE = 2 * (R + 95); // transparent touch area covering the dial + pills
 
 // Section indices within EMOTIONS (order: Stormy, Calm, Breezy, Sunny).
 const I_STORMY = EMOTIONS.findIndex((e) => e.category === 'Stormy');
@@ -214,6 +214,29 @@ export default function CheckInScreen() {
   // Pills fan on the side opposite the active section's handle.
   const fanCenter = (SECTION_HANDLE[active] ?? 45) + 180;
 
+  // On a tap, find the sub-emotion pill under the finger and open its detail log.
+  const selectPillAt = (absX: number, absY: number) => {
+    if (!started) return;
+    const dx = absX - CENTER_X;
+    const dy = absY - CENTER_Y;
+    const radius = Math.hypot(dx, dy);
+    let a = (Math.atan2(dy, dx) * 180) / Math.PI;
+    if (a < 0) a += 360;
+    const n = subEmotions.length;
+    if (n === 0) return;
+    const spacing = n === 1 ? 360 : (2 * FAN_HALF) / (n - 1);
+    for (let i = 0; i < n; i++) {
+      const phi = (((fanCenter - FAN_HALF + spacing * i) % 360) + 360) % 360;
+      let diff = Math.abs(a - phi);
+      if (diff > 180) diff = 360 - diff;
+      const pillL = subEmotions[i].length * CAP_CHAR + CAP_PAD;
+      if (diff <= spacing / 2 && radius >= capInner - 12 && radius <= capInner + pillL + 12) {
+        router.push({ pathname: '/emotionlog', params: { emotion: subEmotions[i], category } });
+        return;
+      }
+    }
+  };
+
   // Pill pulse (0 → 1 → 0). Fires on each section change.
   const pulse = useSharedValue(0);
   // Pill reveal progress (0 → 1). Replays clockwise on each section change.
@@ -269,6 +292,15 @@ export default function CheckInScreen() {
     .onFinalize(() => {
       grab.value = withTiming(0, { duration: 200 }); // hide the handle on release
     });
+
+  // Tap a sub-emotion pill → open its detail log. Racing with the pan so a drag
+  // still dials and a tap selects.
+  const tap = Gesture.Tap()
+    .maxDistance(24)
+    .onEnd((e) => {
+      runOnJS(selectPillAt)(e.absoluteX, e.absoluteY);
+    });
+  const dialGesture = Gesture.Race(pan, tap);
 
   // Active section derived from the bright head's angle.
   const index = useDerivedValue(() => {
@@ -378,7 +410,7 @@ export default function CheckInScreen() {
       {/* Dial touch area — grab anywhere in this disk to rotate. Placed ABOVE the
           full-screen Svg (which would otherwise swallow touches) but BELOW the
           center icon so the icon's tap still works. */}
-      <GestureDetector gesture={pan}>
+      <GestureDetector gesture={dialGesture}>
         <View
           collapsable={false}
           style={[styles.dialArea, { top: CENTER_Y - DIAL_SIZE / 2, left: CENTER_X - DIAL_SIZE / 2 }]}
@@ -386,11 +418,11 @@ export default function CheckInScreen() {
       </GestureDetector>
 
       {/* Selected emotion icon — nudged down so the halo (which renders high in the
-          container) lands on the circle center */}
-      <TouchableOpacity
+          container) lands on the circle center. Non-interactive: the dial handles
+          touches and each sub-emotion pill navigates to its log. */}
+      <View
+        pointerEvents="none"
         style={[styles.iconArea, { top: CENTER_Y - ICON_SIZE / 2 + 65, left: CENTER_X - ICON_SIZE / 2 }]}
-        activeOpacity={0.85}
-        onPress={() => router.push({ pathname: '/subemotions', params: { category } })}
       >
         {started ? (
           EMOTIONS[active].render(ICON_SIZE)
@@ -398,7 +430,7 @@ export default function CheckInScreen() {
           // Default screen: dedicated Breeze icon that only bounces (no roll).
           <RollingOrb size={ICON_SIZE} fadeBall={false} rolling={false} />
         )}
-      </TouchableOpacity>
+      </View>
 
       {/* Full-circle track: a half-fading ring whose bright head is the handle.
           Idle → auto-rotates; touching → the bright head follows the finger. */}

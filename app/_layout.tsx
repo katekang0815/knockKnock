@@ -19,7 +19,6 @@ export default function RootLayout() {
         <Stack.Screen name="welcome" options={{ headerShown: false }} />
         <Stack.Screen name="splash" options={{ headerShown: false }} />
         <Stack.Screen name="checkin" options={{ headerShown: false }} />
-        <Stack.Screen name="subemotions" options={{ headerShown: false }} />
         <Stack.Screen name="emotionlog" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>

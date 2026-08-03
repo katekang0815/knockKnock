@@ -11,7 +11,10 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path } from 'react-native-svg';
-import { HomeCircle, HomeStar, HOME_ACCENT } from '@/components/EmotionShape';
+import { HomeStar, HOME_ACCENT } from '@/components/EmotionShape';
+import BouncingOrb from '@/components/BouncingOrb';
+import VibratingOrb from '@/components/VibratingOrb';
+import RollingOrb from '@/components/RollingOrb';
 import { EMOTION_DATA, EmotionCategory } from '@/constants/emotions';
 import { sendChatMessage } from '@/services/aiService';
 
@@ -19,6 +22,20 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const SHAPE_MAX = 180;
 const SHAPE_MIN = 40;
+
+// Animated major-emotion icon per category (same as the major-emotions screen).
+function emotionIcon(category: EmotionCategory, size: number) {
+  switch (category) {
+    case 'Stormy':
+      return <VibratingOrb size={size} />;
+    case 'Calm':
+      return <RollingOrb size={size} />;
+    case 'Breezy':
+      return <RollingOrb size={size} fadeBall={false} />;
+    default:
+      return <BouncingOrb size={size} />; // Sunny
+  }
+}
 const HEADER_MAX = 240;
 const HEADER_MIN = 80;
 const SCROLL_RANGE = HEADER_MAX - HEADER_MIN;
@@ -231,21 +248,23 @@ export default function EmotionLogScreen() {
   });
 
   const shapeStyle = useAnimatedStyle(() => {
-    const size = interpolate(
+    // Shrink by scaling (not by clipping) so the bouncing icon is never cut off.
+    const scale = interpolate(
       scrollY.value,
       [0, SCROLL_RANGE],
-      [SHAPE_MAX, SHAPE_MIN],
+      [1, SHAPE_MIN / SHAPE_MAX],
       Extrapolation.CLAMP,
     );
-    return { width: size, height: size };
+    return { transform: [{ scale }] };
   });
 
-  // Cross-fade: circle at the top → star ("cross") as the user scrolls up.
+  // Sequential (no overlap): the animated icon fades out fully over the first
+  // 40% of the scroll, then the static cross fades in — so they never coexist.
   const circleFade = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [0, SCROLL_RANGE], [1, 0], Extrapolation.CLAMP),
+    opacity: interpolate(scrollY.value, [0, SCROLL_RANGE * 0.4], [1, 0], Extrapolation.CLAMP),
   }));
   const starFade = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [0, SCROLL_RANGE], [0, 1], Extrapolation.CLAMP),
+    opacity: interpolate(scrollY.value, [SCROLL_RANGE * 0.4, SCROLL_RANGE], [0, 1], Extrapolation.CLAMP),
   }));
 
   const handleComplete = async () => {
@@ -288,10 +307,32 @@ export default function EmotionLogScreen() {
         </TouchableOpacity>
 
         <Animated.View style={[styles.shapeWrapper, shapeStyle]}>
-          <Animated.View style={[styles.shapeLayer, circleFade]}>
-            <HomeCircle size={SHAPE_MAX} />
+          <Animated.View style={[styles.shapeLayer, styles.iconOffset, circleFade]}>
+            {emotionIcon(categoryKey, SHAPE_MAX)}
           </Animated.View>
           <Animated.View style={[styles.shapeLayer, starFade]}>
+            {/* Warm concentric glow behind the cross (home-screen star look) */}
+            <View style={styles.starGlow} pointerEvents="none">
+              {[1, 0.78, 0.56, 0.36].map((scale, i) => (
+                <View
+                  key={i}
+                  style={{
+                    position: 'absolute',
+                    left: `${((1 - scale) / 2) * 100}%`,
+                    top: `${((1 - scale) / 2) * 100}%`,
+                    width: `${scale * 100}%`,
+                    height: `${scale * 100}%`,
+                    borderRadius: 9999,
+                    backgroundColor: '#C78E7D',
+                    opacity: 0.12 + i * 0.06,
+                    shadowColor: '#C78E7D',
+                    shadowOffset: { width: 0, height: 0 },
+                    shadowOpacity: 0.5,
+                    shadowRadius: 10,
+                  }}
+                />
+              ))}
+            </View>
             <HomeStar size={SHAPE_MAX} />
           </Animated.View>
         </Animated.View>
@@ -513,14 +554,26 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   shapeWrapper: {
-    overflow: 'hidden',
+    width: SHAPE_MAX,
+    height: SHAPE_MAX,
     alignItems: 'center',
     justifyContent: 'center',
+    transformOrigin: 'center bottom', // scale shrinks toward the bottom, staying anchored
   },
   shapeLayer: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  iconOffset: {
+    transform: [{ translateY: 50 }], // drop the animated icon so its halo isn't clipped
+  },
+  starGlow: {
+    position: 'absolute',
+    width: SHAPE_MAX * 0.85,
+    height: SHAPE_MAX * 0.85,
+    top: SHAPE_MAX * 0.075,
+    left: SHAPE_MAX * 0.075,
   },
   scrollContent: {
     paddingHorizontal: 24,

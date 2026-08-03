@@ -39,8 +39,9 @@ export default function BouncingOrb({ size }: Props) {
   // Vertically center the ball + gap + text cluster in the container.
   // `rest` is the text base top; the cluster spans [rest - lineH, rest + gap + ball].
   const rest = (size - (gap + ball + lineH)) / 2 + lineH;
-  // Ball/halo resting bottom — `gap` above the text base top.
-  const ballBottom = rest + gap;
+  // Ball/halo resting bottom — `gap` above the text base top, nudged up 5px to
+  // match the Stormy/Calm icons.
+  const ballBottom = rest + gap + 5;
 
   // Ball: travels up, with a small squash-and-stretch at the ground.
   const ballStyle = useAnimatedStyle(() => {

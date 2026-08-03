@@ -62,7 +62,7 @@ export default function RollingOrb({ size, fadeBall = true, rolling = true }: Pr
   const bounceHeight = ball * 0.4;
   // Ball/halo resting bottom — baseH above the text base top (same gap as Stormy).
   // Rain is nudged up 5px; Breeze stays put.
-  const ballBottom = bottom + baseH + (fadeBall ? 5 : 0);
+  const ballBottom = bottom + baseH + 5;
 
   // Rolling ball: translate across and rotate by the arc length it covers. Breezy
   // adds a vertical bounce + squash; rain just rolls at a constant size.

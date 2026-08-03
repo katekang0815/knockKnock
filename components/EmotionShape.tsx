@@ -44,13 +44,14 @@ export function HomeStar({ size }: { size: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100">
       <Defs>
+        {/* Ember palette — same as the home-screen bouncing ball's final star */}
         <LinearGradient id="homeStarGrad" x1="0.5" y1="0" x2="0.5" y2="1">
-          <Stop offset="0" stopColor={WARM[0]} />
-          <Stop offset="0.5" stopColor={WARM[1]} />
-          <Stop offset="1" stopColor={WARM[2]} />
+          <Stop offset="0" stopColor="#5B2018" />
+          <Stop offset="0.5" stopColor="#E85030" />
+          <Stop offset="1" stopColor="#FFDCB8" />
         </LinearGradient>
       </Defs>
-      <Path d={d} fill="url(#homeStarGrad)" />
+      <Path d={d} fill="url(#homeStarGrad)" stroke="#5B2018" strokeWidth={1} />
     </Svg>
   );
 }
