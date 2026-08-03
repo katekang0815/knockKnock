@@ -16,6 +16,7 @@ import Animated, {
   Easing,
   runOnJS,
 } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import BouncingOrb from '@/components/BouncingOrb';
 import VibratingOrb from '@/components/VibratingOrb';
 import RollingOrb from '@/components/RollingOrb';
@@ -62,6 +63,7 @@ const CAP_PAD = 26;          // total end padding added to the text length
 const PILL_ROUND = 12;       // pill corner rounding (rounded trapezoid)
 const SIDE_MARGIN = 10;      // min gap from the pills to the left/right screen edges
 const FAN_HALF = 120;        // pills span ±FAN_HALF around the point opposite the handle
+const REVEAL_FADE = 0.3;     // per-pill fade window during the clockwise reveal
 
 // Handle angle (deg) at each section's center — pills fan on the OPPOSITE side.
 const SECTION_HANDLE: Record<number, number> = {
@@ -142,15 +144,18 @@ type PillProps = {
   cx: number;
   cy: number;
   pulse: { value: number };
+  reveal: { value: number };
+  threshold: number;
 };
 
-function Pill({ d, shapeRot, tx, ty, textRot, word, cx, cy, pulse }: PillProps) {
+function Pill({ d, shapeRot, tx, ty, textRot, word, cx, cy, pulse, reveal, threshold }: PillProps) {
   const animatedProps = useAnimatedProps(() => ({
     scale: 1 + pulse.value * 0.12,
+    opacity: Math.min(Math.max((reveal.value - threshold) / REVEAL_FADE, 0), 1),
   }));
   return (
     <AnimatedG animatedProps={animatedProps} originX={cx} originY={cy}>
-      <Path d={d} fill="rgba(199,142,125,0.12)" transform={shapeRot} />
+      <Path d={d} fill="rgba(199,142,125,0.2)" transform={shapeRot} />
       <SvgText
         x={tx}
         y={ty}
@@ -173,6 +178,9 @@ export default function CheckInScreen() {
   // Default (freshly-arrived) state: bounce-only Breeze icon, track only, no pills.
   // Flips true the first time the user touches the track.
   const [started, setStarted] = useState(false);
+  // Direction of the last dial move (1 = clockwise, -1 = counter-clockwise) — the
+  // pill reveal sweeps this way.
+  const [revealDir, setRevealDir] = useState(1);
 
   const category = EMOTIONS[active].category;
   // 15 sub-emotions, arranged longest-at-top → shortest-at-edges.
@@ -208,12 +216,16 @@ export default function CheckInScreen() {
 
   // Pill pulse (0 → 1 → 0). Fires on each section change.
   const pulse = useSharedValue(0);
+  // Pill reveal progress (0 → 1). Replays clockwise on each section change.
+  const reveal = useSharedValue(1);
   // Ring rotation (degrees). The gradient's bright head sits at local top, so it
   // renders at screen angle (ringRot - 90). Idle: auto-rotates. Dialing: follows
   // the finger so the bright part becomes the handle.
   const ringRot = useSharedValue(0);
   // 1 while the user is dialing (gates section changes so idle spin stays quiet).
   const startedSV = useSharedValue(0);
+  // Last dial direction on the UI thread (1 = CW, -1 = CCW).
+  const dialDir = useSharedValue(1);
   useEffect(() => {
     ringRot.value = withRepeat(withTiming(360, { duration: 12000, easing: Easing.linear }), -1, false);
   }, [ringRot]);
@@ -235,7 +247,13 @@ export default function CheckInScreen() {
       ringRot.value = touchAngle(e.absoluteX, e.absoluteY) + 90; // bright head → finger
     })
     .onUpdate((e) => {
-      ringRot.value = touchAngle(e.absoluteX, e.absoluteY) + 90;
+      const a = touchAngle(e.absoluteX, e.absoluteY) + 90;
+      let delta = a - ringRot.value;
+      if (delta > 180) delta -= 360;
+      if (delta < -180) delta += 360;
+      if (delta > 0.001) dialDir.value = 1;
+      else if (delta < -0.001) dialDir.value = -1;
+      ringRot.value = a;
     })
     .onEnd(() => {
       const fa = (((ringRot.value - 90) % 360) + 360) % 360; // finger angle
@@ -253,11 +271,17 @@ export default function CheckInScreen() {
     (cur, prev) => {
       if (cur !== prev && startedSV.value === 1) {
         runOnJS(setActive)(cur);
+        runOnJS(setRevealDir)(dialDir.value); // reveal sweeps the way you dialed
+        // Medium impact as the handle crosses into a new section.
+        runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
         // Pop the pills on section change.
         pulse.value = withSequence(
           withTiming(1, { duration: 150, easing: Easing.out(Easing.quad) }),
           withTiming(0, { duration: 320, easing: Easing.in(Easing.quad) }),
         );
+        // Replay the clockwise reveal for the new section's pills.
+        reveal.value = 0;
+        reveal.value = withTiming(1, { duration: 600 });
       }
     },
   );
@@ -324,11 +348,16 @@ export default function CheckInScreen() {
           // Text uses the upright-normalized angle so it stays readable.
           let rot = phi % 180;
           if (rot > 90) rot -= 180;
-          // Bias the text outward toward the wider tail so it clears the narrow head.
-          const tShift = pillL * 0.08;
+          // Head-side gap (text inner end → pill head) is CAP_PAD/2 plus the outward
+          // bias. Pull the text inward so that head gap is halved.
+          const headGap = CAP_PAD / 2 + pillL * 0.04;
+          const tShift = pillL * 0.04 - headGap / 2;
           const tx = CENTER_X + (capR + tShift) * Math.cos(rad);
           const ty = CENTER_Y + (capR + tShift) * Math.sin(rad);
           const textRot = `rotate(${rot.toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)})`;
+          // Stagger sweeps the way the user dialed: CW → i=0 first; CCW → i=n-1 first.
+          const order = revealDir === 1 ? i : n - 1 - i;
+          const threshold = n === 1 ? 0 : (order / (n - 1)) * (1 - REVEAL_FADE);
           return (
             <Pill
               key={word}
@@ -341,6 +370,8 @@ export default function CheckInScreen() {
               cx={cx}
               cy={cy}
               pulse={pulse}
+              reveal={reveal}
+              threshold={threshold}
             />
           );
         })}

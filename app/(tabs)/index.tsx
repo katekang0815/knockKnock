@@ -20,12 +20,16 @@ import Svg, {
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useAnimatedReaction,
+  runOnJS,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
   Easing,
 } from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
+import { useIsFocused } from "@react-navigation/native";
 
 const { height: SCREEN_H } = Dimensions.get("window");
 const SHAPE_SIZE = 120;
@@ -38,6 +42,14 @@ export default function HomeScreen() {
   // "Knock Knock" — each word taps like a hand hitting a door, with a rest between pairs.
   const knock1 = useSharedValue(0);
   const knock2 = useSharedValue(0);
+
+  // Only buzz while the home screen is actually focused (the loop keeps running
+  // in the background when navigated away, so gate the haptic on focus).
+  const isFocused = useIsFocused();
+  const focusedSV = useSharedValue(1);
+  useEffect(() => {
+    focusedSV.value = isFocused ? 1 : 0;
+  }, [isFocused, focusedSV]);
 
   useEffect(() => {
     // Synced to BouncingBall: it loops every 2500ms and lands on a stair every
@@ -72,6 +84,24 @@ export default function HomeScreen() {
       ),
     );
   }, []);
+
+  // Medium impact haptic on each knock — i.e. when the ball hits a stair.
+  useAnimatedReaction(
+    () => knock1.value > 0.5,
+    (cur, prev) => {
+      if (cur && !prev && focusedSV.value === 1) {
+        runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
+      }
+    },
+  );
+  useAnimatedReaction(
+    () => knock2.value > 0.5,
+    (cur, prev) => {
+      if (cur && !prev && focusedSV.value === 1) {
+        runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
+      }
+    },
+  );
 
   const knock1Style = useAnimatedStyle(() => ({
     transform: [
