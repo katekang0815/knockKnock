@@ -226,6 +226,8 @@ export default function CheckInScreen() {
   const startedSV = useSharedValue(0);
   // Last dial direction on the UI thread (1 = CW, -1 = CCW).
   const dialDir = useSharedValue(1);
+  // Handle (ball) visibility — only while the user is grabbing.
+  const grab = useSharedValue(0);
   useEffect(() => {
     ringRot.value = withRepeat(withTiming(360, { duration: 12000, easing: Easing.linear }), -1, false);
   }, [ringRot]);
@@ -237,12 +239,16 @@ export default function CheckInScreen() {
     const a = (ringRot.value - 90) * RAD;
     const x = CENTER_X + R * Math.cos(a);
     const y = CENTER_Y + R * Math.sin(a);
-    return { transform: [{ translateX: x - HIT / 2 }, { translateY: y - HIT / 2 }] };
+    return {
+      opacity: grab.value,
+      transform: [{ translateX: x - HIT / 2 }, { translateY: y - HIT / 2 }],
+    };
   });
 
   const pan = Gesture.Pan()
     .onBegin((e) => {
       startedSV.value = 1;
+      grab.value = withTiming(1, { duration: 100 }); // show the handle
       runOnJS(setStarted)(true);
       ringRot.value = touchAngle(e.absoluteX, e.absoluteY) + 90; // bright head → finger
     })
@@ -259,6 +265,9 @@ export default function CheckInScreen() {
       const fa = (((ringRot.value - 90) % 360) + 360) % 360; // finger angle
       const section = Math.floor(fa / 90);
       ringRot.value = withTiming(section * 90 + 45 + 90, { duration: 180 }); // snap to section center
+    })
+    .onFinalize(() => {
+      grab.value = withTiming(0, { duration: 200 }); // hide the handle on release
     });
 
   // Active section derived from the bright head's angle.
@@ -309,17 +318,6 @@ export default function CheckInScreen() {
 
       {/* Sub-emotion pills (revealed once dialing has started) */}
       <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-        {/* Section dividers — faded hairline cross splitting the dial into 4 quadrants */}
-        <Path
-          d={`M ${CENTER_X - R} ${CENTER_Y} L ${CENTER_X + R} ${CENTER_Y}`}
-          stroke="rgba(255,255,255,0.12)"
-          strokeWidth={1}
-        />
-        <Path
-          d={`M ${CENTER_X} ${CENTER_Y - R} L ${CENTER_X} ${CENTER_Y + R}`}
-          stroke="rgba(255,255,255,0.12)"
-          strokeWidth={1}
-        />
         {started && subEmotions.map((word, i) => {
           const n = subEmotions.length;
           const phi = n === 1 ? fanCenter : fanCenter - FAN_HALF + (2 * FAN_HALF * i) / (n - 1);
