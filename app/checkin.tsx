@@ -52,18 +52,23 @@ const I_SUNNY = EMOTIONS.findIndex((e) => e.category === 'Sunny');
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 
-// Sub-emotion pills fan around the top — from just above the left track end,
-// over the top, to just above the right track end (the complement of the arc).
-// Every pill's inner edge sits at CAP_INNER; its length grows outward to fit
-// its text, so short words get short pills (which fit near the screen edges).
-const CAP_START = 158; // lower-left (just above ARC_A = 150)
-const CAP_END = 382;   // lower-right (= 22°, just above ARC_B = 30)
+// Sub-emotion pills fan around the point opposite the handle; each pill's inner
+// edge sits at capInner and its length grows outward to fit its text.
 const CAP_W_OUT = R * 0.28;  // wide tail (outer) diameter
 const CAP_W_IN = R * 0.14;   // narrow head (inner) diameter
 const CAP_FONT = 15;         // sub-emotion text size
 const CAP_CHAR = CAP_FONT * 0.6; // approx per-character width
 const CAP_PAD = 26;          // total end padding added to the text length
 const SIDE_MARGIN = 10;      // min gap from the pills to the left/right screen edges
+const FAN_HALF = 120;        // pills span ±FAN_HALF around the point opposite the handle
+
+// Handle angle (deg) at each section's center — pills fan on the OPPOSITE side.
+const SECTION_HANDLE: Record<number, number> = {
+  [I_BREEZY]: 45,   // bottom-right
+  [I_CALM]: 135,    // bottom-left
+  [I_SUNNY]: 225,   // top-left
+  [I_STORMY]: 315,  // top-right
+};
 
 // Reorder words so the longest sit at the top of the arc (most room) and the
 // shortest fall to the left/right edges (where the screen is narrowest).
@@ -122,7 +127,7 @@ function Pill({ d, shapeRot, tx, ty, textRot, word, cx, cy, pulse }: PillProps) 
   }));
   return (
     <AnimatedG animatedProps={animatedProps} originX={cx} originY={cy}>
-      <Path d={d} fill="rgba(255,255,255,0.14)" transform={shapeRot} />
+      <Path d={d} fill="rgba(199,142,125,0.12)" transform={shapeRot} />
       <SvgText
         x={tx}
         y={ty}
@@ -155,20 +160,28 @@ export default function CheckInScreen() {
   // SIDE_MARGIN from the edge, and the tallest top pill stays below the title).
   const targetHalf = width / 2 - SIDE_MARGIN;
   const topLimit = insets.top + 116; // just below the title
+  const bottomLimit = SCREEN_H - insets.bottom - 20;
   let capInner = R * 1.4;
-  (Object.keys(EMOTION_DATA) as EmotionCategory[]).forEach((cat) => {
-    const words = arrangeByLength(EMOTION_DATA[cat].subEmotions.slice(0, 15));
-    const n = words.length;
-    words.forEach((word, i) => {
-      const phi = (n === 1 ? 270 : CAP_START + ((CAP_END - CAP_START) * i) / (n - 1)) * RAD;
-      const pillL = word.length * CAP_CHAR + CAP_PAD;
-      const c = Math.abs(Math.cos(phi));
-      const s = Math.sin(phi);
-      if (c > 0.02) capInner = Math.min(capInner, targetHalf / c - pillL - CAP_W_OUT / 2);
-      if (s < -0.02) capInner = Math.min(capInner, (CENTER_Y - topLimit) / -s - pillL);
+  // Fit across every fan orientation (opposite each of the four handle positions).
+  [225, 315, 45, 135].forEach((fanC) => {
+    (Object.keys(EMOTION_DATA) as EmotionCategory[]).forEach((cat) => {
+      const words = arrangeByLength(EMOTION_DATA[cat].subEmotions.slice(0, 15));
+      const n = words.length;
+      words.forEach((word, i) => {
+        const phi = (n === 1 ? fanC : fanC - FAN_HALF + (2 * FAN_HALF * i) / (n - 1)) * RAD;
+        const pillL = word.length * CAP_CHAR + CAP_PAD;
+        const c = Math.abs(Math.cos(phi));
+        const s = Math.sin(phi);
+        if (c > 0.02) capInner = Math.min(capInner, targetHalf / c - pillL - CAP_W_OUT / 2);
+        if (s < -0.02) capInner = Math.min(capInner, (CENTER_Y - topLimit) / -s - pillL);
+        if (s > 0.02) capInner = Math.min(capInner, (bottomLimit - CENTER_Y) / s - pillL);
+      });
     });
   });
-  capInner = Math.max(R * 0.55, capInner);
+  capInner = Math.max(R * 0.5, capInner);
+
+  // Pills fan on the side opposite the active section's handle.
+  const fanCenter = (SECTION_HANDLE[active] ?? 45) + 180;
 
   // Pill pulse (0 → 1 → 0). Fires on each section change.
   const pulse = useSharedValue(0);
@@ -262,7 +275,7 @@ export default function CheckInScreen() {
         />
         {started && subEmotions.map((word, i) => {
           const n = subEmotions.length;
-          const phi = n === 1 ? 270 : CAP_START + ((CAP_END - CAP_START) * i) / (n - 1);
+          const phi = n === 1 ? fanCenter : fanCenter - FAN_HALF + (2 * FAN_HALF * i) / (n - 1);
           const rad = phi * RAD;
           // Pill length fits the word; inner edge stays at capInner, grows outward.
           const pillL = word.length * CAP_CHAR + CAP_PAD;
@@ -400,7 +413,7 @@ const styles = StyleSheet.create({
     width: DIAL_SIZE,
     height: DIAL_SIZE,
     borderRadius: DIAL_SIZE / 2,
-    backgroundColor: 'rgba(199,142,125,0.12)', // faded rose — visualizes the grab area
+    backgroundColor: 'rgba(0,0,0,0.01)', // near-invisible but hittable
   },
   dotHit: {
     position: 'absolute',
