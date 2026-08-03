@@ -247,15 +247,6 @@ export default function CheckInScreen() {
 
       <Text style={[styles.title, { top: insets.top + 80 }]}>How are you today?</Text>
 
-      {/* Transparent dial touch area — first touch starts the flow and drives the dot.
-          Rendered below the icon so the icon's tap still works. */}
-      <GestureDetector gesture={pan}>
-        <View
-          collapsable={false}
-          style={[styles.dialArea, { top: CENTER_Y - DIAL_SIZE / 2, left: CENTER_X - DIAL_SIZE / 2 }]}
-        />
-      </GestureDetector>
-
       {/* Sub-emotion pills (revealed once dialing has started) */}
       <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
         {/* Section dividers — faded hairline cross splitting the dial into 4 quadrants */}
@@ -316,6 +307,16 @@ export default function CheckInScreen() {
           );
         })}
       </Svg>
+
+      {/* Dial touch area — grab anywhere in this disk to rotate. Placed ABOVE the
+          full-screen Svg (which would otherwise swallow touches) but BELOW the
+          center icon so the icon's tap still works. */}
+      <GestureDetector gesture={pan}>
+        <View
+          collapsable={false}
+          style={[styles.dialArea, { top: CENTER_Y - DIAL_SIZE / 2, left: CENTER_X - DIAL_SIZE / 2 }]}
+        />
+      </GestureDetector>
 
       {/* Selected emotion icon — nudged down so the halo (which renders high in the
           container) lands on the circle center */}
