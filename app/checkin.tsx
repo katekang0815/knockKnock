@@ -32,121 +32,24 @@ const EMOTIONS: { category: EmotionCategory; render: (s: number) => React.ReactN
   { category: 'Breezy', render: (s) => <RollingOrb size={s} fadeBall={false} /> },
   { category: 'Sunny',  render: (s) => <BouncingOrb size={s} /> },
 ];
-const SECTIONS = EMOTIONS.length;
 const DEFAULT_INDEX = EMOTIONS.findIndex((e) => e.category === 'Breezy');
 
 // Dial geometry — a circle centered on the icon (moved ~100px down).
 const CENTER_X = width / 2;
 const CENTER_Y = SCREEN_H * 0.42 + 110;
-const R = width * 0.36;   // bottom track arc radius
-const DOT = 22;           // draggable dot diameter
-const HIT = 46;           // dot touch target
+const R = width * 0.36;   // circle track radius
+const DOT = 22;           // handle dot diameter
+const HIT = 46;           // handle container
 const RAD = Math.PI / 180;
-const SPIN_S = 2 * (R + 34);   // default-screen full-circle spinner canvas
+const SPIN_S = 2 * (R + 34);   // rotating fade-ring canvas
 const DIAL_SIZE = 2 * (R + 50); // transparent touch area covering the dial
 
-// ── Default-screen quadrant trapezoids: the four major-emotion categories ──
-const PETAL_D_IN = R * 0.52;   // inner edge distance from center
-const PETAL_D_OUT = R * 0.92;  // outer edge distance from center
-const PETAL_W_IN = R * 0.18;   // half-width at the inner (narrow) edge
-const PETAL_W_OUT = R * 0.46;  // half-width at the outer (wide) edge
-const PETAL_ROUND = 16;        // corner rounding
-const QUAD_FONT = 14;          // label text size (stretched horizontally to fit)
+// Section indices within EMOTIONS (order: Stormy, Calm, Breezy, Sunny).
+const I_STORMY = EMOTIONS.findIndex((e) => e.category === 'Stormy');
+const I_CALM = EMOTIONS.findIndex((e) => e.category === 'Calm');
+const I_BREEZY = EMOTIONS.findIndex((e) => e.category === 'Breezy');
+const I_SUNNY = EMOTIONS.findIndex((e) => e.category === 'Sunny');
 
-const QUADRANTS: { dir: number; lines: string[]; align: 'center' | 'left' }[] = [
-  { dir: 0,   lines: ['High Energy', 'Pleasant'],      align: 'center' }, // top
-  { dir: 90,  lines: ['High', 'Energy', 'Unpleasant'], align: 'left' },   // right
-  { dir: 180, lines: ['Low Energy', 'Unpleasant'],     align: 'center' }, // bottom
-  { dir: 270, lines: ['Low', 'Energy', 'Pleasant'],    align: 'left' },   // left
-];
-
-// Rotate a local petal point (up = -y) by `dir` degrees (clockwise) about center.
-function petalPoint(lx: number, ly: number, dir: number): [number, number] {
-  const a = dir * RAD;
-  return [
-    CENTER_X + lx * Math.cos(a) - ly * Math.sin(a),
-    CENTER_Y + lx * Math.sin(a) + ly * Math.cos(a),
-  ];
-}
-
-// Rounded-corner polygon path from a list of screen points.
-function roundedPath(pts: [number, number][], r: number) {
-  const n = pts.length;
-  let d = '';
-  for (let i = 0; i < n; i++) {
-    const [px, py] = pts[(i - 1 + n) % n];
-    const [cx, cy] = pts[i];
-    const [nx, ny] = pts[(i + 1) % n];
-    const l1 = Math.hypot(cx - px, cy - py) || 1;
-    const l2 = Math.hypot(nx - cx, ny - cy) || 1;
-    const r1 = Math.min(r, l1 / 2);
-    const r2 = Math.min(r, l2 / 2);
-    const a1x = cx + ((px - cx) / l1) * r1;
-    const a1y = cy + ((py - cy) / l1) * r1;
-    const a2x = cx + ((nx - cx) / l2) * r2;
-    const a2y = cy + ((ny - cy) / l2) * r2;
-    d += `${i === 0 ? 'M' : 'L'} ${a1x.toFixed(1)} ${a1y.toFixed(1)} `;
-    d += `Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${a2x.toFixed(1)} ${a2y.toFixed(1)} `;
-  }
-  return `${d}Z`;
-}
-
-// Precompute each quadrant's rounded outline + per-line horizontal stretch so the
-// text fills the trapezoid (wider where the trapezoid is wide, narrower where narrow).
-const QUAD_MID_R = (PETAL_D_IN + PETAL_D_OUT) / 2;
-const QUAD_LS = QUAD_FONT * 1.18; // line height
-const QUAD_RENDER = QUADRANTS.map(({ dir, lines, align }) => {
-  const corners: [number, number][] = [
-    petalPoint(-PETAL_W_IN, -PETAL_D_IN, dir),
-    petalPoint(PETAL_W_IN, -PETAL_D_IN, dir),
-    petalPoint(PETAL_W_OUT, -PETAL_D_OUT, dir),
-    petalPoint(-PETAL_W_OUT, -PETAL_D_OUT, dir),
-  ];
-  const path = roundedPath(corners, PETAL_ROUND);
-  const [cx, cy] = petalPoint(0, -QUAD_MID_R, dir);
-
-  let labels: { text: string; x: number; y: number; sx: number; anchor: 'middle' | 'start' }[];
-  if (align === 'left') {
-    // Left/right petals: one word per line, left-aligned (ragged right). One
-    // shared stretch fits the longest word to the petal's radial width.
-    const maxNat = Math.max(...lines.map((t) => t.length)) * QUAD_FONT * 0.6;
-    const avail = (PETAL_D_OUT - PETAL_D_IN) * 0.94;
-    const sx = Math.min(1.05, Math.max(0.55, avail / maxNat));
-    const xLeft = cx - (maxNat * sx) / 2;
-    labels = lines.map((text, li) => ({
-      text,
-      x: xLeft,
-      y: cy + (li - (lines.length - 1) / 2) * QUAD_LS,
-      sx,
-      anchor: 'start',
-    }));
-  } else {
-    // Top/bottom petals: centered lines, each stretched to the trapezoid width
-    // at its radius (wider toward the wide edge).
-    labels = lines.map((text, li) => {
-      const off = (li - (lines.length - 1) / 2) * QUAD_LS;
-      const radius = QUAD_MID_R + (dir === 0 ? -off : off);
-      const frac = Math.min(1, Math.max(0, (radius - PETAL_D_IN) / (PETAL_D_OUT - PETAL_D_IN)));
-      const avail = 2 * (PETAL_W_IN + (PETAL_W_OUT - PETAL_W_IN) * frac) * 0.9;
-      const natural = text.length * QUAD_FONT * 0.6;
-      const sx = Math.min(2.2, Math.max(0.5, avail / natural));
-      return { text, x: cx, y: cy + off, sx, anchor: 'middle' };
-    });
-  }
-  return { path, labels };
-});
-
-// Bottom track arc — 108° (120° reduced by 1/10), centered at the bottom.
-const ARC_A = 144; // left end (deg, screen coords: 0 = right, 90 = down)
-const ARC_B = 36;  // right end (deg)
-const ARC_SPAN = ARC_A - ARC_B; // 108°
-const TRACK_A_X = CENTER_X + R * Math.cos(ARC_A * RAD);
-const TRACK_A_Y = CENTER_Y + R * Math.sin(ARC_A * RAD);
-const TRACK_B_X = CENTER_X + R * Math.cos(ARC_B * RAD);
-const TRACK_B_Y = CENTER_Y + R * Math.sin(ARC_B * RAD);
-const TRACK_ARC = `M ${TRACK_A_X.toFixed(1)} ${TRACK_A_Y.toFixed(1)} A ${R} ${R} 0 0 0 ${TRACK_B_X.toFixed(1)} ${TRACK_B_Y.toFixed(1)}`;
-const ARC_LEN = R * ARC_SPAN * RAD; // arc length (for the fill reveal)
-const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedG = Animated.createAnimatedComponent(G);
 
 // Sub-emotion pills fan around the top — from just above the left track end,
@@ -180,21 +83,23 @@ function arrangeByLength(words: string[]) {
   return out;
 }
 
-function clampWorklet(v: number, min: number, max: number) {
+// Touch → angle on the full-circle track (degrees, 0 = right, 90 = down), 0..360.
+function touchAngle(absX: number, absY: number) {
   'worklet';
-  return Math.min(Math.max(v, min), max);
+  let a = (Math.atan2(absY - CENTER_Y, absX - CENTER_X) * 180) / Math.PI;
+  if (a < 0) a += 360;
+  return a;
 }
 
-// Map a touch to a position on the bottom track arc (0 = left end, 1 = right end).
-// Above the center is the top gap → clamp to the nearest end so the dot
-// stops at the arc's ends instead of wrapping back to the start.
-function angleToT(absX: number, absY: number) {
+// Which emotion section a circle angle falls in:
+//   bottom-right (0–90) → Breezy, bottom-left (90–180) → Calm (rain),
+//   top-left (180–270) → Sunny, top-right (270–360) → Stormy.
+function angleToIndex(a: number) {
   'worklet';
-  const dx = absX - CENTER_X;
-  const dy = absY - CENTER_Y;
-  if (dy < 0) return dx >= 0 ? 1 : 0;
-  const a = (Math.atan2(dy, dx) * 180) / Math.PI; // 0..180 on the lower half
-  return clampWorklet((ARC_A - a) / ARC_SPAN, 0, 1);
+  if (a < 90) return I_BREEZY;
+  if (a < 180) return I_CALM;
+  if (a < 270) return I_SUNNY;
+  return I_STORMY;
 }
 
 // One sub-emotion pill. It scales up and back (a pulse) when `pulse` runs
@@ -234,42 +139,6 @@ function Pill({ d, shapeRot, tx, ty, textRot, word, cx, cy, pulse }: PillProps) 
   );
 }
 
-// One default-screen quadrant. Its text fades in as the orbiting ball enters the
-// zone (spin near pCenter) and fades out as it leaves. `spin` sawtooths 0 → 1.
-type QuadrantSectionProps = {
-  q: (typeof QUAD_RENDER)[number];
-  spin: { value: number };
-  pCenter: number;
-};
-
-function QuadrantSection({ q, spin, pCenter }: QuadrantSectionProps) {
-  const animatedProps = useAnimatedProps(() => {
-    let d = Math.abs(spin.value - pCenter);
-    d = Math.min(d, 1 - d); // circular distance around the ring
-    return { opacity: clampWorklet((0.16 - d) / 0.1, 0, 1) };
-  });
-  return (
-    <AnimatedG animatedProps={animatedProps}>
-      <Path d={q.path} fill="#000000" />
-      {q.labels.map((l, li) => (
-        <SvgText
-          key={li}
-          x={l.x}
-          y={l.y}
-          dy={QUAD_FONT * 0.35}
-          fill="#FFFFFF"
-          fontSize={QUAD_FONT}
-          fontFamily="Jost_700Bold"
-          textAnchor={l.anchor}
-          transform={`translate(${(l.x * (1 - l.sx)).toFixed(2)} 0) scale(${l.sx.toFixed(3)} 1)`}
-        >
-          {l.text}
-        </SvgText>
-      ))}
-    </AnimatedG>
-  );
-}
-
 export default function CheckInScreen() {
   const insets = useSafeAreaInsets();
   const [active, setActive] = useState(DEFAULT_INDEX);
@@ -301,41 +170,54 @@ export default function CheckInScreen() {
   });
   capInner = Math.max(R * 0.55, capInner);
 
-  // Position along the top arc, 0 (left) → 1 (right). Default = Breeze's section center.
-  const t = useSharedValue((DEFAULT_INDEX + 0.5) / SECTIONS);
-  // Pill pulse (0 → 1 → 0). Fires on each emotion change.
+  // Pill pulse (0 → 1 → 0). Fires on each section change.
   const pulse = useSharedValue(0);
-  // Default-screen ring: continuous rotation (ball + fading track spin together).
-  const spin = useSharedValue(0);
+  // Ring rotation (degrees). The gradient's bright head sits at local top, so it
+  // renders at screen angle (ringRot - 90). Idle: auto-rotates. Dialing: follows
+  // the finger so the bright part becomes the handle.
+  const ringRot = useSharedValue(0);
+  // 1 while the user is dialing (gates section changes so idle spin stays quiet).
+  const startedSV = useSharedValue(0);
   useEffect(() => {
-    spin.value = withRepeat(withTiming(1, { duration: 12000, easing: Easing.linear }), -1, false);
-  }, [spin]);
-  const spinStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${spin.value * 360}deg` }],
+    ringRot.value = withRepeat(withTiming(360, { duration: 12000, easing: Easing.linear }), -1, false);
+  }, [ringRot]);
+  const ringStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${ringRot.value}deg` }],
   }));
+  // Visible handle riding the bright head (screen angle = ringRot - 90).
+  const ballStyle = useAnimatedStyle(() => {
+    const a = (ringRot.value - 90) * RAD;
+    const x = CENTER_X + R * Math.cos(a);
+    const y = CENTER_Y + R * Math.sin(a);
+    return { transform: [{ translateX: x - HIT / 2 }, { translateY: y - HIT / 2 }] };
+  });
 
   const pan = Gesture.Pan()
     .onBegin((e) => {
+      startedSV.value = 1;
       runOnJS(setStarted)(true);
-      t.value = angleToT(e.absoluteX, e.absoluteY);
+      ringRot.value = touchAngle(e.absoluteX, e.absoluteY) + 90; // bright head → finger
     })
     .onUpdate((e) => {
-      t.value = angleToT(e.absoluteX, e.absoluteY);
+      ringRot.value = touchAngle(e.absoluteX, e.absoluteY) + 90;
     })
     .onEnd(() => {
-      const idx = clampWorklet(Math.floor(t.value * SECTIONS), 0, SECTIONS - 1);
-      t.value = withTiming((idx + 0.5) / SECTIONS, { duration: 160 });
+      const fa = (((ringRot.value - 90) % 360) + 360) % 360; // finger angle
+      const section = Math.floor(fa / 90);
+      ringRot.value = withTiming(section * 90 + 45 + 90, { duration: 180 }); // snap to section center
     });
 
-  const index = useDerivedValue(() =>
-    clampWorklet(Math.floor(t.value * SECTIONS), 0, SECTIONS - 1),
-  );
+  // Active section derived from the bright head's angle.
+  const index = useDerivedValue(() => {
+    const fa = (((ringRot.value - 90) % 360) + 360) % 360;
+    return angleToIndex(fa);
+  });
   useAnimatedReaction(
     () => index.value,
     (cur, prev) => {
-      if (cur !== prev) {
+      if (cur !== prev && startedSV.value === 1) {
         runOnJS(setActive)(cur);
-        // Pop the pills on navigation.
+        // Pop the pills on section change.
         pulse.value = withSequence(
           withTiming(1, { duration: 150, easing: Easing.out(Easing.quad) }),
           withTiming(0, { duration: 320, easing: Easing.in(Easing.quad) }),
@@ -343,19 +225,6 @@ export default function CheckInScreen() {
       }
     },
   );
-
-  // Solid arc fills from the left up to the dot; the rest stays faded.
-  const arcProps = useAnimatedProps(() => ({
-    strokeDashoffset: ARC_LEN * (1 - t.value),
-  }));
-
-  // Dot rides the bottom track arc.
-  const dotStyle = useAnimatedStyle(() => {
-    const phi = (ARC_A - ARC_SPAN * t.value) * RAD;
-    const x = CENTER_X + R * Math.cos(phi);
-    const y = CENTER_Y + R * Math.sin(phi);
-    return { transform: [{ translateX: x - HIT / 2 }, { translateY: y - HIT / 2 }] };
-  });
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -382,35 +251,24 @@ export default function CheckInScreen() {
           Rendered below the icon so the icon's tap still works. */}
       <GestureDetector gesture={pan}>
         <View
+          collapsable={false}
           style={[styles.dialArea, { top: CENTER_Y - DIAL_SIZE / 2, left: CENTER_X - DIAL_SIZE / 2 }]}
         />
       </GestureDetector>
 
-      {/* Dial: bottom track arc + top radial sub-emotion labels */}
+      {/* Sub-emotion pills (revealed once dialing has started) */}
       <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-        {/* solid track (inactive) — breeze halo color at its brightest */}
-        {started && (
-          <Path
-            d={TRACK_ARC}
-            stroke="#C78E7D"
-            strokeOpacity={0.35}
-            strokeWidth={2}
-            strokeLinecap="round"
-            fill="none"
-          />
-        )}
-        {/* solid coral fill from the left up to the dot */}
-        {started && (
-          <AnimatedPath
-            d={TRACK_ARC}
-            stroke="#DB533C"
-            strokeWidth={3}
-            strokeLinecap="round"
-            fill="none"
-            strokeDasharray={ARC_LEN}
-            animatedProps={arcProps}
-          />
-        )}
+        {/* Section dividers — faded hairline cross splitting the dial into 4 quadrants */}
+        <Path
+          d={`M ${CENTER_X - R} ${CENTER_Y} L ${CENTER_X + R} ${CENTER_Y}`}
+          stroke="rgba(255,255,255,0.12)"
+          strokeWidth={1}
+        />
+        <Path
+          d={`M ${CENTER_X} ${CENTER_Y - R} L ${CENTER_X} ${CENTER_Y + R}`}
+          stroke="rgba(255,255,255,0.12)"
+          strokeWidth={1}
+        />
         {started && subEmotions.map((word, i) => {
           const n = subEmotions.length;
           const phi = n === 1 ? 270 : CAP_START + ((CAP_END - CAP_START) * i) / (n - 1);
@@ -474,58 +332,40 @@ export default function CheckInScreen() {
         )}
       </TouchableOpacity>
 
-      {/* Default screen: four quadrant trapezoids (major-emotion categories),
-          each label stretched horizontally to fit its trapezoid. */}
-      {!started && (
-        <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-          {QUAD_RENDER.map((q, qi) => (
-            <QuadrantSection key={qi} q={q} spin={spin} pCenter={qi * 0.25} />
-          ))}
+      {/* Full-circle track: a half-fading ring whose bright head is the handle.
+          Idle → auto-rotates; touching → the bright head follows the finger. */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.spinner,
+          { top: CENTER_Y - SPIN_S / 2, left: CENTER_X - SPIN_S / 2 },
+          ringStyle,
+        ]}
+      >
+        <Svg width={SPIN_S} height={SPIN_S}>
+          <Defs>
+            <LinearGradient id="fadeRing" x1="0.5" y1="0" x2="0.5" y2="1">
+              <Stop offset="0" stopColor="#DB533C" stopOpacity={1} />
+              <Stop offset="0.5" stopColor="#C78E7D" stopOpacity={0.3} />
+              <Stop offset="1" stopColor="#C78E7D" stopOpacity={0.03} />
+            </LinearGradient>
+          </Defs>
+          <Circle
+            cx={SPIN_S / 2}
+            cy={SPIN_S / 2}
+            r={R}
+            stroke="url(#fadeRing)"
+            strokeWidth={3}
+            fill="none"
+          />
         </Svg>
-      )}
+      </Animated.View>
 
-      {/* Default screen: full-circle track with a half-fading stroke and a ball
-          that rotates around it (ring + ball spin together). */}
-      {!started && (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.spinner,
-            { top: CENTER_Y - SPIN_S / 2, left: CENTER_X - SPIN_S / 2 },
-            spinStyle,
-          ]}
-        >
-          <Svg width={SPIN_S} height={SPIN_S}>
-            <Defs>
-              {/* Half-fading track: bright at the ball (top), fading around. */}
-              <LinearGradient id="fadeRing" x1="0.5" y1="0" x2="0.5" y2="1">
-                <Stop offset="0" stopColor="#C78E7D" stopOpacity={0.9} />
-                <Stop offset="0.5" stopColor="#C78E7D" stopOpacity={0.28} />
-                <Stop offset="1" stopColor="#C78E7D" stopOpacity={0.03} />
-              </LinearGradient>
-            </Defs>
-            <Circle
-              cx={SPIN_S / 2}
-              cy={SPIN_S / 2}
-              r={R}
-              stroke="url(#fadeRing)"
-              strokeWidth={3}
-              fill="none"
-            />
-            {/* Rotating ball at the bright head */}
-            <Circle cx={SPIN_S / 2} cy={SPIN_S / 2 - R} r={16} fill="#C78E7D" opacity={0.3} />
-            <Circle cx={SPIN_S / 2} cy={SPIN_S / 2 - R} r={DOT / 2} fill="#DB533C" />
-          </Svg>
-        </Animated.View>
-      )}
-
-      {/* Draggable dot on the arc — only once started */}
-      {started && (
-        <Animated.View pointerEvents="none" style={[styles.dotHit, dotStyle]}>
-          <View style={styles.dotHalo} />
-          <View style={styles.dot} />
-        </Animated.View>
-      )}
+      {/* Visible handle on the track */}
+      <Animated.View pointerEvents="none" style={[styles.dotHit, ballStyle]}>
+        <View style={styles.dotHalo} />
+        <View style={styles.dot} />
+      </Animated.View>
     </GestureHandlerRootView>
   );
 }
@@ -558,6 +398,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: DIAL_SIZE,
     height: DIAL_SIZE,
+    borderRadius: DIAL_SIZE / 2,
+    backgroundColor: 'rgba(199,142,125,0.12)', // faded rose — visualizes the grab area
   },
   dotHit: {
     position: 'absolute',
