@@ -63,6 +63,7 @@ const CAP_PAD = 26;          // total end padding added to the text length
 const PILL_ROUND = 12;       // pill corner rounding (rounded trapezoid)
 const SIDE_MARGIN = 10;      // min gap from the pills to the left/right screen edges
 const FAN_HALF = 120;        // pills span ±FAN_HALF around the point opposite the handle
+const DIAL_HALF = 180 - FAN_HALF - 3; // dialing allowed only within the open arc (gap), not under the pills
 const REVEAL_FADE = 0.3;     // per-pill fade window during the clockwise reveal
 
 // Handle angle (deg) at each section's center — pills fan on the OPPOSITE side.
@@ -146,13 +147,19 @@ type PillProps = {
   pulse: { value: number };
   reveal: { value: number };
   threshold: number;
+  index: number;
+  selectedIdx: { value: number };
+  selectSV: { value: number };
 };
 
-function Pill({ d, shapeRot, tx, ty, textRot, word, cx, cy, pulse, reveal, threshold }: PillProps) {
-  const animatedProps = useAnimatedProps(() => ({
-    scale: 1 + pulse.value * 0.12,
-    opacity: Math.min(Math.max((reveal.value - threshold) / REVEAL_FADE, 0), 1),
-  }));
+function Pill({ d, shapeRot, tx, ty, textRot, word, cx, cy, pulse, reveal, threshold, index, selectedIdx, selectSV }: PillProps) {
+  const animatedProps = useAnimatedProps(() => {
+    const sel = selectedIdx.value === index ? selectSV.value : 0;
+    return {
+      scale: 1 + pulse.value * 0.12 + sel * 0.35, // grow when selected
+      opacity: Math.min(Math.max((reveal.value - threshold) / REVEAL_FADE, 0), 1),
+    };
+  });
   return (
     <AnimatedG animatedProps={animatedProps} originX={cx} originY={cy}>
       <Path d={d} fill="rgba(199,142,125,0.2)" transform={shapeRot} />
@@ -214,8 +221,54 @@ export default function CheckInScreen() {
   // Pills fan on the side opposite the active section's handle.
   const fanCenter = (SECTION_HANDLE[active] ?? 45) + 180;
 
-  // On a tap, find the sub-emotion pill under the finger and open its detail log.
-  const selectPillAt = (absX: number, absY: number) => {
+  // Pill pulse (0 → 1 → 0). Fires on each section change.
+  const pulse = useSharedValue(0);
+  // Pill reveal progress (0 → 1). Replays on each section change.
+  const reveal = useSharedValue(1);
+  // Selection pop: which pill (index) is selected, and its grow-and-back progress.
+  const selectedIdx = useSharedValue(-1);
+  const selectSV = useSharedValue(0);
+  // Idle fading-ring rotation — VISUAL ONLY, default state.
+  const spin = useSharedValue(0);
+  // Handle / dial angle (ring rotation). Changed ONLY by dragging — never by the
+  // idle spin — so the active section is driven purely by the user's dial.
+  const dialAngle = useSharedValue(135); // handle at Breeze (45°) by default
+  // 1 once the user has started dialing (drag). Gates reveal + section changes.
+  const startedSV = useSharedValue(0);
+  // Last dial direction (1 = CW, -1 = CCW).
+  const dialDir = useSharedValue(1);
+  // Handle (ball) visibility — only while actively dialing.
+  const grab = useSharedValue(0);
+  // 1 while an in-progress pan is actually dialing.
+  const panActive = useSharedValue(0);
+  // Whether the drag started somewhere dialing is allowed (arc / default state).
+  const canDial = useSharedValue(0);
+
+  useEffect(() => {
+    spin.value = withRepeat(withTiming(1, { duration: 12000, easing: Easing.linear }), -1, false);
+  }, [spin]);
+
+  // Ring: idle spin in the default state; follows the dial once started.
+  const ringStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${startedSV.value === 1 ? dialAngle.value : spin.value * 360}deg` }],
+  }));
+  // Visible handle riding the dial (screen angle = dialAngle - 90).
+  const ballStyle = useAnimatedStyle(() => {
+    const a = (dialAngle.value - 90) * RAD;
+    const x = CENTER_X + R * Math.cos(a);
+    const y = CENTER_Y + R * Math.sin(a);
+    return {
+      opacity: grab.value,
+      transform: [{ translateX: x - HIT / 2 }, { translateY: y - HIT / 2 }],
+    };
+  });
+
+  const navToLog = (emotion: string) => {
+    router.push({ pathname: '/emotionlog', params: { emotion, category } });
+  };
+
+  // Tap a sub-emotion pill → pop it (grow & back over ~1s), then open its log.
+  const handlePillTap = (absX: number, absY: number) => {
     if (!started) return;
     const dx = absX - CENTER_X;
     const dy = absY - CENTER_Y;
@@ -231,80 +284,74 @@ export default function CheckInScreen() {
       if (diff > 180) diff = 360 - diff;
       const pillL = subEmotions[i].length * CAP_CHAR + CAP_PAD;
       if (diff <= spacing / 2 && radius >= capInner - 12 && radius <= capInner + pillL + 12) {
-        router.push({ pathname: '/emotionlog', params: { emotion: subEmotions[i], category } });
+        const emotion = subEmotions[i];
+        selectedIdx.value = i;
+        selectSV.value = withSequence(
+          withTiming(1, { duration: 500, easing: Easing.out(Easing.quad) }), // scale up
+          withTiming(0, { duration: 500, easing: Easing.in(Easing.quad) }, (finished) => {
+            if (finished) runOnJS(navToLog)(emotion); // back to original → navigate
+          }),
+        );
         return;
       }
     }
   };
 
-  // Pill pulse (0 → 1 → 0). Fires on each section change.
-  const pulse = useSharedValue(0);
-  // Pill reveal progress (0 → 1). Replays clockwise on each section change.
-  const reveal = useSharedValue(1);
-  // Ring rotation (degrees). The gradient's bright head sits at local top, so it
-  // renders at screen angle (ringRot - 90). Idle: auto-rotates. Dialing: follows
-  // the finger so the bright part becomes the handle.
-  const ringRot = useSharedValue(0);
-  // 1 while the user is dialing (gates section changes so idle spin stays quiet).
-  const startedSV = useSharedValue(0);
-  // Last dial direction on the UI thread (1 = CW, -1 = CCW).
-  const dialDir = useSharedValue(1);
-  // Handle (ball) visibility — only while the user is grabbing.
-  const grab = useSharedValue(0);
-  useEffect(() => {
-    ringRot.value = withRepeat(withTiming(360, { duration: 12000, easing: Easing.linear }), -1, false);
-  }, [ringRot]);
-  const ringStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${ringRot.value}deg` }],
-  }));
-  // Visible handle riding the bright head (screen angle = ringRot - 90).
-  const ballStyle = useAnimatedStyle(() => {
-    const a = (ringRot.value - 90) * RAD;
-    const x = CENTER_X + R * Math.cos(a);
-    const y = CENTER_Y + R * Math.sin(a);
-    return {
-      opacity: grab.value,
-      transform: [{ translateX: x - HIT / 2 }, { translateY: y - HIT / 2 }],
-    };
-  });
-
-  const pan = Gesture.Pan()
+  // DIAL — only a deliberate circular DRAG rotates the wheel and reveals the list.
+  const dialPan = Gesture.Pan()
+    .minDistance(14)
     .onBegin((e) => {
-      startedSV.value = 1;
-      grab.value = withTiming(1, { duration: 100 }); // show the handle
-      runOnJS(setStarted)(true);
-      ringRot.value = touchAngle(e.absoluteX, e.absoluteY) + 90; // bright head → finger
+      panActive.value = 0;
+      let arc = startedSV.value === 0; // default (from home): grab anywhere
+      if (!arc) {
+        const handleA = (((dialAngle.value - 90) % 360) + 360) % 360;
+        const touchA = touchAngle(e.absoluteX, e.absoluteY);
+        let d = Math.abs(touchA - handleA) % 360;
+        if (d > 180) d = 360 - d;
+        arc = d <= DIAL_HALF;
+      }
+      canDial.value = arc ? 1 : 0;
     })
     .onUpdate((e) => {
+      if (canDial.value === 0) return; // drag began outside the arc → ignore
+      if (panActive.value === 0) {
+        panActive.value = 1;
+        startedSV.value = 1;
+        grab.value = withTiming(1, { duration: 100 });
+        runOnJS(setStarted)(true);
+      }
       const a = touchAngle(e.absoluteX, e.absoluteY) + 90;
-      let delta = a - ringRot.value;
+      let delta = a - dialAngle.value;
       if (delta > 180) delta -= 360;
       if (delta < -180) delta += 360;
       if (delta > 0.001) dialDir.value = 1;
       else if (delta < -0.001) dialDir.value = -1;
-      ringRot.value = a;
+      dialAngle.value = a;
     })
     .onEnd(() => {
-      const fa = (((ringRot.value - 90) % 360) + 360) % 360; // finger angle
-      const section = Math.floor(fa / 90);
-      ringRot.value = withTiming(section * 90 + 45 + 90, { duration: 180 }); // snap to section center
+      if (panActive.value === 1) {
+        const fa = (((dialAngle.value - 90) % 360) + 360) % 360; // finger angle
+        const section = Math.floor(fa / 90);
+        dialAngle.value = withTiming(section * 90 + 45 + 90, { duration: 180 }); // snap to section center
+      }
     })
     .onFinalize(() => {
-      grab.value = withTiming(0, { duration: 200 }); // hide the handle on release
+      if (panActive.value === 1) grab.value = withTiming(0, { duration: 200 }); // hide handle
+      panActive.value = 0;
     });
 
-  // Tap a sub-emotion pill → open its detail log. Racing with the pan so a drag
-  // still dials and a tap selects.
-  const tap = Gesture.Tap()
-    .maxDistance(24)
+  // TAP a pill → select + navigate. Exclusive with the pan (which needs a real
+  // drag), so a tap never dials and a drag never selects.
+  const tapNav = Gesture.Tap()
+    .maxDistance(20)
     .onEnd((e) => {
-      runOnJS(selectPillAt)(e.absoluteX, e.absoluteY);
+      runOnJS(handlePillTap)(e.absoluteX, e.absoluteY);
     });
-  const dialGesture = Gesture.Race(pan, tap);
+  const dialGesture = Gesture.Exclusive(dialPan, tapNav);
 
-  // Active section derived from the bright head's angle.
+  // Active section derived from the DIAL angle only (never the idle spin).
   const index = useDerivedValue(() => {
-    const fa = (((ringRot.value - 90) % 360) + 360) % 360;
+    const fa = (((dialAngle.value - 90) % 360) + 360) % 360;
     return angleToIndex(fa);
   });
   useAnimatedReaction(
@@ -322,7 +369,7 @@ export default function CheckInScreen() {
         );
         // Replay the clockwise reveal for the new section's pills.
         reveal.value = 0;
-        reveal.value = withTiming(1, { duration: 600 });
+        reveal.value = withTiming(1, { duration: 1200 });
       }
     },
   );
@@ -402,6 +449,9 @@ export default function CheckInScreen() {
               pulse={pulse}
               reveal={reveal}
               threshold={threshold}
+              index={i}
+              selectedIdx={selectedIdx}
+              selectSV={selectSV}
             />
           );
         })}
