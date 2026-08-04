@@ -13,6 +13,7 @@ import Animated, {
   withTiming,
   withSequence,
   withRepeat,
+  interpolateColor,
   Easing,
   runOnJS,
 } from 'react-native-reanimated';
@@ -52,6 +53,7 @@ const I_BREEZY = EMOTIONS.findIndex((e) => e.category === 'Breezy');
 const I_SUNNY = EMOTIONS.findIndex((e) => e.category === 'Sunny');
 
 const AnimatedG = Animated.createAnimatedComponent(G);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 // Sub-emotion pills fan around the point opposite the handle; each pill's inner
 // edge sits at capInner and its length grows outward to fit its text.
@@ -153,16 +155,23 @@ type PillProps = {
 };
 
 function Pill({ d, shapeRot, tx, ty, textRot, word, cx, cy, pulse, reveal, threshold, index, selectedIdx, selectSV }: PillProps) {
-  const animatedProps = useAnimatedProps(() => {
+  const groupProps = useAnimatedProps(() => {
     const sel = selectedIdx.value === index ? selectSV.value : 0;
     return {
       scale: 1 + pulse.value * 0.12 + sel * 0.35, // grow when selected
       opacity: Math.min(Math.max((reveal.value - threshold) / REVEAL_FADE, 0), 1),
     };
   });
+  // Fill brightens to a vivid rose while selected — reliable visual feedback.
+  const fillProps = useAnimatedProps(() => {
+    const sel = selectedIdx.value === index ? selectSV.value : 0;
+    return {
+      fill: interpolateColor(sel, [0, 1], ['rgba(199,142,125,0.3)', 'rgba(224,150,132,0.9)']),
+    };
+  });
   return (
-    <AnimatedG animatedProps={animatedProps} originX={cx} originY={cy}>
-      <Path d={d} fill="rgba(199,142,125,0.2)" transform={shapeRot} />
+    <AnimatedG animatedProps={groupProps} originX={cx} originY={cy}>
+      <AnimatedPath d={d} transform={shapeRot} animatedProps={fillProps} />
       <SvgText
         x={tx}
         y={ty}
@@ -287,8 +296,8 @@ export default function CheckInScreen() {
         const emotion = subEmotions[i];
         selectedIdx.value = i;
         selectSV.value = withSequence(
-          withTiming(1, { duration: 500, easing: Easing.out(Easing.quad) }), // scale up
-          withTiming(0, { duration: 500, easing: Easing.in(Easing.quad) }, (finished) => {
+          withTiming(1, { duration: 180, easing: Easing.out(Easing.quad) }), // quick grow
+          withTiming(0, { duration: 160, easing: Easing.in(Easing.quad) }, (finished) => {
             if (finished) runOnJS(navToLog)(emotion); // back to original → navigate
           }),
         );

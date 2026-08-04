@@ -53,6 +53,16 @@ const WHERE_OPTIONS = [
   'Home', 'Work', 'Outside', 'Commuting', 'School',
 ];
 
+// Clean the AI text: no em/en dashes or spaced hyphens, no asterisks, no emoji.
+const sanitizeAI = (s: string) =>
+  s
+    .replace(/\s*[—–]\s*/g, ', ')
+    .replace(/ - /g, ', ')
+    .replace(/\*/g, '')
+    .replace(/[\p{Extended_Pictographic}️‍]/gu, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+
 interface TagSectionProps {
   title: string;
   options: string[];
@@ -62,9 +72,12 @@ interface TagSectionProps {
   accentColor: string;
 }
 
+const VISIBLE_TAGS = 6; // chips shown before the "More" toggle
+
 function TagSection({ title, options, selected, onSelect, onAdd, accentColor }: TagSectionProps) {
   const [expanded, setExpanded] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const [newTag, setNewTag] = useState('');
 
   const handleAdd = () => {
@@ -114,7 +127,7 @@ function TagSection({ title, options, selected, onSelect, onAdd, accentColor }: 
               <Text style={styles.addButtonText}>+</Text>
             </TouchableOpacity>
 
-            {options.map((option) => {
+            {(showAll ? options : options.slice(0, VISIBLE_TAGS)).map((option) => {
               const isSelected = selected[0] === option;
               return (
                 <TouchableOpacity
@@ -135,6 +148,17 @@ function TagSection({ title, options, selected, onSelect, onAdd, accentColor }: 
                 </TouchableOpacity>
               );
             })}
+
+            {/* More / Less dropdown toggle */}
+            {options.length > VISIBLE_TAGS && (
+              <TouchableOpacity
+                style={styles.moreToggle}
+                onPress={() => setShowAll(!showAll)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.moreText}>{showAll ? 'Less ▲' : 'More ▼'}</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {adding && (
@@ -185,7 +209,6 @@ export default function EmotionLogScreen() {
   const [selectedWhere, setSelectedWhere] = useState<string[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([]);
-  const [editingField, setEditingField] = useState<'doing' | 'with' | 'where' | null>(null);
   const [aiOpenerSent, setAiOpenerSent] = useState(false);
 
   const allAnswered = selectedDoing.length > 0 && selectedWith.length > 0 && selectedWhere.length > 0;
@@ -194,6 +217,9 @@ export default function EmotionLogScreen() {
   const contextSummary = allAnswered
     ? `${selectedDoing[0]}, ${selectedWith[0]}, ${selectedWhere[0]}`
     : '';
+
+  // The current exchange starts at the last user message; earlier messages fade.
+  const lastUserIdx = chatMessages.reduce((acc, m, i) => (m.role === 'user' ? i : acc), 0);
 
   // Auto-generate AI opening message when all tags are answered
   useEffect(() => {
@@ -207,7 +233,7 @@ export default function EmotionLogScreen() {
         withWhom: selectedWith[0],
         where: selectedWhere[0],
       }).then((response) => {
-        setChatMessages([{ role: 'ai', text: response }]);
+        setChatMessages([{ role: 'ai', text: sanitizeAI(response) }]);
       });
     }
   }, [allAnswered]);
@@ -228,7 +254,7 @@ export default function EmotionLogScreen() {
       where: selectedWhere[0],
     });
 
-    setChatMessages((prev) => [...prev, { role: 'ai', text: response }]);
+    setChatMessages((prev) => [...prev, { role: 'ai', text: sanitizeAI(response) }]);
   };
 
   const scrollHandler = useAnimatedScrollHandler({
@@ -400,79 +426,6 @@ export default function EmotionLogScreen() {
         {/* Summary with tappable words + Chat */}
         {allAnswered && (
           <>
-            {/* Summary — tap each underlined word to edit */}
-            <View style={styles.summaryContainer}>
-              <Text style={styles.summaryLine}>
-                {'I am '}
-                <Text
-                  style={[styles.summaryHighlight, { color: accentColor }]}
-                  onPress={() => setEditingField(editingField === 'doing' ? null : 'doing')}
-                >
-                  {selectedDoing[0]?.toLowerCase()}
-                </Text>
-                {'\n'}
-                {'with '}
-                <Text
-                  style={[styles.summaryHighlight, { color: accentColor }]}
-                  onPress={() => setEditingField(editingField === 'with' ? null : 'with')}
-                >
-                  {selectedWith[0] === 'By Myself' ? 'myself' : selectedWith[0]?.toLowerCase()}
-                </Text>
-                {'\n'}
-                {'at '}
-                <Text
-                  style={[styles.summaryHighlight, { color: accentColor }]}
-                  onPress={() => setEditingField(editingField === 'where' ? null : 'where')}
-                >
-                  {selectedWhere[0]?.toLowerCase()}
-                </Text>
-              </Text>
-            </View>
-
-            {/* Inline dropdown for editing a field */}
-            {editingField === 'doing' && (
-              <TagSection
-                title="What are you doing?"
-                options={doingOptions}
-                selected={selectedDoing}
-                onSelect={(item) => { setSelectedDoing([item]); setEditingField(null); }}
-                onAdd={(item) => {
-                  setDoingOptions((prev) => [...prev, item]);
-                  setSelectedDoing([item]);
-                  setEditingField(null);
-                }}
-                accentColor={accentColor}
-              />
-            )}
-            {editingField === 'with' && (
-              <TagSection
-                title="Who are you with?"
-                options={withOptions}
-                selected={selectedWith}
-                onSelect={(item) => { setSelectedWith([item]); setEditingField(null); }}
-                onAdd={(item) => {
-                  setWithOptions((prev) => [...prev, item]);
-                  setSelectedWith([item]);
-                  setEditingField(null);
-                }}
-                accentColor={accentColor}
-              />
-            )}
-            {editingField === 'where' && (
-              <TagSection
-                title="Where are you?"
-                options={whereOptions}
-                selected={selectedWhere}
-                onSelect={(item) => { setSelectedWhere([item]); setEditingField(null); }}
-                onAdd={(item) => {
-                  setWhereOptions((prev) => [...prev, item]);
-                  setSelectedWhere([item]);
-                  setEditingField(null);
-                }}
-                accentColor={accentColor}
-              />
-            )}
-
             {/* Context summary */}
             <Text style={styles.contextLine}>{contextSummary}</Text>
 
@@ -481,7 +434,10 @@ export default function EmotionLogScreen() {
               {chatMessages.map((msg, i) => (
                 <Text
                   key={i}
-                  style={msg.role === 'ai' ? styles.aiMessageText : styles.userMessageText}
+                  style={[
+                    msg.role === 'ai' ? styles.aiMessageText : styles.userMessageText,
+                    i < lastUserIdx && msg.role === 'ai' && styles.fadedMessage, // only past AI fades
+                  ]}
                 >
                   {msg.text}
                 </Text>
@@ -671,8 +627,18 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: '#FFFFFF',
     fontSize: 20,
-    fontWeight: '300',
+    fontFamily: 'Jost_400Regular',
     marginTop: -1,
+  },
+  moreToggle: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    justifyContent: 'center',
+  },
+  moreText: {
+    color: '#888888',
+    fontSize: 14,
+    fontFamily: 'Jost_400Regular',
   },
   addInputRow: {
     marginTop: 8,
@@ -700,8 +666,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Jost_700Bold',
   },
   contextLine: {
-    color: '#888888',
-    fontSize: 14,
+    color: '#6E6E6E',
+    fontSize: 16,
     fontFamily: 'Jost_400Regular',
     marginBottom: 16,
   },
@@ -709,19 +675,21 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   aiMessageText: {
-    color: '#CCCCCC',
-    fontSize: 15,
-    fontFamily: 'Jost_400Regular',
-    fontStyle: 'italic',
-    lineHeight: 22,
-    marginBottom: 16,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: 'Jost_400Regular_Italic',
+    lineHeight: 24,
+    marginBottom: 18,
   },
   userMessageText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontFamily: 'Jost_400Regular',
-    lineHeight: 22,
-    marginBottom: 16,
+    color: '#E6C79E', // soft faded amber
+    fontSize: 16,
+    fontFamily: 'Jost_600SemiBold',
+    lineHeight: 24,
+    marginBottom: 18,
+  },
+  fadedMessage: {
+    color: '#6E6E6E', // past AI responses gray out (matches the context line)
   },
   chatInputRow: {
     flexDirection: 'row',
@@ -733,8 +701,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     color: '#FFFFFF',
     fontFamily: 'Jost_400Regular',
-    fontSize: 16,
-    maxHeight: 100,
+    fontSize: 28,
+    lineHeight: 36,
+    maxHeight: 160,
     padding: 0,
   },
   sendButton: {

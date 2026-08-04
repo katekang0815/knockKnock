@@ -2,13 +2,13 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
-import { useFonts, Jost_700Bold, Jost_400Regular } from '@expo-google-fonts/jost';
+import { useFonts, Jost_700Bold, Jost_400Regular, Jost_400Regular_Italic, Jost_600SemiBold } from '@expo-google-fonts/jost';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const [fontsLoaded] = useFonts({ Jost_700Bold, Jost_400Regular });
+  const [fontsLoaded] = useFonts({ Jost_700Bold, Jost_400Regular, Jost_400Regular_Italic, Jost_600SemiBold });
 
   if (!fontsLoaded) return null;
 
