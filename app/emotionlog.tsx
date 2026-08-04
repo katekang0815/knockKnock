@@ -684,7 +684,7 @@ const styles = StyleSheet.create({
   userMessageText: {
     color: '#E6C79E', // soft faded amber
     fontSize: 16,
-    fontFamily: 'Jost_600SemiBold',
+    fontFamily: 'Jost_400Regular',
     lineHeight: 24,
     marginBottom: 18,
   },

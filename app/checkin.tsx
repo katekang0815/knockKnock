@@ -403,6 +403,9 @@ export default function CheckInScreen() {
       </TouchableOpacity>
 
       <Text style={[styles.title, { top: insets.top + 80 }]}>How are you today?</Text>
+      {!started && (
+        <Text style={[styles.hint, { top: insets.top + 120 }]}>Turn the dial to explore</Text>
+      )}
 
       {/* Sub-emotion pills (revealed once dialing has started) */}
       <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -541,6 +544,14 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: 'Jost_700Bold',
     lineHeight: 34,
+    textAlign: 'center',
+  },
+  hint: {
+    position: 'absolute',
+    alignSelf: 'center',
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 14,
+    fontFamily: 'Jost_400Regular',
     textAlign: 'center',
   },
   iconArea: {
