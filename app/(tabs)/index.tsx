@@ -1,8 +1,11 @@
 import BouncingBall from "@/components/BouncingBall";
+import { getSessions, loadBeliefStore } from "@/services/beliefStore";
+import type { SessionRecord } from "@/types/belief";
 import { router } from "expo-router";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Dimensions,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -14,6 +17,7 @@ import Svg, {
   Path,
   Defs,
   LinearGradient,
+  Rect,
   Stop,
   Text as SvgText,
 } from "react-native-svg";
@@ -21,6 +25,9 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   useAnimatedReaction,
+  useAnimatedScrollHandler,
+  interpolate,
+  Extrapolation,
   runOnJS,
   withDelay,
   withRepeat,
@@ -29,15 +36,109 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { useIsFocused } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 
 const { height: SCREEN_H } = Dimensions.get("window");
 const SHAPE_SIZE = 120;
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function formatCardDate(iso: string): string {
+  const d = new Date(iso);
+  return `${WEEKDAYS[d.getDay()]} ${MONTHS[d.getMonth()]} ${d.getDate()}`;
+}
+
+function formatCardTime(iso: string): string {
+  const d = new Date(iso);
+  let h = d.getHours();
+  const m = d.getMinutes();
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return `${h}:${m.toString().padStart(2, "0")} ${ampm}`;
+}
+
+// Serif face used on the cards (matches the reference's Georgia look).
+const SERIF = Platform.select({ ios: "Georgia", default: "serif" });
+
+// Header (title + ball) fills almost the whole screen at rest, so only the top
+// sliver of the first card peeks at the bottom. Dragging up scrolls the sheet
+// over the header.
+const HEADER_SPACE = SCREEN_H * 0.86;
+// The header holds until the top card climbs to mid-screen, then fades/shrinks
+// over the rest of the drag (gone by the time the card nears the top).
+const FADE_START = HEADER_SPACE - SCREEN_H / 2;
+const FADE_END = HEADER_SPACE - 40;
+
+// One warm scheme for every card (dark brown top-left → amber-gold glow bottom-right),
+// matching the reference "delighted" card.
+const CARD_GRADIENT: [string, string] = ["#272110", "#5E4718"];
+const CARD_RADIUS = 28;
+
+// Rounded-rectangle gradient fill, drawn at the card's actual pixel size so the
+// corners are always rounded (independent of overflow clipping).
+function CardBackground({ id }: { id: string }) {
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  const gid = `cg-${id}`;
+  return (
+    <View
+      style={StyleSheet.absoluteFill}
+      onLayout={(e) =>
+        setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })
+      }
+    >
+      {size.w > 0 && (
+        <Svg width={size.w} height={size.h}>
+          <Defs>
+            <LinearGradient
+              id={gid}
+              x1="0"
+              y1="0"
+              x2={size.w}
+              y2={size.h}
+              gradientUnits="userSpaceOnUse"
+            >
+              <Stop offset="0" stopColor={CARD_GRADIENT[0]} />
+              <Stop offset="1" stopColor={CARD_GRADIENT[1]} />
+            </LinearGradient>
+          </Defs>
+          <Rect
+            x={0}
+            y={0}
+            width={size.w}
+            height={size.h}
+            rx={CARD_RADIUS}
+            ry={CARD_RADIUS}
+            fill={`url(#${gid})`}
+          />
+        </Svg>
+      )}
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+
+  // Saved check-ins — the stacked list of cards at the bottom.
+  const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      getSessions().then((list) => {
+        if (active) setSessions(list);
+      });
+      // TEMP debug: dump the full belief store so we can verify what's saved.
+      loadBeliefStore().then((store) => {
+        console.log("=== BELIEF STORE DUMP ===\n" + JSON.stringify(store, null, 2));
+      });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   // "Knock Knock" — each word taps like a hand hitting a door, with a rest between pairs.
   const knock1 = useSharedValue(0);
@@ -117,29 +218,24 @@ export default function HomeScreen() {
     ],
   }));
 
-  return (
-    <TouchableWithoutFeedback onPress={() => router.push("/checkin")}>
-      <View style={styles.container}>
-        {/* Back arrow */}
-        <TouchableOpacity
-          style={[styles.backButton, { top: insets.top + 16 }]}
-          onPress={(e) => {
-            e.stopPropagation();
-            router.replace("/splash");
-          }}
-          activeOpacity={0.7}
-        >
-          <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-            <Path
-              d="M19 12H5M12 19l-7-7 7-7"
-              stroke="#FFFFFF"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </Svg>
-        </TouchableOpacity>
+  // Scroll position drives the header collapse: drag the card sheet up and the
+  // title + ball shrink and fade; drag down and they come back.
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
+  });
+  const headerAnim = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [FADE_START, FADE_END], [1, 0], Extrapolation.CLAMP),
+    transform: [
+      { translateY: interpolate(scrollY.value, [FADE_START, FADE_END], [0, -70], Extrapolation.CLAMP) },
+      { scale: interpolate(scrollY.value, [FADE_START, FADE_END], [1, 0.82], Extrapolation.CLAMP) },
+    ],
+  }));
 
+  return (
+    <View style={styles.container}>
+      {/* Collapsing header (title + ball) — pinned behind the sheet, fades on drag */}
+      <Animated.View style={[StyleSheet.absoluteFill, headerAnim]} pointerEvents="none">
         <View style={[styles.titleContainer, { top: insets.top + 20 + 96 }]}>
           <View style={styles.titleLine}>
             <Animated.View style={knock1Style}>
@@ -157,12 +253,68 @@ export default function HomeScreen() {
           Tap anywhere to start
         </Text>
 
-        {/* Bouncing ball animation */}
         <View style={[styles.shapeContainer, { bottom: 280 }]}>
           <BouncingBall size={SHAPE_SIZE * 2} />
         </View>
-      </View>
-    </TouchableWithoutFeedback>
+      </Animated.View>
+
+      {/* Foreground sheet — transparent spacer over the header, then the cards */}
+      <Animated.ScrollView
+        style={StyleSheet.absoluteFill}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 16,
+          minHeight: SCREEN_H + HEADER_SPACE,
+        }}
+      >
+        {/* Tapping the header area starts a check-in */}
+        <TouchableWithoutFeedback onPress={() => router.push("/checkin")}>
+          <View style={{ height: HEADER_SPACE }} />
+        </TouchableWithoutFeedback>
+
+        <View style={styles.cardListContent}>
+          {sessions.map((s) => (
+            <TouchableOpacity key={s.id} activeOpacity={1} style={styles.card}>
+              <CardBackground id={s.id} />
+              <View style={styles.cardTopRow}>
+                <View>
+                  <Text style={styles.cardDate}>{formatCardDate(s.date)}</Text>
+                  <Text style={styles.cardTime}>{formatCardTime(s.date)}</Text>
+                </View>
+                <Text style={styles.emotionLabel} numberOfLines={1}>
+                  {s.emotion}
+                </Text>
+              </View>
+              {s.verse && (
+                <Text style={styles.verseText}>
+                  <Text style={styles.verseRef}>{s.verse.reference}  </Text>
+                  {s.verse.text}
+                </Text>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </Animated.ScrollView>
+
+      {/* Back arrow — always on top and tappable */}
+      <TouchableOpacity
+        style={[styles.backButton, { top: insets.top + 16 }]}
+        onPress={() => router.replace("/splash")}
+        activeOpacity={0.7}
+      >
+        <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+          <Path
+            d="M19 12H5M12 19l-7-7 7-7"
+            stroke="#FFFFFF"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -231,7 +383,54 @@ const styles = StyleSheet.create({
   backButton: {
     position: "absolute",
     left: 20,
-    zIndex: 10,
+    zIndex: 100,
     padding: 8,
   },
+  cardListContent: {
+    paddingHorizontal: 16,
+    gap: 14,
+  },
+  card: {
+    borderRadius: 28,
+    overflow: "hidden",
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+    minHeight: 150,
+  },
+  cardTopRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+  cardDate: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontFamily: SERIF,
+    fontWeight: "600",
+  },
+  cardTime: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontFamily: SERIF,
+    marginTop: 2,
+  },
+  emotionLabel: {
+    color: "#F5C842",
+    fontSize: 28,
+    fontFamily: SERIF,
+    fontStyle: "italic",
+    maxWidth: "55%",
+    textAlign: "right",
+  },
+  verseText: {
+    color: "#EFE7DC",
+    fontSize: 15,
+    fontFamily: "Jost_400Regular",
+    lineHeight: 22,
+    marginTop: 24,
+  },
+  verseRef: {
+    fontFamily: "Jost_700Bold",
+  },
 });
+

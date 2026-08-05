@@ -16,7 +16,8 @@ import BouncingOrb from '@/components/BouncingOrb';
 import VibratingOrb from '@/components/VibratingOrb';
 import RollingOrb from '@/components/RollingOrb';
 import { EMOTION_DATA, EmotionCategory } from '@/constants/emotions';
-import { sendChatMessage } from '@/services/aiService';
+import { sendChatMessage, extractBeliefUpdate } from '@/services/aiService';
+import { recordSession } from '@/services/beliefStore';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -210,6 +211,7 @@ export default function EmotionLogScreen() {
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([]);
   const [aiOpenerSent, setAiOpenerSent] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const allAnswered = selectedDoing.length > 0 && selectedWith.length > 0 && selectedWhere.length > 0;
 
@@ -294,6 +296,7 @@ export default function EmotionLogScreen() {
   }));
 
   const handleComplete = async () => {
+    if (saving) return;
     try {
       const existing = await AsyncStorage.getItem('emotion_logs');
       const logs = existing ? JSON.parse(existing) : [];
@@ -309,6 +312,26 @@ export default function EmotionLogScreen() {
     } catch (e) {
       // silently fail
     }
+
+    // Belief memory: distill the conversation into the profile + a saved card.
+    // Only when an actual conversation happened. Awaited so the home card is
+    // fresh on arrival, but never blocks navigation on failure.
+    if (chatMessages.length > 0) {
+      setSaving(true);
+      try {
+        const meta = {
+          emotion: emotion ?? '',
+          category: category ?? '',
+          context: contextSummary || null,
+        };
+        const update = await extractBeliefUpdate(chatMessages, meta);
+        if (update) await recordSession(update, meta);
+      } catch (e) {
+        // silently fail — memory is best-effort
+      }
+      setSaving(false);
+    }
+
     router.replace('/(tabs)');
   };
 
@@ -479,11 +502,12 @@ export default function EmotionLogScreen() {
         {/* Complete button */}
         <View style={styles.completeSection}>
           <TouchableOpacity
-            style={styles.completeButton}
+            style={[styles.completeButton, saving && { opacity: 0.6 }]}
             onPress={handleComplete}
             activeOpacity={0.8}
+            disabled={saving}
           >
-            <Text style={styles.completeText}>Complete check-in</Text>
+            <Text style={styles.completeText}>{saving ? 'Saving…' : 'Complete check-in'}</Text>
           </TouchableOpacity>
         </View>
       </Animated.ScrollView>
