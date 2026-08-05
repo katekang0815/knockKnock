@@ -72,9 +72,9 @@ const HEADER_SPACE = SCREEN_H * 0.86;
 const FADE_START = HEADER_SPACE - SCREEN_H / 2;
 const FADE_END = HEADER_SPACE - 40;
 
-// One warm scheme for every card (dark brown top-left → amber-gold glow bottom-right),
-// matching the reference "delighted" card.
-const CARD_GRADIENT: [string, string] = ["#272110", "#5E4718"];
+// One warm scheme for every card — a subtle dark warm-brown (lighter top-left →
+// darker bottom-right), matching the reference "Vulnerable" card.
+const CARD_GRADIENT: [string, string] = ["#372A1C", "#211710"];
 const CARD_RADIUS = 28;
 
 // Rounded-rectangle gradient fill, drawn at the card's actual pixel size so the
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   emotionLabel: {
-    color: "#F5C842",
+    color: "#FF9A7B",
     fontSize: 28,
     fontFamily: SERIF,
     fontStyle: "italic",
