@@ -4,11 +4,11 @@ import {
   SAFETY_FALLBACK_RESPONSE,
   API_FALLBACK_RESPONSE,
   MAX_CHAT_TURNS,
-  BELIEF_EXTRACTION_PROMPT,
 } from '@/constants/aiPrompt';
-import { loadBeliefStore } from '@/services/beliefStore';
-import type { BeliefProfile, SessionRecord } from '@/types/belief';
-import type { BeliefUpdate, SessionMeta } from '@/services/beliefStore';
+import { getRecentSessions } from '@/services/beliefStore';
+import type { SessionRecord } from '@/types/belief';
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export interface ChatMessage {
   role: 'user' | 'ai';
@@ -36,45 +36,33 @@ export function containsSafetyKeywords(message: string): boolean {
 }
 
 /**
- * Format the stored belief memory (profile + most recent 1–2 check-ins) into a
- * prompt block. Returns '' when there's nothing yet (first-ever session).
+ * Format the recent check-ins (past week) into a prompt block so the AI can
+ * track ongoing situations across recent days. Returns '' when there are none.
  */
-function buildMemoryBlock(profile: BeliefProfile, recent: SessionRecord[]): string {
-  const hasProfile =
-    !!profile.currentStance ||
-    profile.coreBeliefs.length > 0 ||
-    profile.openQuestions.length > 0 ||
-    !!profile.toneNotes;
+function buildRecapBlock(recaps: SessionRecord[]): string {
+  if (recaps.length === 0) return '';
 
-  if (!hasProfile && recent.length === 0) return '';
-
-  let block = `\n\n## What you remember about this person (from past check-ins)\n`;
-  if (profile.currentStance) block += `- Where they are spiritually: ${profile.currentStance}\n`;
-  if (profile.coreBeliefs.length) block += `- Core beliefs: ${profile.coreBeliefs.join('; ')}\n`;
-  if (profile.openQuestions.length)
-    block += `- Questions they're wrestling with: ${profile.openQuestions.join('; ')}\n`;
-  if (profile.toneNotes) block += `- How to speak with them: ${profile.toneNotes}\n`;
-
-  if (recent.length) {
-    block += `\n### Recent check-ins\n`;
-    for (const s of recent) {
-      const issues = s.issues.length ? ` about ${s.issues.join(', ')}` : '';
-      block += `- Felt ${s.emotion}${issues}. ${s.summary}\n`;
-    }
+  let block =
+    `\n\n## Recent check-ins (past week)\n` +
+    `Use these to notice ongoing situations and how the person has been feeling across recent days. ` +
+    `Acknowledge when something has been weighing on them for a while, and offer a fresh, relevant Bible verse and (when fitting) a prayer. Do not recite this list mechanically.\n`;
+  for (const s of recaps) {
+    const d = new Date(s.date);
+    const day = Number.isNaN(d.getTime()) ? '' : WEEKDAYS[d.getDay()] + ': ';
+    const ctx = s.context ? ` (${s.context})` : '';
+    const issue = s.issue ? ` — ${s.issue.slice(0, 120)}` : '';
+    block += `- ${day}${s.emotion}${ctx}${issue}\n`;
   }
-
-  block +=
-    `\nUse this memory naturally to show continuity ("last time you mentioned...") and to walk with them through how their faith is changing. Do not recite it mechanically or assume nothing has changed.`;
   return block;
 }
 
 /**
- * Build the system prompt with user context and long-term belief memory injected.
+ * Build the system prompt with user context and recent-days memory injected.
  */
-function buildSystemPrompt(context: ChatContext, memoryBlock: string): string {
+function buildSystemPrompt(context: ChatContext, recapBlock: string): string {
   return (
     SYSTEM_PROMPT +
-    memoryBlock +
+    recapBlock +
     `\n\n## Current User Context\n` +
     `- Emotion: ${context.emotion}\n` +
     `- Category: ${context.category}\n` +
@@ -132,11 +120,11 @@ export async function sendChatMessage(
     return API_FALLBACK_RESPONSE;
   }
 
-  // Load long-term belief memory (profile + last 1–2 check-ins) for continuity.
-  let memoryBlock = '';
+  // Load recent check-ins (past week, capped) for short-term situational memory.
+  let recapBlock = '';
   try {
-    const store = await loadBeliefStore();
-    memoryBlock = buildMemoryBlock(store.profile, store.sessions.slice(0, 2));
+    const recaps = await getRecentSessions(7);
+    recapBlock = buildRecapBlock(recaps.slice(0, 10));
   } catch {
     // No memory yet, or read failed — proceed context-only.
   }
@@ -155,7 +143,7 @@ export async function sendChatMessage(
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 512,
-        system: buildSystemPrompt(context, memoryBlock),
+        system: buildSystemPrompt(context, recapBlock),
         messages: buildMessages(userMessage, history),
       }),
       signal: controller.signal,
@@ -180,146 +168,5 @@ export async function sendChatMessage(
     clearTimeout(timeout);
     console.error('Claude API request failed:', error);
     return API_FALLBACK_RESPONSE;
-  }
-}
-
-// JSON schema for the end-of-session extraction (structured output).
-const BELIEF_UPDATE_SCHEMA = {
-  type: 'object',
-  properties: {
-    currentStance: { type: 'string' },
-    coreBeliefs: { type: 'array', items: { type: 'string' } },
-    openQuestions: { type: 'array', items: { type: 'string' } },
-    toneNotes: { anyOf: [{ type: 'null' }, { type: 'string' }] },
-    summary: { type: 'string' },
-    issues: { type: 'array', items: { type: 'string' } },
-    verse: {
-      anyOf: [
-        { type: 'null' },
-        {
-          type: 'object',
-          properties: {
-            reference: { type: 'string' },
-            text: { type: 'string' },
-          },
-          required: ['reference', 'text'],
-          additionalProperties: false,
-        },
-      ],
-    },
-  },
-  required: [
-    'currentStance',
-    'coreBeliefs',
-    'openQuestions',
-    'toneNotes',
-    'summary',
-    'issues',
-    'verse',
-  ],
-  additionalProperties: false,
-} as const;
-
-/** Parse JSON, tolerating stray text around the object. */
-function safeParseJSON(raw: string): any | null {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    const start = raw.indexOf('{');
-    const end = raw.lastIndexOf('}');
-    if (start !== -1 && end > start) {
-      try {
-        return JSON.parse(raw.slice(start, end + 1));
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  }
-}
-
-/**
- * End-of-session belief extraction. Reads the finished conversation and the
- * existing profile, and returns an updated profile + session summary + issues +
- * the verse the AI shared, via structured output. Returns null on failure so the
- * caller can skip recording without breaking the check-in flow.
- */
-export async function extractBeliefUpdate(
-  transcript: ChatMessage[],
-  meta: SessionMeta,
-): Promise<BeliefUpdate | null> {
-  const apiKey = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;
-  if (!apiKey || transcript.length === 0) return null;
-
-  let oldProfile;
-  try {
-    oldProfile = (await loadBeliefStore()).profile;
-  } catch {
-    oldProfile = null;
-  }
-
-  const convo = transcript
-    .map((m) => `${m.role === 'ai' ? 'Guide' : 'User'}: ${m.text}`)
-    .join('\n');
-
-  const userContent =
-    `EXISTING PROFILE (JSON):\n${JSON.stringify(oldProfile ?? {})}\n\n` +
-    `SESSION CONTEXT:\n- Emotion: ${meta.emotion}\n- Category: ${meta.category}\n- Context: ${meta.context ?? 'n/a'}\n\n` +
-    `CONVERSATION:\n${convo}`;
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT);
-
-  try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 800,
-        system: BELIEF_EXTRACTION_PROMPT,
-        output_config: { format: { type: 'json_schema', schema: BELIEF_UPDATE_SCHEMA } },
-        messages: [{ role: 'user', content: userContent }],
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      console.error('Belief extraction API error:', response.status);
-      return null;
-    }
-
-    const data = await response.json();
-    const text = data?.content?.[0]?.text;
-    if (!text) return null;
-
-    const parsed = safeParseJSON(text);
-    if (!parsed || typeof parsed !== 'object') return null;
-
-    return {
-      currentStance: typeof parsed.currentStance === 'string' ? parsed.currentStance : '',
-      coreBeliefs: Array.isArray(parsed.coreBeliefs) ? parsed.coreBeliefs : [],
-      openQuestions: Array.isArray(parsed.openQuestions) ? parsed.openQuestions : [],
-      toneNotes: typeof parsed.toneNotes === 'string' ? parsed.toneNotes : null,
-      summary: typeof parsed.summary === 'string' ? parsed.summary : '',
-      issues: Array.isArray(parsed.issues) ? parsed.issues : [],
-      verse:
-        parsed.verse &&
-        typeof parsed.verse === 'object' &&
-        typeof parsed.verse.reference === 'string' &&
-        typeof parsed.verse.text === 'string'
-          ? { reference: parsed.verse.reference, text: parsed.verse.text }
-          : null,
-    };
-  } catch (error) {
-    clearTimeout(timeout);
-    console.error('Belief extraction failed:', error);
-    return null;
   }
 }

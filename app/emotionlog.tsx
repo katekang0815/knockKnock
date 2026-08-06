@@ -16,8 +16,8 @@ import BouncingOrb from '@/components/BouncingOrb';
 import VibratingOrb from '@/components/VibratingOrb';
 import RollingOrb from '@/components/RollingOrb';
 import { EMOTION_DATA, EmotionCategory } from '@/constants/emotions';
-import { sendChatMessage, extractBeliefUpdate } from '@/services/aiService';
-import { recordSession } from '@/services/beliefStore';
+import { sendChatMessage } from '@/services/aiService';
+import { recordSession, extractVerse } from '@/services/beliefStore';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -211,7 +211,6 @@ export default function EmotionLogScreen() {
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([]);
   const [aiOpenerSent, setAiOpenerSent] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   const allAnswered = selectedDoing.length > 0 && selectedWith.length > 0 && selectedWhere.length > 0;
 
@@ -296,7 +295,6 @@ export default function EmotionLogScreen() {
   }));
 
   const handleComplete = async () => {
-    if (saving) return;
     try {
       const existing = await AsyncStorage.getItem('emotion_logs');
       const logs = existing ? JSON.parse(existing) : [];
@@ -313,23 +311,32 @@ export default function EmotionLogScreen() {
       // silently fail
     }
 
-    // Belief memory: distill the conversation into the profile + a saved card.
-    // Only when an actual conversation happened. Awaited so the home card is
-    // fresh on arrival, but never blocks navigation on failure.
-    if (chatMessages.length > 0) {
-      setSaving(true);
+    // Save a check-in recap — captured for free (no AI call): the emotion + context,
+    // the user's own words (the issue), and the verse the AI shared (pulled from the
+    // chat via regex). Only when the user actually chatted (≥1 user message).
+    const userMsgs = chatMessages.filter((m) => m.role === 'user');
+    if (userMsgs.length >= 1) {
       try {
-        const meta = {
+        let verse: ReturnType<typeof extractVerse> = null;
+        for (let i = chatMessages.length - 1; i >= 0; i--) {
+          if (chatMessages[i].role === 'ai') {
+            const v = extractVerse(chatMessages[i].text);
+            if (v) {
+              verse = v;
+              break;
+            }
+          }
+        }
+        await recordSession({
           emotion: emotion ?? '',
           category: category ?? '',
           context: contextSummary || null,
-        };
-        const update = await extractBeliefUpdate(chatMessages, meta);
-        if (update) await recordSession(update, meta);
+          issue: userMsgs[0].text.slice(0, 200),
+          verse,
+        });
       } catch (e) {
-        // silently fail — memory is best-effort
+        // best-effort — recap is not critical to the check-in flow
       }
-      setSaving(false);
     }
 
     router.replace('/(tabs)');
@@ -502,12 +509,11 @@ export default function EmotionLogScreen() {
         {/* Complete button */}
         <View style={styles.completeSection}>
           <TouchableOpacity
-            style={[styles.completeButton, saving && { opacity: 0.6 }]}
+            style={styles.completeButton}
             onPress={handleComplete}
             activeOpacity={0.8}
-            disabled={saving}
           >
-            <Text style={styles.completeText}>{saving ? 'Saving…' : 'Complete check-in'}</Text>
+            <Text style={styles.completeText}>Complete check-in</Text>
           </TouchableOpacity>
         </View>
       </Animated.ScrollView>

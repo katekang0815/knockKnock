@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, {
+  Circle,
   Path,
   Defs,
   LinearGradient,
@@ -38,7 +39,7 @@ import Animated, {
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 
-const { height: SCREEN_H } = Dimensions.get("window");
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 const SHAPE_SIZE = 120;
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
@@ -63,14 +64,17 @@ function formatCardTime(iso: string): string {
 // Serif face used on the cards (matches the reference's Georgia look).
 const SERIF = Platform.select({ ios: "Georgia", default: "serif" });
 
-// Header (title + ball) fills almost the whole screen at rest, so only the top
-// sliver of the first card peeks at the bottom. Dragging up scrolls the sheet
+// Header (title + ball) fills most of the screen at rest; the top of the first
+// card peeks above the pill bar at the bottom. Dragging up scrolls the sheet
 // over the header.
-const HEADER_SPACE = SCREEN_H * 0.86;
+const HEADER_SPACE = SCREEN_H * 0.8;
 // The header holds until the top card climbs to mid-screen, then fades/shrinks
 // over the rest of the drag (gone by the time the card nears the top).
 const FADE_START = HEADER_SPACE - SCREEN_H / 2;
 const FADE_END = HEADER_SPACE - 40;
+// Approximate footprint of the pill bar (its height + bottom offset), so the fade
+// can end at the pill bar's top edge — keeping the card above the pill bar.
+const PILL_BAR_FOOTPRINT = 70;
 
 // One warm scheme for every card — a subtle dark warm-brown (lighter top-left →
 // darker bottom-right), matching the reference "Vulnerable" card.
@@ -116,6 +120,79 @@ function CardBackground({ id }: { id: string }) {
         </Svg>
       )}
     </View>
+  );
+}
+
+// Black → transparent vertical fade, laid over the top of the peeking card so the
+// list appears to fade in from the top.
+// Clear at the top → full black by `blackAt` (the pill bar's top edge) → stays
+// black to the bottom, so nothing shows behind or beside the pill bar.
+function TopFade({ height, blackAt }: { height: number; blackAt: number }) {
+  return (
+    <Svg width={SCREEN_W} height={height}>
+      <Defs>
+        <LinearGradient id="topFade" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#000000" stopOpacity={0} />
+          <Stop offset={blackAt} stopColor="#000000" stopOpacity={1} />
+          <Stop offset="1" stopColor="#000000" stopOpacity={1} />
+        </LinearGradient>
+      </Defs>
+      <Rect x={0} y={0} width={SCREEN_W} height={height} fill="url(#topFade)" />
+    </Svg>
+  );
+}
+
+// Placeholder settings icon (hexagon).
+function SettingsIcon() {
+  return (
+    <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 2 L20.5 7 L20.5 17 L12 22 L3.5 17 L3.5 7 Z"
+        stroke="#FFFFFF"
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M12 7 L16.3 9.5 L16.3 14.5 L12 17 L7.7 14.5 L7.7 9.5 Z"
+        stroke="#FFFFFF"
+        strokeWidth={1.4}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+// Placeholder sparkle icon (4-point star).
+function SparkleIcon() {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24">
+      <Path
+        d="M12 3 L13.4 10.6 L21 12 L13.4 13.4 L12 21 L10.6 13.4 L3 12 L10.6 10.6 Z"
+        fill="#FFFFFF"
+      />
+    </Svg>
+  );
+}
+
+// Placeholder "Friends" icon (two people, outline).
+function FriendsIcon() {
+  return (
+    <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
+      <Circle cx="9" cy="7.5" r="3" stroke="#FFFFFF" strokeWidth={1.7} />
+      <Path
+        d="M3.5 19c0-3 2.5-5.2 5.5-5.2s5.5 2.2 5.5 5.2"
+        stroke="#FFFFFF"
+        strokeWidth={1.7}
+        strokeLinecap="round"
+      />
+      <Circle cx="16.9" cy="9" r="2.3" stroke="#FFFFFF" strokeWidth={1.7} />
+      <Path
+        d="M16.9 13.9c2.6 0 4.6 1.9 4.6 4.6"
+        stroke="#FFFFFF"
+        strokeWidth={1.7}
+        strokeLinecap="round"
+      />
+    </Svg>
   );
 }
 
@@ -231,6 +308,11 @@ export default function HomeScreen() {
       { scale: interpolate(scrollY.value, [FADE_START, FADE_END], [1, 0.82], Extrapolation.CLAMP) },
     ],
   }));
+  // Fade spans from the peek card's top all the way to the screen bottom: clear
+  // at the top, full black by the pill bar's top edge, black underneath it.
+  const fadeTotalH = SCREEN_H - HEADER_SPACE;
+  const pillTop = SCREEN_H - insets.bottom - PILL_BAR_FOOTPRINT;
+  const fadeBlackAt = Math.min(0.9, Math.max(0.1, (pillTop - HEADER_SPACE) / fadeTotalH));
 
   return (
     <View style={styles.container}>
@@ -265,7 +347,7 @@ export default function HomeScreen() {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingBottom: insets.bottom + 16,
+          paddingBottom: insets.bottom + 90, // clear the pill bar
           minHeight: SCREEN_H + HEADER_SPACE,
         }}
       >
@@ -297,6 +379,32 @@ export default function HomeScreen() {
           ))}
         </View>
       </Animated.ScrollView>
+
+      {/* Fixed fade just above the pill bar — cards fade into black here as they
+          scroll behind the bar, no matter where the stack top is. */}
+      <View style={[styles.topFade, { top: HEADER_SPACE }]} pointerEvents="none">
+        <TopFade height={fadeTotalH} blackAt={fadeBlackAt} />
+      </View>
+
+      {/* Bottom pill bar — Friends + placeholders (settings, sparkle) */}
+      <View style={[styles.pillBarWrap, { bottom: insets.bottom }]} pointerEvents="box-none">
+        <View style={styles.pillBar}>
+          <TouchableOpacity style={styles.pillIcon} activeOpacity={0.7} onPress={() => {}}>
+            <SettingsIcon />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity style={styles.pillIconBox} activeOpacity={0.7} onPress={() => {}}>
+            <SparkleIcon />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.pillIcon, { marginLeft: 18 }]}
+            activeOpacity={0.7}
+            onPress={() => {}}
+          >
+            <FriendsIcon />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {/* Back arrow — always on top and tappable */}
       <TouchableOpacity
@@ -385,6 +493,36 @@ const styles = StyleSheet.create({
     left: 20,
     zIndex: 100,
     padding: 8,
+  },
+  topFade: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 50,
+  },
+  pillBarWrap: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    zIndex: 80,
+  },
+  pillBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#161616",
+    borderRadius: 32,
+    paddingVertical: 14,
+    paddingHorizontal: 26,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  pillIcon: {
+    padding: 4,
+  },
+  pillIconBox: {
+    padding: 7,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.06)",
   },
   cardListContent: {
     paddingHorizontal: 16,
