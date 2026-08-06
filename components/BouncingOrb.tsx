@@ -74,7 +74,7 @@ export default function BouncingOrb({ size }: Props) {
             position: "absolute",
             bottom: ballBottom,
             alignSelf: "center",
-            width: size * 0.56, // matches the Calm (Breeze) icon's halo (ball×1.4)
+            width: size * 0.56, // matches the Breezy icon's halo (ball×1.4)
             height: size * 0.56,
             borderRadius: size * 0.28,
             backgroundColor: "#C78E7D",

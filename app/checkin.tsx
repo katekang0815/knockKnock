@@ -30,7 +30,7 @@ const ICON_SIZE = 180;
 // The four major emotions, ordered unpleasant → pleasant around the top arc.
 const EMOTIONS: { category: EmotionCategory; render: (s: number) => React.ReactNode }[] = [
   { category: 'Stormy', render: (s) => <VibratingOrb size={s} /> },
-  { category: 'Calm',   render: (s) => <RollingOrb size={s} /> },
+  { category: 'Rain',   render: (s) => <RollingOrb size={s} /> },
   { category: 'Breezy', render: (s) => <RollingOrb size={s} fadeBall={false} /> },
   { category: 'Sunny',  render: (s) => <BouncingOrb size={s} /> },
 ];
@@ -46,9 +46,9 @@ const RAD = Math.PI / 180;
 const SPIN_S = 2 * (R + 34);   // rotating fade-ring canvas
 const DIAL_SIZE = 2 * (R + 95); // transparent touch area covering the dial + pills
 
-// Section indices within EMOTIONS (order: Stormy, Calm, Breezy, Sunny).
+// Section indices within EMOTIONS (order: Stormy, Rain, Breezy, Sunny).
 const I_STORMY = EMOTIONS.findIndex((e) => e.category === 'Stormy');
-const I_CALM = EMOTIONS.findIndex((e) => e.category === 'Calm');
+const I_RAIN = EMOTIONS.findIndex((e) => e.category === 'Rain');
 const I_BREEZY = EMOTIONS.findIndex((e) => e.category === 'Breezy');
 const I_SUNNY = EMOTIONS.findIndex((e) => e.category === 'Sunny');
 
@@ -71,7 +71,7 @@ const REVEAL_FADE = 0.3;     // per-pill fade window during the clockwise reveal
 // Handle angle (deg) at each section's center — pills fan on the OPPOSITE side.
 const SECTION_HANDLE: Record<number, number> = {
   [I_BREEZY]: 45,   // bottom-right
-  [I_CALM]: 135,    // bottom-left
+  [I_RAIN]: 135,    // bottom-left
   [I_SUNNY]: 225,   // top-left
   [I_STORMY]: 315,  // top-right
 };
@@ -125,12 +125,12 @@ function touchAngle(absX: number, absY: number) {
 }
 
 // Which emotion section a circle angle falls in:
-//   bottom-right (0–90) → Breezy, bottom-left (90–180) → Calm (rain),
+//   bottom-right (0–90) → Breezy, bottom-left (90–180) → Rain,
 //   top-left (180–270) → Sunny, top-right (270–360) → Stormy.
 function angleToIndex(a: number) {
   'worklet';
   if (a < 90) return I_BREEZY;
-  if (a < 180) return I_CALM;
+  if (a < 180) return I_RAIN;
   if (a < 270) return I_SUNNY;
   return I_STORMY;
 }
@@ -191,7 +191,7 @@ function Pill({ d, shapeRot, tx, ty, textRot, word, cx, cy, pulse, reveal, thres
 export default function CheckInScreen() {
   const insets = useSafeAreaInsets();
   const [active, setActive] = useState(DEFAULT_INDEX);
-  // Default (freshly-arrived) state: bounce-only Breeze icon, track only, no pills.
+  // Default (freshly-arrived) state: bounce-only Breezy icon, track only, no pills.
   // Flips true the first time the user touches the track.
   const [started, setStarted] = useState(false);
   // Direction of the last dial move (1 = clockwise, -1 = counter-clockwise) — the
@@ -241,7 +241,7 @@ export default function CheckInScreen() {
   const spin = useSharedValue(0);
   // Handle / dial angle (ring rotation). Changed ONLY by dragging — never by the
   // idle spin — so the active section is driven purely by the user's dial.
-  const dialAngle = useSharedValue(135); // handle at Breeze (45°) by default
+  const dialAngle = useSharedValue(135); // handle at Breezy (45°) by default
   // 1 once the user has started dialing (drag). Gates reveal + section changes.
   const startedSV = useSharedValue(0);
   // Last dial direction (1 = CW, -1 = CCW).
@@ -489,7 +489,7 @@ export default function CheckInScreen() {
         {started ? (
           EMOTIONS[active].render(ICON_SIZE)
         ) : (
-          // Default screen: dedicated Breeze icon that only bounces (no roll).
+          // Default screen: dedicated Breezy icon that only bounces (no roll).
           <RollingOrb size={ICON_SIZE} fadeBall={false} rolling={false} />
         )}
       </View>

@@ -1,4 +1,4 @@
-export type EmotionCategory = 'Sunny' | 'Stormy' | 'Calm' | 'Breezy';
+export type EmotionCategory = 'Sunny' | 'Stormy' | 'Rain' | 'Breezy';
 
 export interface CategoryConfig {
   gradientStart: string;
@@ -30,7 +30,7 @@ export const EMOTION_DATA: Record<EmotionCategory, CategoryConfig> = {
       'Fomo', 'Shocked', 'Tense', 'Panicked',
     ],
   },
-  Calm: {
+  Rain: {
     gradientStart: '#4A90D9',
     gradientEnd: '#00BFFF',
     accentColor: '#4A90D9',

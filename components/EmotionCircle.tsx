@@ -190,7 +190,7 @@ function EmotionCircleComponent({
     const palette =
       category === 'Stormy' ? STORMY_PAIRS :
       category === 'Breezy' ? BREEZY_PAIRS :
-      category === 'Calm'   ? CALM_PAIRS :
+      category === 'Rain'   ? CALM_PAIRS :
       COLOR_PAIRS;
     const pair = PAIR_OVERRIDE[label] ?? palette[h % palette.length];
     // Off-center hotspot for organic variation, roughly matching the reference

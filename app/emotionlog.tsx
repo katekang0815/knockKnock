@@ -10,7 +10,7 @@ import Animated, {
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { HomeStar, HOME_ACCENT } from '@/components/EmotionShape';
 import BouncingOrb from '@/components/BouncingOrb';
 import VibratingOrb from '@/components/VibratingOrb';
@@ -19,17 +19,18 @@ import { EMOTION_DATA, EmotionCategory } from '@/constants/emotions';
 import { sendChatMessage } from '@/services/aiService';
 import { recordSession, extractVerse } from '@/services/beliefStore';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const SHAPE_MAX = 180;
 const SHAPE_MIN = 40;
+const NEXT_BAR_H = 62; // bottom "next" pill bar height
 
 // Animated major-emotion icon per category (same as the major-emotions screen).
 function emotionIcon(category: EmotionCategory, size: number) {
   switch (category) {
     case 'Stormy':
       return <VibratingOrb size={size} />;
-    case 'Calm':
+    case 'Rain':
       return <RollingOrb size={size} />;
     case 'Breezy':
       return <RollingOrb size={size} fadeBall={false} />;
@@ -73,10 +74,10 @@ interface TagSectionProps {
   accentColor: string;
 }
 
-const VISIBLE_TAGS = 6; // chips shown before the "More" toggle
+const VISIBLE_TAGS = 9; // chips shown before the "More" toggle
 
+// Always-open tag list: title, then a wrap of tags (+ add, first N, "More" toggle).
 function TagSection({ title, options, selected, onSelect, onAdd, accentColor }: TagSectionProps) {
-  const [expanded, setExpanded] = useState(false);
   const [adding, setAdding] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [newTag, setNewTag] = useState('');
@@ -87,95 +88,53 @@ function TagSection({ title, options, selected, onSelect, onAdd, accentColor }: 
       onAdd(trimmed);
       setNewTag('');
       setAdding(false);
-      setExpanded(false);
     }
   };
 
-  const handleSelect = (option: string) => {
-    onSelect(option);
-    setExpanded(false);
-  };
+  const visible = showAll ? options : options.slice(0, VISIBLE_TAGS);
 
   return (
     <View style={styles.section}>
-      {/* Dropdown header — tap to expand/collapse */}
-      <TouchableOpacity
-        style={styles.dropdownHeader}
-        onPress={() => setExpanded(!expanded)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.dropdownHeaderLeft}>
-          <Text style={styles.sectionTitle}>{title}</Text>
-          {selected.length > 0 && (
-            <Text style={styles.summaryText} numberOfLines={1}>
-              {selected[0]}
-            </Text>
-          )}
-        </View>
-        <Text style={styles.chevron}>{expanded ? '▲' : '▼'}</Text>
-      </TouchableOpacity>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.tagsWrap}>
+        {/* Add new button */}
+        <TouchableOpacity style={styles.addButton} onPress={() => setAdding(!adding)} activeOpacity={0.7}>
+          <Text style={styles.addButtonText}>+</Text>
+        </TouchableOpacity>
 
-      {/* Expanded dropdown — all options */}
-      {expanded && (
-        <View style={styles.dropdownContent}>
-          <View style={styles.tagsWrap}>
-            {/* Add new button */}
+        {visible.map((option) => {
+          const isSelected = selected[0] === option;
+          return (
             <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => setAdding(!adding)}
+              key={option}
+              style={[styles.chip, isSelected && { backgroundColor: accentColor }]}
+              onPress={() => onSelect(option)}
               activeOpacity={0.7}
             >
-              <Text style={styles.addButtonText}>+</Text>
+              <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{option}</Text>
             </TouchableOpacity>
+          );
+        })}
 
-            {(showAll ? options : options.slice(0, VISIBLE_TAGS)).map((option) => {
-              const isSelected = selected[0] === option;
-              return (
-                <TouchableOpacity
-                  key={option}
-                  style={[
-                    styles.chip,
-                    isSelected && { backgroundColor: accentColor },
-                  ]}
-                  onPress={() => handleSelect(option)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.chipText,
-                    isSelected && styles.chipTextSelected,
-                  ]}>
-                    {option}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+        {options.length > VISIBLE_TAGS && (
+          <TouchableOpacity style={styles.moreToggle} onPress={() => setShowAll(!showAll)} activeOpacity={0.7}>
+            <Text style={styles.moreText}>{showAll ? 'Less ▲' : 'More ▼'}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
-            {/* More / Less dropdown toggle */}
-            {options.length > VISIBLE_TAGS && (
-              <TouchableOpacity
-                style={styles.moreToggle}
-                onPress={() => setShowAll(!showAll)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.moreText}>{showAll ? 'Less ▲' : 'More ▼'}</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {adding && (
-            <View style={styles.addInputRow}>
-              <TextInput
-                style={styles.addInput}
-                value={newTag}
-                onChangeText={setNewTag}
-                placeholder="Type new option..."
-                placeholderTextColor="#666"
-                autoFocus
-                onSubmitEditing={handleAdd}
-                returnKeyType="done"
-              />
-            </View>
-          )}
+      {adding && (
+        <View style={styles.addInputRow}>
+          <TextInput
+            style={styles.addInput}
+            value={newTag}
+            onChangeText={setNewTag}
+            placeholder="Type new option..."
+            placeholderTextColor="#666"
+            autoFocus
+            onSubmitEditing={handleAdd}
+            returnKeyType="done"
+          />
         </View>
       )}
     </View>
@@ -211,33 +170,47 @@ export default function EmotionLogScreen() {
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([]);
   const [aiOpenerSent, setAiOpenerSent] = useState(false);
+  const [phase, setPhase] = useState<'context' | 'chat'>('context');
 
-  const allAnswered = selectedDoing.length > 0 && selectedWith.length > 0 && selectedWhere.length > 0;
-
-  // Summary line for context display
-  const contextSummary = allAnswered
-    ? `${selectedDoing[0]}, ${selectedWith[0]}, ${selectedWhere[0]}`
-    : '';
+  // Context summary from whatever the user selected (may be partial or empty).
+  const contextSummary = [selectedDoing[0], selectedWith[0], selectedWhere[0]]
+    .filter(Boolean)
+    .join(', ');
 
   // The current exchange starts at the last user message; earlier messages fade.
   const lastUserIdx = chatMessages.reduce((acc, m, i) => (m.role === 'user' ? i : acc), 0);
 
-  // Auto-generate AI opening message when all tags are answered
+  // Start the AI chat when entering the chat phase — regardless of whether any
+  // context tags were selected.
   useEffect(() => {
-    if (allAnswered && !aiOpenerSent) {
-      setAiOpenerSent(true);
-      const openingPrompt = `The user just checked in feeling ${emotion?.toLowerCase()} while ${selectedDoing[0]?.toLowerCase()} ${selectedWith[0] === 'By Myself' ? 'by themselves' : `with ${selectedWith[0]?.toLowerCase()}`} at ${selectedWhere[0]?.toLowerCase()}. Generate a warm, contextual opening message that acknowledges their specific situation and asks a gentle follow-up question. Keep it to 2-3 sentences.`;
-      sendChatMessage(openingPrompt, [], {
-        emotion: emotion ?? '',
-        category: category ?? '',
-        doing: selectedDoing[0],
-        withWhom: selectedWith[0],
-        where: selectedWhere[0],
-      }).then((response) => {
-        setChatMessages([{ role: 'ai', text: sanitizeAI(response) }]);
-      });
-    }
-  }, [allAnswered]);
+    if (phase !== 'chat' || aiOpenerSent) return;
+    setAiOpenerSent(true);
+
+    const doing = selectedDoing[0];
+    const withWhom = selectedWith[0];
+    const where = selectedWhere[0];
+    const parts: string[] = [];
+    if (doing) parts.push(`while ${doing.toLowerCase()}`);
+    if (withWhom) parts.push(withWhom === 'By Myself' ? 'by themselves' : `with ${withWhom.toLowerCase()}`);
+    if (where) parts.push(`at ${where.toLowerCase()}`);
+    const ctx = parts.length ? ' ' + parts.join(' ') : '';
+    const openingPrompt = `The user just checked in feeling ${emotion?.toLowerCase()}${ctx}. Generate a warm, contextual opening message that acknowledges how they're feeling and asks a gentle follow-up question.`;
+
+    sendChatMessage(openingPrompt, [], {
+      emotion: emotion ?? '',
+      category: category ?? '',
+      doing,
+      withWhom,
+      where,
+    }).then((response) => {
+      setChatMessages([{ role: 'ai', text: sanitizeAI(response) }]);
+    });
+  }, [phase]);
+
+  const goToChat = () => {
+    setPhase('chat');
+    setTimeout(() => scrollViewRef.current?.scrollTo({ y: 0, animated: false }), 0);
+  };
 
   const handleSendChat = async () => {
     const trimmed = chatInput.trim();
@@ -342,13 +315,18 @@ export default function EmotionLogScreen() {
     router.replace('/(tabs)');
   };
 
+  // Bottom fade + "next" pill sit above the safe area on the context phase.
+  const fadeGrad = 110; // transparent → black region above the pill
+  const fadeTotal = insets.bottom + NEXT_BAR_H + 24 + fadeGrad;
+  const fadeBlackAt = fadeGrad / fadeTotal;
+
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* Fixed header with shrinking shape */}
       <Animated.View style={[styles.header, headerStyle]}>
         <TouchableOpacity
           style={[styles.backArrow, { top: insets.top + 12 }]}
-          onPress={() => router.back()}
+          onPress={() => (phase === 'chat' ? setPhase('context') : router.back())}
           activeOpacity={0.7}
         >
           <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
@@ -401,7 +379,7 @@ export default function EmotionLogScreen() {
         scrollEventThrottle={16}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: insets.bottom + 24 },
+          { paddingBottom: phase === 'context' ? fadeTotal + 8 : insets.bottom + 24 },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -414,8 +392,8 @@ export default function EmotionLogScreen() {
           </Text>
         </View>
 
-        {/* Questions (not all answered yet) */}
-        {!allAnswered && (
+        {/* Context phase — full always-open tag lists */}
+        {phase === 'context' && (
           <>
             <TagSection
               title="What are you doing?"
@@ -453,13 +431,11 @@ export default function EmotionLogScreen() {
           </>
         )}
 
-        {/* Summary with tappable words + Chat */}
-        {allAnswered && (
+        {/* Chat phase */}
+        {phase === 'chat' && (
           <>
-            {/* Context summary */}
-            <Text style={styles.contextLine}>{contextSummary}</Text>
+            {contextSummary ? <Text style={styles.contextLine}>{contextSummary}</Text> : null}
 
-            {/* AI Chat */}
             <View style={styles.chatSection}>
               {chatMessages.map((msg, i) => (
                 <Text
@@ -474,49 +450,82 @@ export default function EmotionLogScreen() {
               ))}
 
               <View style={styles.chatInputRow}>
-                  <TextInput
-                    style={styles.chatInput}
-                    value={chatInput}
-                    onChangeText={setChatInput}
-                    placeholder="Write"
-                    placeholderTextColor="#666"
-                    multiline
-                    onFocus={() => {
-                      setTimeout(() => {
-                        (scrollViewRef.current as unknown as ScrollView)?.scrollToEnd({ animated: true });
-                      }, 300);
-                    }}
-                  />
-                  <TouchableOpacity
-                    style={[
-                      styles.sendButton,
-                      { backgroundColor: chatInput.trim() ? accentColor : '#444444' },
-                    ]}
-                    onPress={handleSendChat}
-                    activeOpacity={0.7}
-                    disabled={!chatInput.trim()}
-                  >
-                    <Text style={[
-                      styles.sendButtonText,
-                      { color: chatInput.trim() ? '#000000' : '#888888' },
-                    ]}>↑</Text>
-                  </TouchableOpacity>
-                </View>
+                <TextInput
+                  style={styles.chatInput}
+                  value={chatInput}
+                  onChangeText={setChatInput}
+                  placeholder="Write"
+                  placeholderTextColor="#666"
+                  multiline
+                  onFocus={() => {
+                    setTimeout(() => {
+                      (scrollViewRef.current as unknown as ScrollView)?.scrollToEnd({ animated: true });
+                    }, 300);
+                  }}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.sendButton,
+                    { backgroundColor: chatInput.trim() ? accentColor : '#444444' },
+                  ]}
+                  onPress={handleSendChat}
+                  activeOpacity={0.7}
+                  disabled={!chatInput.trim()}
+                >
+                  <Text style={[
+                    styles.sendButtonText,
+                    { color: chatInput.trim() ? '#000000' : '#888888' },
+                  ]}>↑</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.completeSection}>
+              <TouchableOpacity
+                style={styles.completeButton}
+                onPress={handleComplete}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.completeText}>Complete check-in</Text>
+              </TouchableOpacity>
             </View>
           </>
         )}
-
-        {/* Complete button */}
-        <View style={styles.completeSection}>
-          <TouchableOpacity
-            style={styles.completeButton}
-            onPress={handleComplete}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.completeText}>Complete check-in</Text>
-          </TouchableOpacity>
-        </View>
       </Animated.ScrollView>
+
+      {/* Context phase: bottom fade + "next" pill bar (→ starts the AI chat) */}
+      {phase === 'context' && (
+        <>
+          <View style={[styles.bottomFade, { height: fadeTotal }]} pointerEvents="none">
+            <Svg width={SCREEN_WIDTH} height={fadeTotal}>
+              <Defs>
+                <LinearGradient id="logFade" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0" stopColor="#000000" stopOpacity={0} />
+                  <Stop offset={fadeBlackAt} stopColor="#000000" stopOpacity={1} />
+                  <Stop offset="1" stopColor="#000000" stopOpacity={1} />
+                </LinearGradient>
+              </Defs>
+              <Rect x={0} y={0} width={SCREEN_WIDTH} height={fadeTotal} fill="url(#logFade)" />
+            </Svg>
+          </View>
+
+          <View style={[styles.nextBarWrap, { bottom: insets.bottom + 12 }]}>
+            <View style={styles.nextBar}>
+              <TouchableOpacity style={styles.nextButton} onPress={goToChat} activeOpacity={0.85}>
+                <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
+                  <Path
+                    d="M5 12h14M13 6l6 6-6 6"
+                    stroke="#000000"
+                    strokeWidth={2.2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Svg>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -584,71 +593,37 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   section: {
-    marginBottom: 20,
-  },
-  dropdownHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#111111',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  dropdownHeaderLeft: {
-    flex: 1,
-    marginRight: 12,
+    marginBottom: 28,
   },
   sectionTitle: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontFamily: 'Jost_700Bold',
-  },
-  summaryText: {
-    color: '#AAAAAA',
-    fontSize: 13,
+    fontSize: 20,
     fontFamily: 'Jost_400Regular',
-    marginTop: 2,
-  },
-  summaryPlaceholder: {
-    color: '#555555',
-  },
-  chevron: {
-    color: '#888888',
-    fontSize: 12,
-  },
-  dropdownContent: {
-    backgroundColor: '#111111',
-    borderBottomLeftRadius: 14,
-    borderBottomRightRadius: 14,
-    marginTop: -14,
-    paddingTop: 20,
-    paddingHorizontal: 16,
-    paddingBottom: 14,
+    marginBottom: 16,
   },
   tagsWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
   },
   chip: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingVertical: 11,
+    borderRadius: 22,
     backgroundColor: '#1A1A1A',
   },
   chipText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: 'Jost_400Regular',
   },
   chipTextSelected: {
     color: '#000000',
   },
   addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: '#444',
     justifyContent: 'center',
@@ -656,22 +631,22 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 22,
     fontFamily: 'Jost_400Regular',
     marginTop: -1,
   },
   moreToggle: {
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 11,
     justifyContent: 'center',
   },
   moreText: {
     color: '#888888',
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: 'Jost_400Regular',
   },
   addInputRow: {
-    marginTop: 8,
+    marginTop: 10,
   },
   addInput: {
     backgroundColor: '#1A1A1A',
@@ -680,20 +655,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     color: '#FFFFFF',
     fontFamily: 'Jost_400Regular',
-    fontSize: 14,
-  },
-  summaryContainer: {
-    marginBottom: 16,
-  },
-  summaryLine: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontFamily: 'Jost_400Regular',
-    lineHeight: 36,
-  },
-  summaryHighlight: {
-    textDecorationLine: 'underline',
-    fontFamily: 'Jost_700Bold',
+    fontSize: 15,
   },
   contextLine: {
     color: '#6E6E6E',
@@ -762,5 +724,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Jost_700Bold',
     letterSpacing: 1,
+  },
+  bottomFade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 5,
+  },
+  nextBarWrap: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    zIndex: 10,
+  },
+  nextBar: {
+    height: NEXT_BAR_H,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    backgroundColor: '#141414',
+    borderRadius: 32,
+    paddingHorizontal: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  nextButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

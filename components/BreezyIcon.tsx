@@ -2,7 +2,7 @@ import { useRef, useEffect } from 'react';
 import { View } from 'react-native';
 import LottieView from 'lottie-react-native';
 
-export default function BreezeIcon({ size = 174 }: { size?: number }) {
+export default function BreezyIcon({ size = 174 }: { size?: number }) {
   const lottieRef = useRef<LottieView>(null);
 
   useEffect(() => {
