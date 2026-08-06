@@ -19,7 +19,7 @@ import { EMOTION_DATA, EmotionCategory } from '@/constants/emotions';
 import { sendChatMessage } from '@/services/aiService';
 import { recordSession, extractVerse } from '@/services/beliefStore';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const SHAPE_MAX = 180;
 const SHAPE_MIN = 40;
@@ -151,9 +151,16 @@ export default function EmotionLogScreen() {
 
   const scrollViewRef = useRef<Animated.ScrollView>(null);
   const scrollY = useSharedValue(0);
+  // Layout measurements used to focus the current chat turn at the top.
+  const messageYs = useRef<number[]>([]); // y of each message, relative to chatSection
+  const chatSectionY = useRef(0); // y of chatSection, relative to scroll content
+  const phaseRef = useRef<'context' | 'chat'>('context');
 
   useEffect(() => {
     const sub = Keyboard.addListener('keyboardDidShow', () => {
+      // Only jump to the end for the context-phase "add tag" input; the chat
+      // phase manages its own focus scroll.
+      if (phaseRef.current !== 'context') return;
       setTimeout(() => {
         (scrollViewRef.current as unknown as ScrollView)?.scrollToEnd({ animated: true });
       }, 100);
@@ -179,6 +186,8 @@ export default function EmotionLogScreen() {
 
   // The current exchange starts at the last user message; earlier messages fade.
   const lastUserIdx = chatMessages.reduce((acc, m, i) => (m.role === 'user' ? i : acc), 0);
+  // While the user is composing, the current AI reply grays out too.
+  const isTyping = chatInput.trim().length > 0;
 
   // Start the AI chat when entering the chat phase — regardless of whether any
   // context tags were selected.
@@ -206,6 +215,28 @@ export default function EmotionLogScreen() {
       setChatMessages([{ role: 'ai', text: sanitizeAI(response) }]);
     });
   }, [phase]);
+
+  // Keep phaseRef in sync for the keyboard listener closure.
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+
+  // Bring the current turn (start of the latest exchange) to the top, leaving a
+  // small sliver of the previous (grayed) turn peeking above.
+  const REVEAL_PEEK = 44;
+  const scrollToFocus = () => {
+    const anchor = chatMessages.reduce((acc, m, i) => (m.role === 'user' ? i : acc), 0);
+    const y = chatSectionY.current + (messageYs.current[anchor] ?? 0) - REVEAL_PEEK;
+    scrollViewRef.current?.scrollTo({ y: Math.max(0, y), animated: true });
+  };
+
+  // After each new message in the chat, focus the current turn at the top.
+  useEffect(() => {
+    if (phase !== 'chat' || chatMessages.length === 0) return;
+    const t = setTimeout(scrollToFocus, 180);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatMessages.length, phase]);
 
   const goToChat = () => {
     setPhase('chat');
@@ -379,7 +410,12 @@ export default function EmotionLogScreen() {
         scrollEventThrottle={16}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: phase === 'context' ? fadeTotal + 8 : insets.bottom + 24 },
+          {
+            paddingBottom:
+              phase === 'context'
+                ? fadeTotal + 8
+                : insets.bottom + Math.round(SCREEN_HEIGHT * 0.55), // room to scroll the current turn to the top
+          },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -436,13 +472,22 @@ export default function EmotionLogScreen() {
           <>
             {contextSummary ? <Text style={styles.contextLine}>{contextSummary}</Text> : null}
 
-            <View style={styles.chatSection}>
+            <View
+              style={styles.chatSection}
+              onLayout={(e) => {
+                chatSectionY.current = e.nativeEvent.layout.y;
+              }}
+            >
               {chatMessages.map((msg, i) => (
                 <Text
                   key={i}
+                  onLayout={(e) => {
+                    messageYs.current[i] = e.nativeEvent.layout.y;
+                  }}
                   style={[
                     msg.role === 'ai' ? styles.aiMessageText : styles.userMessageText,
-                    i < lastUserIdx && msg.role === 'ai' && styles.fadedMessage, // only past AI fades
+                    // Past AI messages always fade; the current AI reply fades while typing.
+                    msg.role === 'ai' && (i < lastUserIdx || isTyping) && styles.fadedMessage,
                   ]}
                 >
                   {msg.text}
@@ -458,9 +503,7 @@ export default function EmotionLogScreen() {
                   placeholderTextColor="#666"
                   multiline
                   onFocus={() => {
-                    setTimeout(() => {
-                      (scrollViewRef.current as unknown as ScrollView)?.scrollToEnd({ animated: true });
-                    }, 300);
+                    setTimeout(scrollToFocus, 300);
                   }}
                 />
                 <TouchableOpacity
