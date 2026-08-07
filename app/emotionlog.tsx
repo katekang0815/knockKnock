@@ -107,11 +107,14 @@ function TagSection({ title, options, selected, onSelect, onAdd, accentColor }: 
           return (
             <TouchableOpacity
               key={option}
-              style={[styles.chip, isSelected && { backgroundColor: accentColor }]}
+              style={[
+                styles.chip,
+                isSelected && { backgroundColor: 'rgba(219,83,60,0.22)' },
+              ]}
               onPress={() => onSelect(option)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{option}</Text>
+              <Text style={[styles.chipText, isSelected && { color: accentColor }]}>{option}</Text>
             </TouchableOpacity>
           );
         })}
@@ -221,11 +224,13 @@ export default function EmotionLogScreen() {
     phaseRef.current = phase;
   }, [phase]);
 
-  // Bring the current turn (start of the latest exchange) to the top, leaving a
-  // small sliver of the previous (grayed) turn peeking above.
-  const REVEAL_PEEK = 44;
+  // Bring the newest message (the current AI reply) to the top, so only the
+  // current turn's response shows — the user's message and prior turns scroll up
+  // out of view (still reachable by dragging down). The ~12px gap sits inside the
+  // previous message's bottom margin, so no earlier text peeks through.
+  const REVEAL_PEEK = 12;
   const scrollToFocus = () => {
-    const anchor = chatMessages.reduce((acc, m, i) => (m.role === 'user' ? i : acc), 0);
+    const anchor = chatMessages.length - 1;
     const y = chatSectionY.current + (messageYs.current[anchor] ?? 0) - REVEAL_PEEK;
     scrollViewRef.current?.scrollTo({ y: Math.max(0, y), animated: true });
   };
@@ -435,34 +440,34 @@ export default function EmotionLogScreen() {
               title="What are you doing?"
               options={doingOptions}
               selected={selectedDoing}
-              onSelect={(item) => setSelectedDoing([item])}
+              onSelect={(item) => setSelectedDoing((prev) => (prev[0] === item ? [] : [item]))}
               onAdd={(item) => {
                 setDoingOptions((prev) => [...prev, item]);
                 setSelectedDoing([item]);
               }}
-              accentColor={accentColor}
+              accentColor={HOME_ACCENT}
             />
             <TagSection
               title="Who are you with?"
               options={withOptions}
               selected={selectedWith}
-              onSelect={(item) => setSelectedWith([item])}
+              onSelect={(item) => setSelectedWith((prev) => (prev[0] === item ? [] : [item]))}
               onAdd={(item) => {
                 setWithOptions((prev) => [...prev, item]);
                 setSelectedWith([item]);
               }}
-              accentColor={accentColor}
+              accentColor={HOME_ACCENT}
             />
             <TagSection
               title="Where are you?"
               options={whereOptions}
               selected={selectedWhere}
-              onSelect={(item) => setSelectedWhere([item])}
+              onSelect={(item) => setSelectedWhere((prev) => (prev[0] === item ? [] : [item]))}
               onAdd={(item) => {
                 setWhereOptions((prev) => [...prev, item]);
                 setSelectedWhere([item]);
               }}
-              accentColor={accentColor}
+              accentColor={HOME_ACCENT}
             />
           </>
         )}
