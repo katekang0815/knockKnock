@@ -65,7 +65,6 @@ const CAP_PAD = 26;          // total end padding added to the text length
 const PILL_ROUND = 12;       // pill corner rounding (rounded trapezoid)
 const SIDE_MARGIN = 10;      // min gap from the pills to the left/right screen edges
 const FAN_HALF = 120;        // pills span ±FAN_HALF around the point opposite the handle
-const DIAL_HALF = 180 - FAN_HALF - 3; // dialing allowed only within the open arc (gap), not under the pills
 const REVEAL_FADE = 0.3;     // per-pill fade window during the clockwise reveal
 
 // Handle angle (deg) at each section's center — pills fan on the OPPOSITE side.
@@ -309,17 +308,9 @@ export default function CheckInScreen() {
   // DIAL — only a deliberate circular DRAG rotates the wheel and reveals the list.
   const dialPan = Gesture.Pan()
     .minDistance(14)
-    .onBegin((e) => {
+    .onBegin(() => {
       panActive.value = 0;
-      let arc = startedSV.value === 0; // default (from home): grab anywhere
-      if (!arc) {
-        const handleA = (((dialAngle.value - 90) % 360) + 360) % 360;
-        const touchA = touchAngle(e.absoluteX, e.absoluteY);
-        let d = Math.abs(touchA - handleA) % 360;
-        if (d > 180) d = 360 - d;
-        arc = d <= DIAL_HALF;
-      }
-      canDial.value = arc ? 1 : 0;
+      canDial.value = 1; // dial from anywhere on the circle — a tap still navigates to a pill
     })
     .onUpdate((e) => {
       if (canDial.value === 0) return; // drag began outside the arc → ignore

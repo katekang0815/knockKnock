@@ -142,7 +142,7 @@ export async function sendChatMessage(
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 512,
+        max_tokens: 300, // backstop so replies stay short (prompt targets 3–4 sentences)
         system: buildSystemPrompt(context, recapBlock),
         messages: buildMessages(userMessage, history),
       }),

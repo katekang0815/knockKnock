@@ -15,7 +15,7 @@ import { HomeStar, HOME_ACCENT } from '@/components/EmotionShape';
 import BouncingOrb from '@/components/BouncingOrb';
 import VibratingOrb from '@/components/VibratingOrb';
 import RollingOrb from '@/components/RollingOrb';
-import { EMOTION_DATA, EmotionCategory } from '@/constants/emotions';
+import { EmotionCategory } from '@/constants/emotions';
 import { sendChatMessage } from '@/services/aiService';
 import { recordSession, extractVerse } from '@/services/beliefStore';
 
@@ -149,8 +149,6 @@ export default function EmotionLogScreen() {
   const { emotion, category } = useLocalSearchParams<{ emotion: string; category: string }>();
 
   const categoryKey = category as EmotionCategory;
-  const data = EMOTION_DATA[categoryKey];
-  const accentColor = data?.accentColor ?? '#FFFFFF';
 
   const scrollViewRef = useRef<Animated.ScrollView>(null);
   const scrollY = useSharedValue(0);
@@ -171,6 +169,18 @@ export default function EmotionLogScreen() {
     return () => sub.remove();
   }, []);
 
+  // Track keyboard visibility so the Complete button can hide behind the keyboard while typing.
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvt, () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener(hideEvt, () => setKeyboardVisible(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
   const [doingOptions, setDoingOptions] = useState(DOING_OPTIONS);
   const [withOptions, setWithOptions] = useState(WITH_OPTIONS);
   const [whereOptions, setWhereOptions] = useState(WHERE_OPTIONS);
@@ -178,9 +188,13 @@ export default function EmotionLogScreen() {
   const [selectedWith, setSelectedWith] = useState<string[]>([]);
   const [selectedWhere, setSelectedWhere] = useState<string[]>([]);
   const [chatInput, setChatInput] = useState('');
-  const [chatMessages, setChatMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([]);
+  const [chatMessages, setChatMessages] = useState<
+    { role: 'ai' | 'user'; text: string; kind?: 'prayer' | 'verse' }[]
+  >([]);
   const [aiOpenerSent, setAiOpenerSent] = useState(false);
   const [phase, setPhase] = useState<'context' | 'chat'>('context');
+  const [sending, setSending] = useState(false); // a chat/prayer/verse request is in flight
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   // Context summary from whatever the user selected (may be partial or empty).
   const contextSummary = [selectedDoing[0], selectedWith[0], selectedWhere[0]]
@@ -191,6 +205,11 @@ export default function EmotionLogScreen() {
   const lastUserIdx = chatMessages.reduce((acc, m, i) => (m.role === 'user' ? i : acc), 0);
   // While the user is composing, the current AI reply grays out too.
   const isTyping = chatInput.trim().length > 0;
+  // Show "Tap to pray" / "Look for verses" from the 2nd AI response onward
+  // (i.e. once the user has replied at least once), when the AI has just spoken.
+  const chatUserTurns = chatMessages.filter((m) => m.role === 'user').length;
+  const lastMsg = chatMessages[chatMessages.length - 1];
+  const showOptions = phase === 'chat' && chatUserTurns >= 1 && lastMsg?.role === 'ai' && !sending;
 
   // Start the AI chat when entering the chat phase — regardless of whether any
   // context tags were selected.
@@ -248,23 +267,61 @@ export default function EmotionLogScreen() {
     setTimeout(() => scrollViewRef.current?.scrollTo({ y: 0, animated: false }), 0);
   };
 
+  const chatContext = {
+    emotion: emotion ?? '',
+    category: category ?? '',
+    doing: selectedDoing[0],
+    withWhom: selectedWith[0],
+    where: selectedWhere[0],
+  };
+
   const handleSendChat = async () => {
     const trimmed = chatInput.trim();
-    if (!trimmed) return;
+    if (!trimmed || sending) return;
 
-    const updatedMessages = [...chatMessages, { role: 'user' as const, text: trimmed }];
-    setChatMessages(updatedMessages);
+    setChatMessages((prev) => [...prev, { role: 'user', text: trimmed }]);
     setChatInput('');
+    setSending(true);
 
-    const response = await sendChatMessage(trimmed, chatMessages, {
-      emotion: emotion ?? '',
-      category: category ?? '',
-      doing: selectedDoing[0],
-      withWhom: selectedWith[0],
-      where: selectedWhere[0],
-    });
-
+    const response = await sendChatMessage(trimmed, chatMessages, chatContext);
     setChatMessages((prev) => [...prev, { role: 'ai', text: sanitizeAI(response) }]);
+    setSending(false);
+  };
+
+  // "Tap to pray" / "Look for verses" — a hidden instruction to the AI; only the
+  // AI's response is shown (no user bubble), and it doesn't consume a chat turn.
+  const askAI = async (instruction: string, kind: 'prayer' | 'verse') => {
+    if (sending) return;
+    setSending(true);
+    const response = await sendChatMessage(instruction, chatMessages, chatContext);
+    setChatMessages((prev) => [...prev, { role: 'ai', text: sanitizeAI(response), kind }]);
+    setSending(false);
+  };
+  const onPray = () =>
+    askAI(
+      "The user tapped the pray button. Write a short, personal, first-person prayer for what they're going through right now — warm and conversational, 2 to 4 sentences, with no preamble or commentary.",
+      'prayer',
+    );
+
+  // The verse comes back as two parts (verse, then reflection) separated by a
+  // blank line — shown as a boxed verse plus a separate reflection message.
+  const onVerse = async () => {
+    if (sending) return;
+    setSending(true);
+    const raw = await sendChatMessage(
+      "The user tapped the verses button. Reply in exactly two parts separated by a line containing only ###. PART 1: the Bible verse — its reference (e.g. Ecclesiastes 3:11) followed by the full verse text, kept together. PART 2: a warm 1 to 2 sentence reflection connecting the verse to what they're feeling. Put nothing else outside these two parts.",
+      chatMessages,
+      chatContext,
+    );
+    const [rawVerse, ...rest] = raw.split(/#{3,}/);
+    const verseText = sanitizeAI(rawVerse ?? raw);
+    const reflection = rest.length ? sanitizeAI(rest.join(' ')) : '';
+    setChatMessages((prev) => {
+      const next = [...prev, { role: 'ai' as const, text: verseText, kind: 'verse' as const }];
+      if (reflection) next.push({ role: 'ai' as const, text: reflection });
+      return next;
+    });
+    setSending(false);
   };
 
   const scrollHandler = useAnimatedScrollHandler({
@@ -411,6 +468,7 @@ export default function EmotionLogScreen() {
       {/* Scrollable content */}
       <Animated.ScrollView
         ref={scrollViewRef}
+        style={styles.scroll}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         contentContainerStyle={[
@@ -483,63 +541,95 @@ export default function EmotionLogScreen() {
                 chatSectionY.current = e.nativeEvent.layout.y;
               }}
             >
-              {chatMessages.map((msg, i) => (
-                <Text
-                  key={i}
-                  onLayout={(e) => {
-                    messageYs.current[i] = e.nativeEvent.layout.y;
-                  }}
-                  style={[
-                    msg.role === 'ai' ? styles.aiMessageText : styles.userMessageText,
-                    // Past AI messages always fade; the current AI reply fades while typing.
-                    msg.role === 'ai' && (i < lastUserIdx || isTyping) && styles.fadedMessage,
-                  ]}
-                >
-                  {msg.text}
-                </Text>
-              ))}
+              {chatMessages.map((msg, i) => {
+                // Past AI messages always fade; the current AI reply fades while typing.
+                const faded = msg.role === 'ai' && (i < lastUserIdx || isTyping);
 
-              <View style={styles.chatInputRow}>
-                <TextInput
-                  style={styles.chatInput}
-                  value={chatInput}
-                  onChangeText={setChatInput}
-                  placeholder="Write"
-                  placeholderTextColor="#666"
-                  multiline
-                  onFocus={() => {
-                    setTimeout(scrollToFocus, 300);
-                  }}
-                />
-                <TouchableOpacity
-                  style={[
-                    styles.sendButton,
-                    { backgroundColor: chatInput.trim() ? accentColor : '#444444' },
-                  ]}
-                  onPress={handleSendChat}
-                  activeOpacity={0.7}
-                  disabled={!chatInput.trim()}
-                >
-                  <Text style={[
-                    styles.sendButtonText,
-                    { color: chatInput.trim() ? '#000000' : '#888888' },
-                  ]}>↑</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+                // Prayers and verses get a bordered, grayed box to set them apart.
+                if (msg.kind === 'prayer' || msg.kind === 'verse') {
+                  return (
+                    <View
+                      key={i}
+                      style={styles.verseBox}
+                      onLayout={(e) => {
+                        messageYs.current[i] = e.nativeEvent.layout.y;
+                      }}
+                    >
+                      <Text style={[styles.aiMessageText, styles.boxedText, faded && styles.fadedMessage]}>
+                        {msg.text}
+                      </Text>
+                    </View>
+                  );
+                }
 
-            <View style={styles.completeSection}>
-              <TouchableOpacity
-                style={styles.completeButton}
-                onPress={handleComplete}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.completeText}>Complete check-in</Text>
-              </TouchableOpacity>
+                return (
+                  <Text
+                    key={i}
+                    onLayout={(e) => {
+                      messageYs.current[i] = e.nativeEvent.layout.y;
+                    }}
+                    style={[
+                      msg.role === 'ai' ? styles.aiMessageText : styles.userMessageText,
+                      faded && styles.fadedMessage,
+                    ]}
+                  >
+                    {msg.text}
+                  </Text>
+                );
+              })}
+
+              {showOptions && (
+                <View style={styles.optionRow}>
+                  <TouchableOpacity style={styles.optionPill} onPress={onPray} activeOpacity={0.8}>
+                    <Text style={styles.optionText}>Tap to pray</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.optionPill} onPress={onVerse} activeOpacity={0.8}>
+                    <Text style={styles.optionText}>Look for verses</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </>
         )}
       </Animated.ScrollView>
+
+      {/* Chat phase: input + Complete pinned at the bottom, above the keyboard */}
+      {phase === 'chat' && (
+        <View style={[styles.chatBottomBar, { paddingBottom: insets.bottom + 10 }]}>
+          <View style={styles.chatInputRow}>
+            <TextInput
+              style={styles.chatInput}
+              value={chatInput}
+              onChangeText={setChatInput}
+              placeholder="Write"
+              placeholderTextColor="#666"
+              multiline
+              onFocus={() => setTimeout(scrollToFocus, 300)}
+            />
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                { backgroundColor: chatInput.trim() ? HOME_ACCENT : '#444444' },
+              ]}
+              onPress={handleSendChat}
+              activeOpacity={0.7}
+              disabled={!chatInput.trim()}
+            >
+              <Text style={[styles.sendButtonText, { color: chatInput.trim() ? '#000000' : '#888888' }]}>↑</Text>
+            </TouchableOpacity>
+          </View>
+
+          {!keyboardVisible && (
+            <TouchableOpacity
+              style={[styles.completeButton, styles.completeInBar]}
+              onPress={handleComplete}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.completeText}>Complete check-in</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* Context phase: bottom fade + "next" pill bar (→ starts the AI chat) */}
       {phase === 'context' && (
@@ -558,8 +648,8 @@ export default function EmotionLogScreen() {
           </View>
 
           <View style={[styles.nextBarWrap, { bottom: insets.bottom + 12 }]}>
-            <View style={styles.nextBar}>
-              <TouchableOpacity style={styles.nextButton} onPress={goToChat} activeOpacity={0.85}>
+            <TouchableOpacity style={styles.nextBar} onPress={goToChat} activeOpacity={0.85}>
+              <View style={styles.nextButton}>
                 <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
                   <Path
                     d="M5 12h14M13 6l6 6-6 6"
@@ -569,8 +659,8 @@ export default function EmotionLogScreen() {
                     strokeLinejoin="round"
                   />
                 </Svg>
-              </TouchableOpacity>
-            </View>
+              </View>
+            </TouchableOpacity>
           </View>
         </>
       )}
@@ -582,6 +672,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  scroll: {
+    flex: 1,
   },
   header: {
     backgroundColor: '#000000',
@@ -721,6 +814,18 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 18,
   },
+  verseBox: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: '#161616', // opaque dark panel, distinct from the chat flow
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 18,
+  },
+  boxedText: {
+    marginBottom: 0, // the box provides the spacing
+  },
   userMessageText: {
     color: '#E6C79E', // soft faded amber
     fontSize: 16,
@@ -730,6 +835,26 @@ const styles = StyleSheet.create({
   },
   fadedMessage: {
     color: '#6E6E6E', // past AI responses gray out (matches the context line)
+  },
+  optionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+    marginBottom: 24,
+  },
+  optionPill: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 28,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontFamily: 'Jost_700Bold',
   },
   chatInputRow: {
     flexDirection: 'row',
@@ -772,6 +897,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Jost_700Bold',
     letterSpacing: 1,
+  },
+  chatBottomBar: {
+    backgroundColor: '#000000',
+    paddingHorizontal: 24,
+    paddingTop: 8,
+  },
+  completeInBar: {
+    marginTop: 28,
   },
   bottomFade: {
     position: 'absolute',
