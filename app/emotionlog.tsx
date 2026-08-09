@@ -309,13 +309,15 @@ export default function EmotionLogScreen() {
     if (sending) return;
     setSending(true);
     const raw = await sendChatMessage(
-      "The user tapped the verses button. Reply in exactly two parts separated by a line containing only ###. PART 1: the Bible verse — its reference (e.g. Ecclesiastes 3:11) followed by the full verse text, kept together. PART 2: a warm 1 to 2 sentence reflection connecting the verse to what they're feeling. Put nothing else outside these two parts.",
+      "The user tapped the verses button. Reply in two parts. PART 1: the Bible verse — its reference (e.g. Ecclesiastes 3:11) and the full verse text, kept together with NO blank line between them. Then ONE blank line. PART 2: a warm 1 to 2 sentence reflection connecting the verse to what they're feeling. Add nothing else.",
       chatMessages,
       chatContext,
     );
-    const [rawVerse, ...rest] = raw.split(/#{3,}/);
-    const verseText = sanitizeAI(rawVerse ?? raw);
-    const reflection = rest.length ? sanitizeAI(rest.join(' ')) : '';
+    // The verse block (reference + text) is PART 1; the reflection is separated by
+    // a blank line (or a ### marker). Keep reference + verse together in the card.
+    const parts = raw.includes('###') ? raw.split(/#{3,}/) : raw.split(/\n\s*\n/);
+    const verseText = sanitizeAI(parts[0] ?? raw);
+    const reflection = parts.length > 1 ? sanitizeAI(parts.slice(1).join(' ')) : '';
     setChatMessages((prev) => {
       const next = [...prev, { role: 'ai' as const, text: verseText, kind: 'verse' as const }];
       if (reflection) next.push({ role: 'ai' as const, text: reflection });
