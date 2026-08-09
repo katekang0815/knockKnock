@@ -196,9 +196,10 @@ export default function EmotionLogScreen() {
   const [phase, setPhase] = useState<'context' | 'chat'>('context');
   const [sending, setSending] = useState(false); // a chat/prayer/verse request is in flight
   const [keyboardVisible, setKeyboardVisible] = useState(false);
-  // After max turns, each button may be used once independently, then grays out.
-  const [versePostMaxUsed, setVersePostMaxUsed] = useState(false);
-  const [prayerPostMaxUsed, setPrayerPostMaxUsed] = useState(false);
+  // Each button may be used once per session (verse and prayer independently).
+  // Once used it disappears; the chat itself stays open until max turns.
+  const [verseUsed, setVerseUsed] = useState(false);
+  const [prayerUsed, setPrayerUsed] = useState(false);
 
   // Context summary from whatever the user selected (may be partial or empty).
   const contextSummary = [selectedDoing[0], selectedWith[0], selectedWhere[0]]
@@ -215,10 +216,10 @@ export default function EmotionLogScreen() {
   const lastMsg = chatMessages[chatMessages.length - 1];
   // After max turns each button is single-use; the used one grays out, the other stays live.
   const atMaxTurns = chatUserTurns >= MAX_CHAT_TURNS;
-  const verseDisabled = atMaxTurns && versePostMaxUsed;
-  const prayDisabled = atMaxTurns && prayerPostMaxUsed;
+  const verseDisabled = verseUsed;
+  const prayDisabled = prayerUsed;
   // Once both have been used after max turns, remove the row entirely.
-  const bothOptionsUsed = atMaxTurns && versePostMaxUsed && prayerPostMaxUsed;
+  const bothOptionsUsed = verseUsed && prayerUsed;
   // Show the pray/verse pills from the SUGGEST stage on (after the 2nd user message).
   const showOptions =
     phase === 'chat' && chatUserTurns >= 2 && lastMsg?.role === 'ai' && !sending && !bothOptionsUsed;
@@ -321,12 +322,11 @@ export default function EmotionLogScreen() {
   // AI's response is shown (no user bubble), and it doesn't consume a chat turn.
   const askAI = async (instruction: string, kind: 'prayer' | 'verse') => {
     if (sending) return;
-    const atMax = chatMessages.filter((m) => m.role === 'user').length >= MAX_CHAT_TURNS;
-    if (atMax && (kind === 'prayer' ? prayerPostMaxUsed : versePostMaxUsed)) return;
+    if (kind === 'prayer' ? prayerUsed : verseUsed) return; // single use per session
     setSending(true);
     const response = await sendChatMessage(instruction, chatMessages, chatContext, 150, false);
     setChatMessages((prev) => [...prev, { role: 'ai', text: sanitizeAI(response), kind }]);
-    if (atMax) (kind === 'prayer' ? setPrayerPostMaxUsed : setVersePostMaxUsed)(true);
+    (kind === 'prayer' ? setPrayerUsed : setVerseUsed)(true);
     setSending(false);
   };
   const onPray = () =>
@@ -339,8 +339,7 @@ export default function EmotionLogScreen() {
   // blank line — shown as a boxed verse card plus a separate reflection message.
   const onVerse = async () => {
     if (sending) return;
-    const atMax = chatMessages.filter((m) => m.role === 'user').length >= MAX_CHAT_TURNS;
-    if (atMax && versePostMaxUsed) return;
+    if (verseUsed) return; // single use per session
     setSending(true);
     const raw = await sendChatMessage(
       "The user tapped the verses button. Reply in two parts. PART 1: the Bible verse — its reference (e.g. Ecclesiastes 3:11) and the full verse text, kept together with NO blank line between them. Then ONE blank line. PART 2: a warm 1 to 2 sentence reflection connecting the verse to what they're feeling. Add nothing else.",
@@ -359,7 +358,7 @@ export default function EmotionLogScreen() {
       if (reflection) next.push({ role: 'ai' as const, text: reflection });
       return next;
     });
-    if (atMax) setVersePostMaxUsed(true);
+    setVerseUsed(true);
     setSending(false);
   };
 
