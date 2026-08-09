@@ -262,7 +262,12 @@ export default function EmotionLogScreen() {
   // previous message's bottom margin, so no earlier text peeks through.
   const REVEAL_PEEK = 12;
   const scrollToFocus = () => {
-    const anchor = chatMessages.length - 1;
+    let anchor = chatMessages.length - 1;
+    // If the newest message is the reflection that follows a verse card, anchor to
+    // the verse card instead so the card AND its reflection are shown together.
+    if (anchor > 0 && !chatMessages[anchor]?.kind && chatMessages[anchor - 1]?.kind === 'verse') {
+      anchor -= 1;
+    }
     const y = chatSectionY.current + (messageYs.current[anchor] ?? 0) - REVEAL_PEEK;
     scrollViewRef.current?.scrollTo({ y: Math.max(0, y), animated: true });
   };
@@ -331,7 +336,7 @@ export default function EmotionLogScreen() {
     );
 
   // The verse comes back as two parts (verse, then reflection) separated by a
-  // blank line — shown as a boxed verse plus a separate reflection message.
+  // blank line — shown as a boxed verse card plus a separate reflection message.
   const onVerse = async () => {
     if (sending) return;
     const atMax = chatMessages.filter((m) => m.role === 'user').length >= MAX_CHAT_TURNS;
@@ -344,8 +349,8 @@ export default function EmotionLogScreen() {
       280, // room for the full verse text + reflection
       false, // buttons work past the turn limit
     );
-    // The verse block (reference + text) is PART 1; the reflection is separated by
-    // a blank line (or a ### marker). Keep reference + verse together in the card.
+    // PART 1 (reference + verse text) stays in the boxed card; PART 2 (reflection),
+    // separated by a blank line or ### marker, becomes a plain message below.
     const parts = raw.includes('###') ? raw.split(/#{3,}/) : raw.split(/\n\s*\n/);
     const verseText = sanitizeAI(parts[0] ?? raw);
     const reflection = parts.length > 1 ? sanitizeAI(parts.slice(1).join(' ')) : '';
@@ -452,28 +457,31 @@ export default function EmotionLogScreen() {
   // last message, so the user can hit Complete without a long empty gap.
   const chatControls = (
     <>
-      <View style={styles.chatInputRow}>
-        <TextInput
-          style={styles.chatInput}
-          value={chatInput}
-          onChangeText={setChatInput}
-          placeholder="Write"
-          placeholderTextColor="#666"
-          multiline
-          onFocus={() => setTimeout(scrollToFocus, 300)}
-        />
-        <TouchableOpacity
-          style={[
-            styles.sendButton,
-            { backgroundColor: chatInput.trim() ? HOME_ACCENT : '#444444' },
-          ]}
-          onPress={handleSendChat}
-          activeOpacity={0.7}
-          disabled={!chatInput.trim()}
-        >
-          <Text style={[styles.sendButtonText, { color: chatInput.trim() ? '#000000' : '#888888' }]}>↑</Text>
-        </TouchableOpacity>
-      </View>
+      {/* At max turns the input field is removed to enforce finishing the chat. */}
+      {!atMaxTurns && (
+        <View style={styles.chatInputRow}>
+          <TextInput
+            style={styles.chatInput}
+            value={chatInput}
+            onChangeText={setChatInput}
+            placeholder="Write"
+            placeholderTextColor="#666"
+            multiline
+            onFocus={() => setTimeout(scrollToFocus, 300)}
+          />
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              { backgroundColor: chatInput.trim() ? HOME_ACCENT : '#444444' },
+            ]}
+            onPress={handleSendChat}
+            activeOpacity={0.7}
+            disabled={!chatInput.trim()}
+          >
+            <Text style={[styles.sendButtonText, { color: chatInput.trim() ? '#000000' : '#888888' }]}>↑</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {!keyboardVisible && (
         <TouchableOpacity
