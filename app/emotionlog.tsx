@@ -312,6 +312,7 @@ export default function EmotionLogScreen() {
       "The user tapped the verses button. Reply in two parts. PART 1: the Bible verse — its reference (e.g. Ecclesiastes 3:11) and the full verse text, kept together with NO blank line between them. Then ONE blank line. PART 2: a warm 1 to 2 sentence reflection connecting the verse to what they're feeling. Add nothing else.",
       chatMessages,
       chatContext,
+      280, // room for the full verse text + reflection
     );
     // The verse block (reference + text) is PART 1; the reflection is separated by
     // a blank line (or a ### marker). Keep reference + verse together in the card.

@@ -102,6 +102,7 @@ export async function sendChatMessage(
   userMessage: string,
   history: ChatMessage[],
   context: ChatContext,
+  maxTokens: number = 150, // short by default (chat/opener/prayer); verses pass a larger value
 ): Promise<string> {
   // Safety check — return safety response immediately if crisis detected
   if (containsSafetyKeywords(userMessage)) {
@@ -142,7 +143,7 @@ export async function sendChatMessage(
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 300, // backstop so replies stay short (prompt targets 3–4 sentences)
+        max_tokens: maxTokens,
         system: buildSystemPrompt(context, recapBlock),
         messages: buildMessages(userMessage, history),
       }),
