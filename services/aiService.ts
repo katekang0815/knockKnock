@@ -59,7 +59,7 @@ function buildRecapBlock(recaps: SessionRecord[]): string {
 /**
  * Build the system prompt with user context and recent-days memory injected.
  */
-function buildSystemPrompt(context: ChatContext, recapBlock: string): string {
+function buildSystemPrompt(context: ChatContext, recapBlock: string, stageHint: string): string {
   return (
     SYSTEM_PROMPT +
     recapBlock +
@@ -68,7 +68,8 @@ function buildSystemPrompt(context: ChatContext, recapBlock: string): string {
     `- Category: ${context.category}\n` +
     (context.doing ? `- Currently doing: ${context.doing}\n` : '') +
     (context.withWhom ? `- With: ${context.withWhom}\n` : '') +
-    (context.where ? `- Location: ${context.where}\n` : '')
+    (context.where ? `- Location: ${context.where}\n` : '') +
+    stageHint
   );
 }
 
@@ -103,6 +104,8 @@ export async function sendChatMessage(
   history: ChatMessage[],
   context: ChatContext,
   maxTokens: number = 150, // short by default (chat/opener/prayer); verses pass a larger value
+  enforceTurnLimit: boolean = true, // false for prayer/verse buttons so they work past the limit
+  stageHint: string = '', // per-turn stage directive (LISTEN vs SUGGEST); '' for prayer/verse
 ): Promise<string> {
   // Safety check — return safety response immediately if crisis detected
   if (containsSafetyKeywords(userMessage)) {
@@ -111,7 +114,7 @@ export async function sendChatMessage(
 
   // Check turn limit
   const userTurns = history.filter((m) => m.role === 'user').length;
-  if (userTurns >= MAX_CHAT_TURNS) {
+  if (enforceTurnLimit && userTurns >= MAX_CHAT_TURNS) {
     return "We've had a really meaningful conversation. I'd encourage you to take a moment to reflect on what we talked about. You can always start a new check-in whenever you need to. You're doing great.";
   }
 
@@ -144,7 +147,7 @@ export async function sendChatMessage(
       body: JSON.stringify({
         model: MODEL,
         max_tokens: maxTokens,
-        system: buildSystemPrompt(context, recapBlock),
+        system: buildSystemPrompt(context, recapBlock, stageHint),
         messages: buildMessages(userMessage, history),
       }),
       signal: controller.signal,

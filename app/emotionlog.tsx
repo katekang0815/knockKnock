@@ -18,6 +18,7 @@ import RollingOrb from '@/components/RollingOrb';
 import { EmotionCategory } from '@/constants/emotions';
 import { sendChatMessage } from '@/services/aiService';
 import { recordSession, extractVerse } from '@/services/beliefStore';
+import { MAX_CHAT_TURNS, STAGE_LISTEN, STAGE_SUGGEST, STAGE_WRAP } from '@/constants/aiPrompt';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -195,6 +196,9 @@ export default function EmotionLogScreen() {
   const [phase, setPhase] = useState<'context' | 'chat'>('context');
   const [sending, setSending] = useState(false); // a chat/prayer/verse request is in flight
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  // After max turns, each button may be used once independently, then grays out.
+  const [versePostMaxUsed, setVersePostMaxUsed] = useState(false);
+  const [prayerPostMaxUsed, setPrayerPostMaxUsed] = useState(false);
 
   // Context summary from whatever the user selected (may be partial or empty).
   const contextSummary = [selectedDoing[0], selectedWith[0], selectedWhere[0]]
@@ -209,7 +213,15 @@ export default function EmotionLogScreen() {
   // (i.e. once the user has replied at least once), when the AI has just spoken.
   const chatUserTurns = chatMessages.filter((m) => m.role === 'user').length;
   const lastMsg = chatMessages[chatMessages.length - 1];
-  const showOptions = phase === 'chat' && chatUserTurns >= 1 && lastMsg?.role === 'ai' && !sending;
+  // After max turns each button is single-use; the used one grays out, the other stays live.
+  const atMaxTurns = chatUserTurns >= MAX_CHAT_TURNS;
+  const verseDisabled = atMaxTurns && versePostMaxUsed;
+  const prayDisabled = atMaxTurns && prayerPostMaxUsed;
+  // Once both have been used after max turns, remove the row entirely.
+  const bothOptionsUsed = atMaxTurns && versePostMaxUsed && prayerPostMaxUsed;
+  // Show the pray/verse pills from the SUGGEST stage on (after the 2nd user message).
+  const showOptions =
+    phase === 'chat' && chatUserTurns >= 2 && lastMsg?.role === 'ai' && !sending && !bothOptionsUsed;
 
   // Start the AI chat when entering the chat phase — regardless of whether any
   // context tags were selected.
@@ -227,13 +239,14 @@ export default function EmotionLogScreen() {
     const ctx = parts.length ? ' ' + parts.join(' ') : '';
     const openingPrompt = `The user just checked in feeling ${emotion?.toLowerCase()}${ctx}. Generate a warm, contextual opening message that acknowledges how they're feeling and asks a gentle follow-up question.`;
 
-    sendChatMessage(openingPrompt, [], {
-      emotion: emotion ?? '',
-      category: category ?? '',
-      doing,
-      withWhom,
-      where,
-    }).then((response) => {
+    sendChatMessage(
+      openingPrompt,
+      [],
+      { emotion: emotion ?? '', category: category ?? '', doing, withWhom, where },
+      150,
+      true,
+      STAGE_LISTEN,
+    ).then((response) => {
       setChatMessages([{ role: 'ai', text: sanitizeAI(response) }]);
     });
   }, [phase]);
@@ -283,7 +296,18 @@ export default function EmotionLogScreen() {
     setChatInput('');
     setSending(true);
 
-    const response = await sendChatMessage(trimmed, chatMessages, chatContext);
+    // Deterministic arc: LISTEN for the first user message, SUGGEST from the second on.
+    // Deterministic arc: msg 1 = LISTEN, middle msgs = SUGGEST, final msg = WRAP
+    // (a close-out that nudges them to tap "Look for verses" or "Tap to pray").
+    const userMsgNumber = chatMessages.filter((m) => m.role === 'user').length + 1;
+    const stage =
+      userMsgNumber <= 1
+        ? STAGE_LISTEN
+        : userMsgNumber >= MAX_CHAT_TURNS
+          ? STAGE_WRAP
+          : STAGE_SUGGEST;
+
+    const response = await sendChatMessage(trimmed, chatMessages, chatContext, 150, true, stage);
     setChatMessages((prev) => [...prev, { role: 'ai', text: sanitizeAI(response) }]);
     setSending(false);
   };
@@ -292,9 +316,12 @@ export default function EmotionLogScreen() {
   // AI's response is shown (no user bubble), and it doesn't consume a chat turn.
   const askAI = async (instruction: string, kind: 'prayer' | 'verse') => {
     if (sending) return;
+    const atMax = chatMessages.filter((m) => m.role === 'user').length >= MAX_CHAT_TURNS;
+    if (atMax && (kind === 'prayer' ? prayerPostMaxUsed : versePostMaxUsed)) return;
     setSending(true);
-    const response = await sendChatMessage(instruction, chatMessages, chatContext);
+    const response = await sendChatMessage(instruction, chatMessages, chatContext, 150, false);
     setChatMessages((prev) => [...prev, { role: 'ai', text: sanitizeAI(response), kind }]);
+    if (atMax) (kind === 'prayer' ? setPrayerPostMaxUsed : setVersePostMaxUsed)(true);
     setSending(false);
   };
   const onPray = () =>
@@ -307,12 +334,15 @@ export default function EmotionLogScreen() {
   // blank line — shown as a boxed verse plus a separate reflection message.
   const onVerse = async () => {
     if (sending) return;
+    const atMax = chatMessages.filter((m) => m.role === 'user').length >= MAX_CHAT_TURNS;
+    if (atMax && versePostMaxUsed) return;
     setSending(true);
     const raw = await sendChatMessage(
       "The user tapped the verses button. Reply in two parts. PART 1: the Bible verse — its reference (e.g. Ecclesiastes 3:11) and the full verse text, kept together with NO blank line between them. Then ONE blank line. PART 2: a warm 1 to 2 sentence reflection connecting the verse to what they're feeling. Add nothing else.",
       chatMessages,
       chatContext,
       280, // room for the full verse text + reflection
+      false, // buttons work past the turn limit
     );
     // The verse block (reference + text) is PART 1; the reflection is separated by
     // a blank line (or a ### marker). Keep reference + verse together in the card.
@@ -324,6 +354,7 @@ export default function EmotionLogScreen() {
       if (reflection) next.push({ role: 'ai' as const, text: reflection });
       return next;
     });
+    if (atMax) setVersePostMaxUsed(true);
     setSending(false);
   };
 
@@ -415,6 +446,46 @@ export default function EmotionLogScreen() {
   const fadeGrad = 110; // transparent → black region above the pill
   const fadeTotal = insets.bottom + NEXT_BAR_H + 24 + fadeGrad;
   const fadeBlackAt = fadeGrad / fadeTotal;
+
+  // Input field + Complete button. Before max turns it's pinned at the bottom of the
+  // screen; once max turns is reached it moves up into the scroll, right below the
+  // last message, so the user can hit Complete without a long empty gap.
+  const chatControls = (
+    <>
+      <View style={styles.chatInputRow}>
+        <TextInput
+          style={styles.chatInput}
+          value={chatInput}
+          onChangeText={setChatInput}
+          placeholder="Write"
+          placeholderTextColor="#666"
+          multiline
+          onFocus={() => setTimeout(scrollToFocus, 300)}
+        />
+        <TouchableOpacity
+          style={[
+            styles.sendButton,
+            { backgroundColor: chatInput.trim() ? HOME_ACCENT : '#444444' },
+          ]}
+          onPress={handleSendChat}
+          activeOpacity={0.7}
+          disabled={!chatInput.trim()}
+        >
+          <Text style={[styles.sendButtonText, { color: chatInput.trim() ? '#000000' : '#888888' }]}>↑</Text>
+        </TouchableOpacity>
+      </View>
+
+      {!keyboardVisible && (
+        <TouchableOpacity
+          style={[styles.completeButton, styles.completeInBar]}
+          onPress={handleComplete}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.completeText}>Complete check-in</Text>
+        </TouchableOpacity>
+      )}
+    </>
+  );
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -583,54 +654,36 @@ export default function EmotionLogScreen() {
 
               {showOptions && (
                 <View style={styles.optionRow}>
-                  <TouchableOpacity style={styles.optionPill} onPress={onPray} activeOpacity={0.8}>
-                    <Text style={styles.optionText}>Tap to pray</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.optionPill} onPress={onVerse} activeOpacity={0.8}>
+                  <TouchableOpacity
+                    style={[styles.optionPill, verseDisabled && styles.optionPillHidden]}
+                    onPress={onVerse}
+                    disabled={verseDisabled}
+                    activeOpacity={0.8}
+                  >
                     <Text style={styles.optionText}>Look for verses</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.optionPill, prayDisabled && styles.optionPillHidden]}
+                    onPress={onPray}
+                    disabled={prayDisabled}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.optionText}>Tap to pray</Text>
                   </TouchableOpacity>
                 </View>
               )}
+
+              {/* At max turns the controls move up here, right below the last message. */}
+              {atMaxTurns && <View style={styles.inScrollControls}>{chatControls}</View>}
             </View>
           </>
         )}
       </Animated.ScrollView>
 
-      {/* Chat phase: input + Complete pinned at the bottom, above the keyboard */}
-      {phase === 'chat' && (
+      {/* Chat phase (before max turns): input + Complete pinned at the bottom, above the keyboard */}
+      {phase === 'chat' && !atMaxTurns && (
         <View style={[styles.chatBottomBar, { paddingBottom: insets.bottom + 10 }]}>
-          <View style={styles.chatInputRow}>
-            <TextInput
-              style={styles.chatInput}
-              value={chatInput}
-              onChangeText={setChatInput}
-              placeholder="Write"
-              placeholderTextColor="#666"
-              multiline
-              onFocus={() => setTimeout(scrollToFocus, 300)}
-            />
-            <TouchableOpacity
-              style={[
-                styles.sendButton,
-                { backgroundColor: chatInput.trim() ? HOME_ACCENT : '#444444' },
-              ]}
-              onPress={handleSendChat}
-              activeOpacity={0.7}
-              disabled={!chatInput.trim()}
-            >
-              <Text style={[styles.sendButtonText, { color: chatInput.trim() ? '#000000' : '#888888' }]}>↑</Text>
-            </TouchableOpacity>
-          </View>
-
-          {!keyboardVisible && (
-            <TouchableOpacity
-              style={[styles.completeButton, styles.completeInBar]}
-              onPress={handleComplete}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.completeText}>Complete check-in</Text>
-            </TouchableOpacity>
-          )}
+          {chatControls}
         </View>
       )}
 
@@ -859,6 +912,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: 'Jost_700Bold',
   },
+  optionPillHidden: {
+    opacity: 0, // used button becomes invisible but keeps its space (other stays in place)
+  },
   chatInputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -908,6 +964,9 @@ const styles = StyleSheet.create({
   },
   completeInBar: {
     marginTop: 28,
+  },
+  inScrollControls: {
+    marginTop: 28, // space between the last message and the moved-up input/Complete
   },
   bottomFade: {
     position: 'absolute',
