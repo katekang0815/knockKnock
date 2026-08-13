@@ -18,6 +18,7 @@ import RollingOrb from '@/components/RollingOrb';
 import { EmotionCategory } from '@/constants/emotions';
 import { sendChatMessage } from '@/services/aiService';
 import { recordSession, extractVerse } from '@/services/beliefStore';
+import { generateId } from '@/services/deviceId';
 import { MAX_CHAT_TURNS, STAGE_LISTEN, STAGE_SUGGEST, STAGE_WRAP } from '@/constants/aiPrompt';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -188,6 +189,8 @@ export default function EmotionLogScreen() {
   const [selectedDoing, setSelectedDoing] = useState<string[]>([]);
   const [selectedWith, setSelectedWith] = useState<string[]>([]);
   const [selectedWhere, setSelectedWhere] = useState<string[]>([]);
+  // One session id per check-in (this screen mount) — used by the AI proxy's cap.
+  const [sessionId] = useState(generateId);
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<
     { role: 'ai' | 'user'; text: string; kind?: 'prayer' | 'verse' }[]
@@ -292,6 +295,7 @@ export default function EmotionLogScreen() {
     doing: selectedDoing[0],
     withWhom: selectedWith[0],
     where: selectedWhere[0],
+    sessionId, // one id per check-in, for the proxy's per-device check-in cap
   };
 
   const handleSendChat = async () => {

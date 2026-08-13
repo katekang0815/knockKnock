@@ -6,6 +6,7 @@ import {
   MAX_CHAT_TURNS,
 } from '@/constants/aiPrompt';
 import { getRecentSessions } from '@/services/beliefStore';
+import { getDeviceId } from '@/services/deviceId';
 import type { SessionRecord } from '@/types/belief';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -21,11 +22,20 @@ export interface ChatContext {
   doing?: string;
   withWhom?: string;
   where?: string;
+  sessionId?: string; // one per check-in; used by the proxy to count check-ins/device
 }
 
 const API_URL = 'https://api.anthropic.com/v1/messages';
+// When set, all AI calls go through our Cloudflare Worker proxy (which holds the
+// API key and enforces rate limits) instead of hitting Anthropic directly.
+const PROXY_URL = process.env.EXPO_PUBLIC_AI_PROXY_URL;
 const MODEL = 'claude-haiku-4-5-20251001';
 const API_TIMEOUT = 15000; // 15 seconds
+
+// Shown when the proxy rate-limits the request (per-device or global daily cap).
+const RATE_LIMIT_RESPONSE =
+  "A lot of people are reflecting right now — give it a little while and try again. " +
+  "In the meantime, take a slow breath; you're doing okay.";
 
 /**
  * Check if user message contains crisis/safety keywords.
@@ -118,10 +128,23 @@ export async function sendChatMessage(
     return "We've had a really meaningful conversation. I'd encourage you to take a moment to reflect on what we talked about. You can always start a new check-in whenever you need to. You're doing great.";
   }
 
-  const apiKey = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.warn('ANTHROPIC_API_KEY not set — using fallback response');
-    return API_FALLBACK_RESPONSE;
+  // Build the request URL + headers. In production we route through the proxy
+  // (which holds the key); in dev without a proxy we call Anthropic directly.
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  let url: string;
+  if (PROXY_URL) {
+    url = PROXY_URL;
+    headers['x-device-id'] = await getDeviceId();
+    if (context.sessionId) headers['x-session-id'] = context.sessionId;
+  } else {
+    const apiKey = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      console.warn('ANTHROPIC_API_KEY not set and no proxy URL — using fallback response');
+      return API_FALLBACK_RESPONSE;
+    }
+    url = API_URL;
+    headers['x-api-key'] = apiKey;
+    headers['anthropic-version'] = '2023-06-01';
   }
 
   // Load recent check-ins (past week, capped) for short-term situational memory.
@@ -137,13 +160,9 @@ export async function sendChatMessage(
   const timeout = setTimeout(() => controller.abort(), API_TIMEOUT);
 
   try {
-    const response = await fetch(API_URL, {
+    const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
+      headers,
       body: JSON.stringify({
         model: MODEL,
         max_tokens: maxTokens,
@@ -154,6 +173,11 @@ export async function sendChatMessage(
     });
 
     clearTimeout(timeout);
+
+    // Proxy rate limits: 429 = per-device cap, 503 = global daily cap.
+    if (response.status === 429 || response.status === 503) {
+      return RATE_LIMIT_RESPONSE;
+    }
 
     if (!response.ok) {
       console.error('Claude API error:', response.status);
