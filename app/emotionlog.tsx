@@ -16,10 +16,10 @@ import BouncingOrb from '@/components/BouncingOrb';
 import VibratingOrb from '@/components/VibratingOrb';
 import RollingOrb from '@/components/RollingOrb';
 import { EmotionCategory } from '@/constants/emotions';
-import { sendChatMessage } from '@/services/aiService';
+import { sendChatMessage, type ChatStage } from '@/services/aiService';
 import { recordSession, extractVerse } from '@/services/beliefStore';
 import { generateId } from '@/services/deviceId';
-import { MAX_CHAT_TURNS, STAGE_LISTEN, STAGE_SUGGEST, STAGE_WRAP } from '@/constants/aiPrompt';
+import { MAX_CHAT_TURNS } from '@/constants/aiPrompt';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -246,10 +246,9 @@ export default function EmotionLogScreen() {
     sendChatMessage(
       openingPrompt,
       [],
-      { emotion: emotion ?? '', category: category ?? '', doing, withWhom, where },
-      150,
-      true,
-      STAGE_LISTEN,
+      { emotion: emotion ?? '', category: category ?? '', doing, withWhom, where, sessionId },
+      'opener',
+      'listen',
     ).then((response) => {
       setChatMessages([{ role: 'ai', text: sanitizeAI(response) }]);
     });
@@ -306,18 +305,13 @@ export default function EmotionLogScreen() {
     setChatInput('');
     setSending(true);
 
-    // Deterministic arc: LISTEN for the first user message, SUGGEST from the second on.
     // Deterministic arc: msg 1 = LISTEN, middle msgs = SUGGEST, final msg = WRAP
     // (a close-out that nudges them to tap "Look for verses" or "Tap to pray").
     const userMsgNumber = chatMessages.filter((m) => m.role === 'user').length + 1;
-    const stage =
-      userMsgNumber <= 1
-        ? STAGE_LISTEN
-        : userMsgNumber >= MAX_CHAT_TURNS
-          ? STAGE_WRAP
-          : STAGE_SUGGEST;
+    const stage: ChatStage =
+      userMsgNumber <= 1 ? 'listen' : userMsgNumber >= MAX_CHAT_TURNS ? 'wrap' : 'suggest';
 
-    const response = await sendChatMessage(trimmed, chatMessages, chatContext, 150, true, stage);
+    const response = await sendChatMessage(trimmed, chatMessages, chatContext, 'chat', stage);
     setChatMessages((prev) => [...prev, { role: 'ai', text: sanitizeAI(response) }]);
     setSending(false);
   };
@@ -328,7 +322,7 @@ export default function EmotionLogScreen() {
     if (sending) return;
     if (kind === 'prayer' ? prayerUsed : verseUsed) return; // single use per session
     setSending(true);
-    const response = await sendChatMessage(instruction, chatMessages, chatContext, 150, false);
+    const response = await sendChatMessage(instruction, chatMessages, chatContext, kind);
     setChatMessages((prev) => [...prev, { role: 'ai', text: sanitizeAI(response), kind }]);
     (kind === 'prayer' ? setPrayerUsed : setVerseUsed)(true);
     setSending(false);
@@ -349,8 +343,7 @@ export default function EmotionLogScreen() {
       "The user tapped the verses button. Reply in two parts. PART 1: the Bible verse — its reference (e.g. Ecclesiastes 3:11) and the full verse text, kept together with NO blank line between them. Then ONE blank line. PART 2: a warm 1 to 2 sentence reflection connecting the verse to what they're feeling. Add nothing else.",
       chatMessages,
       chatContext,
-      280, // room for the full verse text + reflection
-      false, // buttons work past the turn limit
+      'verse', // larger token budget + bypasses the turn limit (handled server-side)
     );
     // PART 1 (reference + verse text) stays in the boxed card; PART 2 (reflection),
     // separated by a blank line or ### marker, becomes a plain message below.
