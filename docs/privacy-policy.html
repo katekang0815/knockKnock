@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KnockKnock — Privacy Policy</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6; color: #1a1a1a; background: #ffffff;
+    max-width: 720px; margin: 0 auto; padding: 32px 20px 80px;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { color: #e6e6e6; background: #111111; }
+    a { color: #7fb3ff; }
+    hr { border-color: #333; }
+    blockquote { color: #aaa; border-color: #444; }
+  }
+  h1 { font-size: 1.8rem; margin-bottom: 4px; }
+  h2 { font-size: 1.25rem; margin-top: 2rem; }
+  .updated { color: #777; font-size: 0.9rem; margin-top: 0; }
+  a { color: #1a5fd0; }
+  hr { border: none; border-top: 1px solid #e2e2e2; margin: 2rem 0; }
+  blockquote { color: #555; border-left: 3px solid #ccc; margin: 1rem 0; padding: 4px 0 4px 16px; }
+  ul { padding-left: 22px; }
+  li { margin: 6px 0; }
+  code { background: rgba(127,127,127,0.15); padding: 1px 5px; border-radius: 4px; }
+  .fine { font-size: 0.85rem; color: #888; }
+  nav a { margin-right: 16px; }
+</style>
+</head>
+<body>
+
+<nav><a href="./index.html">Home</a><a href="./support.html">Support</a></nav>
+
+<h1>KnockKnock — Privacy Policy</h1>
+<p class="updated">Last updated: August 14, 2026</p>
+
+<p>KnockKnock ("the app," "we," "us") is a prayer and emotional check-in app for teens and
+young adults in a Christian faith context. This policy explains what information the app
+handles and how. We built KnockKnock to be <strong>private by default</strong> — there are
+no accounts, and your check-ins stay on your device.</p>
+
+<blockquote>This is a plain-language policy. If anything is unclear, contact us (below).</blockquote>
+
+<hr />
+
+<h2>The short version</h2>
+<ul>
+  <li><strong>No account, no sign-up.</strong> We don't ask for your name, email, phone number, or location.</li>
+  <li><strong>Your check-ins stay on your phone.</strong> Emotions, notes, and saved verses are stored locally on your device, not on our servers.</li>
+  <li><strong>What you type in the AI chat is sent to an AI provider</strong> (Anthropic) to generate a response, through our own secure relay. It is used to reply to you, not to advertise to you or identify you.</li>
+  <li><strong>We don't sell your data, show ads, or track you across other apps.</strong></li>
+</ul>
+
+<hr />
+
+<h2>What the app stores on your device</h2>
+<p>The following is saved <strong>locally on your device only</strong> (using your phone's app
+storage), and is not uploaded to any server we control:</p>
+<ul>
+  <li>Your check-ins: the date, the emotion and category you selected, any context tags you chose (for example what you were doing or who you were with), a short note based on what you shared, and any Bible verse saved from a chat.</li>
+  <li>A random <strong>device identifier</strong> the app generates on first launch (a string of letters and numbers). It is <strong>not</strong> linked to your identity — it's used only to apply usage limits (see below).</li>
+</ul>
+<p>You can erase all of this at any time by deleting the app from your device.</p>
+
+<h2>What is sent when you use the AI chat</h2>
+<p>When you chat, pray, or look for a verse, the app sends the following to our relay server,
+which forwards it to our AI provider (<strong>Anthropic</strong>, maker of Claude) to generate a reply:</p>
+<ul>
+  <li>The messages you type, the emotion and context you selected, and a brief summary of your recent check-ins (from the past week) so the response fits your situation.</li>
+  <li>Your random <strong>device identifier</strong> and a per-session identifier, used <strong>only</strong> to enforce usage limits and prevent abuse.</li>
+</ul>
+<p><strong>We never send your name, email, or contact information — because we never collect it.</strong></p>
+
+<h2>Our relay server (Cloudflare)</h2>
+<p>To keep our AI credentials safe and to limit usage, chat requests pass through a small relay
+we operate on <strong>Cloudflare Workers</strong>. This relay:</p>
+<ul>
+  <li>Forwards your chat request to Anthropic and returns the reply.</li>
+  <li>Stores only <strong>counters</strong> (your device identifier plus a date and a request count) to enforce daily limits. These counters <strong>expire automatically after about two days</strong> and do <strong>not</strong> include the content of your messages.</li>
+</ul>
+
+<h2>Our AI provider (Anthropic)</h2>
+<p>The text described above is processed by <strong>Anthropic</strong> to generate the app's
+responses. Under Anthropic's commercial API terms, your inputs and the outputs are
+<strong>not used to train their models</strong>, and are retained by Anthropic only for a
+limited period consistent with its policies (for example, for trust-and-safety purposes). See
+Anthropic's privacy policy at
+<a href="https://www.anthropic.com/legal/privacy">anthropic.com/legal/privacy</a> for details.</p>
+
+<h2>What we do NOT do</h2>
+<ul>
+  <li>We do <strong>not</strong> require or collect names, emails, phone numbers, or precise location.</li>
+  <li>We do <strong>not</strong> show advertising.</li>
+  <li>We do <strong>not</strong> use third-party analytics or tracking SDKs, and we do <strong>not</strong> track you across other apps or websites.</li>
+  <li>We do <strong>not</strong> sell or rent your information to anyone.</li>
+</ul>
+
+<h2>Sensitive information</h2>
+<p>Check-ins can reflect your <strong>emotions and your faith</strong>, which are personal and
+sensitive. We treat them accordingly: they are stored on your device, and the chat text sent
+to our AI provider is used only to respond to you. Please avoid sharing information that could
+identify you or others (full names, addresses, school names) in the chat — the app is designed
+to help without needing it.</p>
+
+<h2>Not a crisis or medical service</h2>
+<p>KnockKnock is not a therapist, counselor, or medical service, and does not provide medical or
+psychological advice. If you are in crisis or thinking about harming yourself, please reach out
+to a trusted adult or contact the 988 Suicide &amp; Crisis Lifeline (call or text
+<strong>988</strong> in the U.S.).</p>
+
+<h2>Children's privacy</h2>
+<p>KnockKnock is intended for users <strong>13 and older</strong> and is <strong>not directed to
+children under 13</strong>. We do not knowingly collect personal information from children under
+13. Because the app has no accounts and collects no contact information, it does not gather
+identifying personal data from any user. If you believe a child under 13 has provided personal
+information, contact us and we will address it.</p>
+
+<h2>Data retention &amp; deletion</h2>
+<ul>
+  <li><strong>On your device:</strong> kept until you delete it in the app or uninstall the app.</li>
+  <li><strong>On our relay (Cloudflare):</strong> only usage counters, which expire automatically after about two days.</li>
+  <li><strong>At Anthropic:</strong> retained per Anthropic's policies for a limited period.</li>
+</ul>
+<p>To delete everything the app has stored, <strong>delete the app</strong> from your device.</p>
+
+<h2>Security</h2>
+<p>Chat requests are sent over encrypted connections (HTTPS). Our AI credentials are kept on the
+server side and never shipped inside the app. No method of transmission or storage is 100%
+secure, but we take reasonable measures to protect your information.</p>
+
+<h2>International users</h2>
+<p>The app's AI processing and relay may occur on servers located in the United States or other
+countries. By using the app, you understand that your chat content may be processed in those
+locations.</p>
+
+<h2>Changes to this policy</h2>
+<p>We may update this policy as the app evolves. When we do, we'll change the "Last updated" date
+above and post the new version at this page.</p>
+
+<h2>Contact</h2>
+<p>Questions about this policy or your data? Contact us at:
+<a href="mailto:yehsunkang@gmail.com">yehsunkang@gmail.com</a></p>
+
+<hr />
+<p class="fine">KnockKnock is an independent app. "Claude" and related marks are property of
+Anthropic; "Cloudflare" is a trademark of Cloudflare, Inc.; "Apple" and "App Store" are
+trademarks of Apple Inc. These companies are service providers or platforms and do not endorse
+this app.</p>
+
+</body>
+</html>
