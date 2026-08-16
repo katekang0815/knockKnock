@@ -1,5 +1,5 @@
 import BouncingBall from "@/components/BouncingBall";
-import { getSessions, loadBeliefStore } from "@/services/beliefStore";
+import { getSessions } from "@/services/beliefStore";
 import type { SessionRecord } from "@/types/belief";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -206,10 +206,6 @@ export default function HomeScreen() {
       let active = true;
       getSessions().then((list) => {
         if (active) setSessions(list);
-      });
-      // TEMP debug: dump the full belief store so we can verify what's saved.
-      loadBeliefStore().then((store) => {
-        console.log("=== BELIEF STORE DUMP ===\n" + JSON.stringify(store, null, 2));
       });
       return () => {
         active = false;

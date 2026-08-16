@@ -16,7 +16,7 @@ export const EMOTION_DATA: Record<EmotionCategory, CategoryConfig> = {
       'Optimistic', 'Alive', 'Surprised', 'Accomplished',
       'Proud', 'Curious', 'Hopeful', 'Motivated',
       'Confident', 'Inspired', 'Eager', 'Focused',
-      'Playful', 'Thrilled', 'Joyful', 'Determined',
+      'Excited', 'Thrilled', 'Joyful', 'Determined',
     ],
   },
   Stormy: {

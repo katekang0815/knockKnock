@@ -307,9 +307,16 @@ export default function EmotionLogScreen() {
 
     // Deterministic arc: msg 1 = LISTEN, middle msgs = SUGGEST, final msg = WRAP
     // (a close-out that nudges them to tap "Look for verses" or "Tap to pray").
+    // For positive/calm categories (Sunny, Breezy) there's no coping action to
+    // suggest, so skip SUGGEST and go straight to the WRAP/button invite at msg 2.
+    const isPositive = category === 'Sunny' || category === 'Breezy';
     const userMsgNumber = chatMessages.filter((m) => m.role === 'user').length + 1;
     const stage: ChatStage =
-      userMsgNumber <= 1 ? 'listen' : userMsgNumber >= MAX_CHAT_TURNS ? 'wrap' : 'suggest';
+      userMsgNumber <= 1
+        ? 'listen'
+        : isPositive || userMsgNumber >= MAX_CHAT_TURNS
+          ? 'wrap'
+          : 'suggest';
 
     const response = await sendChatMessage(trimmed, chatMessages, chatContext, 'chat', stage);
     setChatMessages((prev) => [...prev, { role: 'ai', text: sanitizeAI(response) }]);
@@ -448,40 +455,57 @@ export default function EmotionLogScreen() {
   const fadeTotal = insets.bottom + NEXT_BAR_H + 24 + fadeGrad;
   const fadeBlackAt = fadeGrad / fadeTotal;
 
-  // Input field + Complete button. Before max turns it's pinned at the bottom of the
-  // screen; once max turns is reached it moves up into the scroll, right below the
-  // last message, so the user can hit Complete without a long empty gap.
-  const chatControls = (
+  // The input field lives in the scroll, right below the current AI message.
+  const inputField = (
+    <View style={styles.chatInputRow}>
+      <TextInput
+        style={styles.chatInput}
+        value={chatInput}
+        onChangeText={setChatInput}
+        placeholder="Write"
+        placeholderTextColor="#666"
+        multiline
+        onFocus={() => setTimeout(scrollToFocus, 300)}
+      />
+      <TouchableOpacity
+        style={[styles.sendButton, { backgroundColor: chatInput.trim() ? HOME_ACCENT : '#444444' }]}
+        onPress={handleSendChat}
+        activeOpacity={0.7}
+        disabled={!chatInput.trim()}
+      >
+        <Text style={[styles.sendButtonText, { color: chatInput.trim() ? '#000000' : '#888888' }]}>↑</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Pinned above the keyboard: the pray/verse pills always sit above the typing pad.
+  // Complete hides while the keyboard is up, and reappears BELOW the pills when it
+  // collapses (so the buttons stack: pills on top, Complete at the very bottom).
+  const bottomControls = (
     <>
-      {/* At max turns the input field is removed to enforce finishing the chat. */}
-      {!atMaxTurns && (
-        <View style={styles.chatInputRow}>
-          <TextInput
-            style={styles.chatInput}
-            value={chatInput}
-            onChangeText={setChatInput}
-            placeholder="Write"
-            placeholderTextColor="#666"
-            multiline
-            onFocus={() => setTimeout(scrollToFocus, 300)}
-          />
+      {showOptions && (
+        <View style={styles.optionRow}>
           <TouchableOpacity
-            style={[
-              styles.sendButton,
-              { backgroundColor: chatInput.trim() ? HOME_ACCENT : '#444444' },
-            ]}
-            onPress={handleSendChat}
-            activeOpacity={0.7}
-            disabled={!chatInput.trim()}
+            style={[styles.optionPill, verseDisabled && styles.optionPillHidden]}
+            onPress={onVerse}
+            disabled={verseDisabled}
+            activeOpacity={0.8}
           >
-            <Text style={[styles.sendButtonText, { color: chatInput.trim() ? '#000000' : '#888888' }]}>↑</Text>
+            <Text style={styles.optionText}>Look for verses</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.optionPill, prayDisabled && styles.optionPillHidden]}
+            onPress={onPray}
+            disabled={prayDisabled}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.optionText}>Tap to pray</Text>
           </TouchableOpacity>
         </View>
       )}
-
       {!keyboardVisible && (
         <TouchableOpacity
-          style={[styles.completeButton, styles.completeInBar]}
+          style={[styles.completeButton, showOptions && styles.completeInBar]}
           onPress={handleComplete}
           activeOpacity={0.8}
         >
@@ -656,38 +680,17 @@ export default function EmotionLogScreen() {
                 );
               })}
 
-              {showOptions && (
-                <View style={styles.optionRow}>
-                  <TouchableOpacity
-                    style={[styles.optionPill, verseDisabled && styles.optionPillHidden]}
-                    onPress={onVerse}
-                    disabled={verseDisabled}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.optionText}>Look for verses</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.optionPill, prayDisabled && styles.optionPillHidden]}
-                    onPress={onPray}
-                    disabled={prayDisabled}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.optionText}>Tap to pray</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {/* At max turns the controls move up here, right below the last message. */}
-              {atMaxTurns && <View style={styles.inScrollControls}>{chatControls}</View>}
+              {/* Input sits right below the current AI conversation (removed at max turns). */}
+              {!atMaxTurns && <View style={styles.inScrollInput}>{inputField}</View>}
             </View>
           </>
         )}
       </Animated.ScrollView>
 
-      {/* Chat phase (before max turns): input + Complete pinned at the bottom, above the keyboard */}
-      {phase === 'chat' && !atMaxTurns && (
+      {/* Chat phase: pills pinned above the keyboard; Complete below them (bottom when collapsed) */}
+      {phase === 'chat' && (
         <View style={[styles.chatBottomBar, { paddingBottom: insets.bottom + 10 }]}>
-          {chatControls}
+          {bottomControls}
         </View>
       )}
 
@@ -969,8 +972,8 @@ const styles = StyleSheet.create({
   completeInBar: {
     marginTop: 28,
   },
-  inScrollControls: {
-    marginTop: 28, // space between the last message and the moved-up input/Complete
+  inScrollInput: {
+    marginTop: 20, // space between the current AI message and the input field
   },
   bottomFade: {
     position: 'absolute',
