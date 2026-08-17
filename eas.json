@@ -13,7 +13,10 @@
       "ios": { "simulator": true }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_AI_PROXY_URL": "https://knockknock-ai-proxy.jacobs-ladder.workers.dev"
+      }
     }
   },
   "submit": {
