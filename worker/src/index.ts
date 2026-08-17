@@ -24,7 +24,7 @@ export interface Env {
 const ALLOWED_MODEL = 'claude-haiku-4-5-20251001';
 const MAX_OUTPUT_TOKENS = 300; // hard ceiling regardless of kind
 const MAX_BODY_CHARS = 24000; // reject oversized assembled requests
-const PER_DEVICE_DAILY_CHECKINS = 5; // soft: distinct sessions per device per day
+const PER_DEVICE_DAILY_CHECKINS = 100; // TESTING value — set back to 5 before launch
 const GLOBAL_DAILY_CALL_CAP = 1600; // hard: ~$5/day at ~$0.003/call — tune here
 const MAX_CHAT_TURNS = 3; // chat/opener turns before the wrap-up message
 const COUNTER_TTL_SECONDS = 172800; // keep day counters ~2 days
