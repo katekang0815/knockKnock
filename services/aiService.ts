@@ -37,8 +37,7 @@ const API_TIMEOUT = 15000; // 15 seconds
 
 // Shown when the proxy rate-limits the request (per-device or global daily cap).
 const RATE_LIMIT_RESPONSE =
-  "A lot of people are reflecting right now — give it a little while and try again. " +
-  "In the meantime, take a slow breath; you're doing okay.";
+  "You've reached today's check-in limit, come back tomorrow to continue.";
 
 // Returned when the chat turn limit is reached (dev-fallback path only; in
 // production the Worker owns this message so it can be tuned without an app update).
