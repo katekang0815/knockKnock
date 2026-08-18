@@ -1,19 +1,34 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-import { useFonts, Jost_700Bold, Jost_400Regular, Jost_400Regular_Italic, Jost_600SemiBold } from '@expo-google-fonts/jost';
+import {
+  Jost_400Regular,
+  Jost_400Regular_Italic,
+  Jost_600SemiBold,
+  Jost_700Bold,
+  useFonts,
+} from "@expo-google-fonts/jost";
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from "@react-navigation/native";
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import "react-native-reanimated";
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const [fontsLoaded] = useFonts({ Jost_700Bold, Jost_400Regular, Jost_400Regular_Italic, Jost_600SemiBold });
+  const [fontsLoaded] = useFonts({
+    Jost_700Bold,
+    Jost_400Regular,
+    Jost_400Regular_Italic,
+    Jost_600SemiBold,
+  });
 
   if (!fontsLoaded) return null;
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="welcome" options={{ headerShown: false }} />
@@ -24,9 +39,9 @@ export default function RootLayout() {
           name="(tabs)"
           options={{
             headerShown: false,
-            animation: 'simple_push', // right → left slide whose duration IS customizable
-            animationTypeForReplace: 'push', // so replace() slides in (not a pop)
-            animationDuration: 500, // slide duration; unlike slide_from_right, this honors the value
+            animation: "simple_push", // right → left slide whose duration IS customizable
+            animationTypeForReplace: "push", // so replace() slides in (not a pop)
+            animationDuration: 300, // slide duration; unlike slide_from_right, this honors the value
           }}
         />
       </Stack>
