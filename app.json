@@ -60,6 +60,9 @@
     "owner": "katekang",
     "updates": {
       "url": "https://u.expo.dev/eadfa137-79e1-4c39-ad6b-57683c41c7a8"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }

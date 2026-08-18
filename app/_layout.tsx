@@ -20,7 +20,15 @@ export default function RootLayout() {
         <Stack.Screen name="splash" options={{ headerShown: false }} />
         <Stack.Screen name="checkin" options={{ headerShown: false }} />
         <Stack.Screen name="emotionlog" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="(tabs)"
+          options={{
+            headerShown: false,
+            animation: 'simple_push', // right → left slide whose duration IS customizable
+            animationTypeForReplace: 'push', // so replace() slides in (not a pop)
+            animationDuration: 500, // slide duration; unlike slide_from_right, this honors the value
+          }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

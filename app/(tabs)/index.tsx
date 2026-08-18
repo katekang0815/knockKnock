@@ -484,12 +484,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     alignSelf: "center",
   },
-  backButton: {
-    position: "absolute",
-    left: 20,
-    zIndex: 100,
-    padding: 8,
-  },
   topFade: {
     position: "absolute",
     left: 0,
