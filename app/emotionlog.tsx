@@ -223,9 +223,21 @@ export default function EmotionLogScreen() {
   const prayDisabled = prayerUsed;
   // Once both have been used after max turns, remove the row entirely.
   const bothOptionsUsed = verseUsed && prayerUsed;
-  // Show the pray/verse pills from the SUGGEST stage on (after the 2nd user message).
+  // Positive/calm categories skip the SUGGEST stage and wrap up (with the button
+  // invite) right after the first user reply, so the pills appear one turn earlier.
+  const isPositive = category === 'Sunny' || category === 'Breezy';
+  const optionsFromTurn = isPositive ? 1 : 2;
+  // Show the pray/verse pills once the AI has just given a wrap/suggest reply.
   const showOptions =
-    phase === 'chat' && chatUserTurns >= 2 && lastMsg?.role === 'ai' && !sending && !bothOptionsUsed;
+    phase === 'chat' &&
+    chatUserTurns >= optionsFromTurn &&
+    lastMsg?.role === 'ai' &&
+    !sending &&
+    !bothOptionsUsed;
+  // The "wrap" layout (no input; pills + Complete grouped below the message) kicks
+  // in exactly when WRAP begins: the 1st reply for positive categories, the 2nd for
+  // negative ones — i.e. the same turn the pills appear.
+  const wrapActive = chatUserTurns >= optionsFromTurn;
 
   // Start the AI chat when entering the chat phase — regardless of whether any
   // context tags were selected.
@@ -305,18 +317,11 @@ export default function EmotionLogScreen() {
     setChatInput('');
     setSending(true);
 
-    // Deterministic arc: msg 1 = LISTEN, middle msgs = SUGGEST, final msg = WRAP
-    // (a close-out that nudges them to tap "Look for verses" or "Tap to pray").
-    // For positive/calm categories (Sunny, Breezy) there's no coping action to
-    // suggest, so skip SUGGEST and go straight to the WRAP/button invite at msg 2.
-    const isPositive = category === 'Sunny' || category === 'Breezy';
+    // Deterministic arc (no SUGGEST step):
+    //  - Positive (Sunny, Breezy): WRAP from the first user reply.
+    //  - Negative (Stormy, Rain): LISTEN once, then WRAP from the second reply.
     const userMsgNumber = chatMessages.filter((m) => m.role === 'user').length + 1;
-    const stage: ChatStage =
-      userMsgNumber <= 1
-        ? 'listen'
-        : isPositive || userMsgNumber >= MAX_CHAT_TURNS
-          ? 'wrap'
-          : 'suggest';
+    const stage: ChatStage = isPositive || userMsgNumber >= 2 ? 'wrap' : 'listen';
 
     const response = await sendChatMessage(trimmed, chatMessages, chatContext, 'chat', stage);
     setChatMessages((prev) => [...prev, { role: 'ai', text: sanitizeAI(response) }]);
@@ -435,12 +440,22 @@ export default function EmotionLogScreen() {
             }
           }
         }
+        // If the user tapped "Tap to pray", keep the prayer for the card so it
+        // isn't empty when no verse was shared.
+        let prayer: string | null = null;
+        for (let i = chatMessages.length - 1; i >= 0; i--) {
+          if (chatMessages[i].kind === 'prayer') {
+            prayer = chatMessages[i].text;
+            break;
+          }
+        }
         await recordSession({
           emotion: emotion ?? '',
           category: category ?? '',
           context: contextSummary || null,
           issue: userMsgs[0].text.slice(0, 200),
           verse,
+          prayer,
         });
       } catch (e) {
         // best-effort — recap is not critical to the check-in flow
@@ -478,41 +493,32 @@ export default function EmotionLogScreen() {
     </View>
   );
 
-  // Pinned above the keyboard: the pray/verse pills always sit above the typing pad.
-  // Complete hides while the keyboard is up, and reappears BELOW the pills when it
-  // collapses (so the buttons stack: pills on top, Complete at the very bottom).
-  const bottomControls = (
-    <>
-      {showOptions && (
-        <View style={styles.optionRow}>
-          <TouchableOpacity
-            style={[styles.optionPill, verseDisabled && styles.optionPillHidden]}
-            onPress={onVerse}
-            disabled={verseDisabled}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.optionText}>Look for verses</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.optionPill, prayDisabled && styles.optionPillHidden]}
-            onPress={onPray}
-            disabled={prayDisabled}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.optionText}>Tap to pray</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      {!keyboardVisible && (
-        <TouchableOpacity
-          style={[styles.completeButton, showOptions && styles.completeInBar]}
-          onPress={handleComplete}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.completeText}>Complete check-in</Text>
-        </TouchableOpacity>
-      )}
-    </>
+  // Pray/verse pills (positioned differently depending on the wrap layout).
+  const optionRowEl = (
+    <View style={styles.optionRow}>
+      <TouchableOpacity
+        style={[styles.optionPill, verseDisabled && styles.optionPillHidden]}
+        onPress={onVerse}
+        disabled={verseDisabled}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.optionText}>Look for verses</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.optionPill, prayDisabled && styles.optionPillHidden]}
+        onPress={onPray}
+        disabled={prayDisabled}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.optionText}>Tap to pray</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const completeEl = (
+    <TouchableOpacity style={styles.completeButton} onPress={handleComplete} activeOpacity={0.8}>
+      <Text style={styles.completeText}>Complete check-in</Text>
+    </TouchableOpacity>
   );
 
   return (
@@ -680,17 +686,35 @@ export default function EmotionLogScreen() {
                 );
               })}
 
-              {/* Input sits right below the current AI conversation (removed at max turns). */}
-              {!atMaxTurns && <View style={styles.inScrollInput}>{inputField}</View>}
+              {wrapActive ? (
+                // Wrap state: no input. Pills sit right below the message; the Complete
+                // button joins them while the keyboard is up, and drops to the bottom
+                // bar once it collapses.
+                <View style={styles.inScrollControls}>
+                  {showOptions && optionRowEl}
+                  {keyboardVisible && (
+                    <View style={showOptions ? styles.completeInBar : undefined}>{completeEl}</View>
+                  )}
+                </View>
+              ) : (
+                // Normal turns: input sits right below the current AI conversation.
+                <View style={styles.inScrollInput}>{inputField}</View>
+              )}
             </View>
           </>
         )}
       </Animated.ScrollView>
 
-      {/* Chat phase: pills pinned above the keyboard; Complete below them (bottom when collapsed) */}
+      {/* Pinned bottom bar. Negative SUGGEST keeps pills here; Complete sits at the
+          bottom whenever the keyboard is down (in the wrap state too). */}
       {phase === 'chat' && (
         <View style={[styles.chatBottomBar, { paddingBottom: insets.bottom + 10 }]}>
-          {bottomControls}
+          {!wrapActive && showOptions && optionRowEl}
+          {!keyboardVisible && (
+            <View style={!wrapActive && showOptions ? styles.completeInBar : undefined}>
+              {completeEl}
+            </View>
+          )}
         </View>
       )}
 
@@ -974,6 +998,9 @@ const styles = StyleSheet.create({
   },
   inScrollInput: {
     marginTop: 20, // space between the current AI message and the input field
+  },
+  inScrollControls: {
+    marginTop: 20, // space between the message and the wrap-state pills/Complete
   },
   bottomFade: {
     position: 'absolute',

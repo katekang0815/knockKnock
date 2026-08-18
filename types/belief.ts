@@ -23,6 +23,7 @@ export interface SessionRecord {
   context: string | null;      // what / who / where
   issue: string;               // what they're facing, in their own words
   verse: BibleVerse | null;    // the verse the AI shared, shown on the home card
+  prayer: string | null;       // the prayer the AI wrote, shown when there's no verse
 }
 
 /** A Bible verse shared during the check-in. */

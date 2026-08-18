@@ -50,6 +50,7 @@ export interface NewCheckIn {
   context: string | null;
   issue: string;
   verse: BibleVerse | null;
+  prayer?: string | null;
 }
 
 /** Save a check-in and prepend it to the rolling history. */
@@ -66,6 +67,7 @@ export async function recordSession(rec: NewCheckIn): Promise<SessionRecord> {
       rec.verse && rec.verse.reference?.trim() && rec.verse.text?.trim()
         ? { reference: rec.verse.reference.trim(), text: rec.verse.text.trim() }
         : null,
+    prayer: rec.prayer?.trim() ? rec.prayer.trim() : null,
   };
   store.sessions = [record, ...store.sessions].slice(0, MAX_SESSIONS);
   store.updatedAt = record.date;

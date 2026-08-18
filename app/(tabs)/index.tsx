@@ -365,12 +365,14 @@ export default function HomeScreen() {
                   {s.emotion}
                 </Text>
               </View>
-              {s.verse && (
+              {s.verse ? (
                 <Text style={styles.verseText}>
                   <Text style={styles.verseRef}>{s.verse.reference}  </Text>
                   {s.verse.text}
                 </Text>
-              )}
+              ) : s.prayer ? (
+                <Text style={styles.verseText}>{s.prayer}</Text>
+              ) : null}
             </TouchableOpacity>
           ))}
         </View>
