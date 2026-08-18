@@ -401,23 +401,6 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
       </View>
-
-      {/* Back arrow — always on top and tappable */}
-      <TouchableOpacity
-        style={[styles.backButton, { top: insets.top + 16 }]}
-        onPress={() => router.replace("/splash")}
-        activeOpacity={0.7}
-      >
-        <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-          <Path
-            d="M19 12H5M12 19l-7-7 7-7"
-            stroke="#FFFFFF"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </Svg>
-      </TouchableOpacity>
     </View>
   );
 }
