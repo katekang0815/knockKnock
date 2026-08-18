@@ -74,15 +74,17 @@ interface TagSectionProps {
   onSelect: (option: string) => void;
   onAdd: (option: string) => void;
   accentColor: string;
+  onAddFocus?: (node: { current: View | null }) => void;
 }
 
 const VISIBLE_TAGS = 9; // chips shown before the "More" toggle
 
 // Always-open tag list: title, then a wrap of tags (+ add, first N, "More" toggle).
-function TagSection({ title, options, selected, onSelect, onAdd, accentColor }: TagSectionProps) {
+function TagSection({ title, options, selected, onSelect, onAdd, accentColor, onAddFocus }: TagSectionProps) {
   const [adding, setAdding] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [newTag, setNewTag] = useState('');
+  const addRowRef = useRef<View>(null);
 
   const handleAdd = () => {
     const trimmed = newTag.trim();
@@ -129,7 +131,7 @@ function TagSection({ title, options, selected, onSelect, onAdd, accentColor }: 
       </View>
 
       {adding && (
-        <View style={styles.addInputRow}>
+        <View ref={addRowRef} style={styles.addInputRow}>
           <TextInput
             style={styles.addInput}
             value={newTag}
@@ -137,6 +139,7 @@ function TagSection({ title, options, selected, onSelect, onAdd, accentColor }: 
             placeholder="Type new option..."
             placeholderTextColor="#666"
             autoFocus
+            onFocus={() => onAddFocus?.(addRowRef)}
             onSubmitEditing={handleAdd}
             returnKeyType="done"
           />
@@ -159,17 +162,17 @@ export default function EmotionLogScreen() {
   const chatSectionY = useRef(0); // y of chatSection, relative to scroll content
   const phaseRef = useRef<'context' | 'chat'>('context');
 
-  useEffect(() => {
-    const sub = Keyboard.addListener('keyboardDidShow', () => {
-      // Only jump to the end for the context-phase "add tag" input; the chat
-      // phase manages its own focus scroll.
-      if (phaseRef.current !== 'context') return;
-      setTimeout(() => {
-        (scrollViewRef.current as unknown as ScrollView)?.scrollToEnd({ animated: true });
-      }, 100);
-    });
-    return () => sub.remove();
-  }, []);
+  // Bring a just-opened "add tag" input into view, centered in the upper third so
+  // it sits clearly above the keyboard (instead of scrolling off the top).
+  const scrollAddInputIntoView = (node: { current: View | null }) => {
+    setTimeout(() => {
+      node.current?.measureInWindow((_x, y) => {
+        const target = SCREEN_HEIGHT * 0.3;
+        const next = Math.max(0, scrollY.value + (y - target));
+        scrollViewRef.current?.scrollTo({ y: next, animated: true });
+      });
+    }, 250); // wait for the keyboard + input layout to settle
+  };
 
   // Track keyboard visibility so the Complete button can hide behind the keyboard while typing.
   useEffect(() => {
