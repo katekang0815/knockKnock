@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet, Platform, Dimensions, KeyboardAvoidingView, Keyboard, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, StyleSheet, Platform, Dimensions, KeyboardAvoidingView, Keyboard } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
@@ -19,7 +19,6 @@ import { EmotionCategory } from '@/constants/emotions';
 import { sendChatMessage, type ChatStage } from '@/services/aiService';
 import { recordSession, extractVerse } from '@/services/beliefStore';
 import { generateId } from '@/services/deviceId';
-import { MAX_CHAT_TURNS } from '@/constants/aiPrompt';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -45,8 +44,7 @@ const HEADER_MIN = 80;
 const SCROLL_RANGE = HEADER_MAX - HEADER_MIN;
 
 const DOING_OPTIONS = [
-  'Resting', 'Planning family trip', 'Fitness', 'Eating',
-  'Creating app', 'Driving', 'Hobbies', 'Hanging Out', 'Praying',
+  'Resting', 'Planning family trip', 'Driving', 'Hobbies', 'Hanging Out',
 ];
 
 const WITH_OPTIONS = [
@@ -56,6 +54,35 @@ const WITH_OPTIONS = [
 const WHERE_OPTIONS = [
   'Home', 'Work', 'Outside', 'Commuting', 'School',
 ];
+
+// User-added tags are persisted (per category) so they survive across check-ins.
+// v2: stores the full list (v1 stored only custom additions, which the full-list
+// loader would misread as the complete list — so we bump the key to ignore it).
+const TAG_KEYS = {
+  doing: 'knockknock.tags.v2.doing',
+  with: 'knockknock.tags.v2.with',
+  where: 'knockknock.tags.v2.where',
+};
+
+// The stored list is the user's full tag list for a category (seeded from the
+// defaults on first use), so both additions and deletions persist. Returns null
+// if the user hasn't customized this category yet.
+async function loadStoredTags(key: string): Promise<string[] | null> {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as string[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveTagList(key: string, list: string[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(key, JSON.stringify(list));
+  } catch {
+    // best-effort; tag list is not critical
+  }
+}
 
 // Clean the AI text: no em/en dashes or spaced hyphens, no asterisks, no emoji.
 const sanitizeAI = (s: string) =>
@@ -73,6 +100,7 @@ interface TagSectionProps {
   selected: string[];
   onSelect: (option: string) => void;
   onAdd: (option: string) => void;
+  onDelete?: (option: string) => void;
   accentColor: string;
   onAddFocus?: (node: { current: View | null }) => void;
 }
@@ -80,10 +108,11 @@ interface TagSectionProps {
 const VISIBLE_TAGS = 9; // chips shown before the "More" toggle
 
 // Always-open tag list: title, then a wrap of tags (+ add, first N, "More" toggle).
-function TagSection({ title, options, selected, onSelect, onAdd, accentColor, onAddFocus }: TagSectionProps) {
+function TagSection({ title, options, selected, onSelect, onAdd, onDelete, accentColor, onAddFocus }: TagSectionProps) {
   const [adding, setAdding] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [newTag, setNewTag] = useState('');
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const addRowRef = useRef<View>(null);
 
   const handleAdd = () => {
@@ -107,6 +136,26 @@ function TagSection({ title, options, selected, onSelect, onAdd, accentColor, on
         </TouchableOpacity>
 
         {visible.map((option) => {
+          // Long-pressed tag: show inline Delete / Cancel instead of the chip.
+          if (pendingDelete === option) {
+            return (
+              <View key={option} style={styles.chipConfirm}>
+                <TouchableOpacity
+                  onPress={() => {
+                    onDelete?.(option);
+                    setPendingDelete(null);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.chipDeleteText}>Delete</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setPendingDelete(null)} activeOpacity={0.7}>
+                  <Text style={styles.chipCancelText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          }
+
           const isSelected = selected[0] === option;
           return (
             <TouchableOpacity
@@ -116,6 +165,8 @@ function TagSection({ title, options, selected, onSelect, onAdd, accentColor, on
                 isSelected && { backgroundColor: 'rgba(219,83,60,0.22)' },
               ]}
               onPress={() => onSelect(option)}
+              onLongPress={() => setPendingDelete(option)}
+              delayLongPress={350}
               activeOpacity={0.7}
             >
               <Text style={[styles.chipText, isSelected && { color: accentColor }]}>{option}</Text>
@@ -192,6 +243,21 @@ export default function EmotionLogScreen() {
   const [selectedDoing, setSelectedDoing] = useState<string[]>([]);
   const [selectedWith, setSelectedWith] = useState<string[]>([]);
   const [selectedWhere, setSelectedWhere] = useState<string[]>([]);
+
+  // Load the user's saved tag lists on mount (falls back to the code defaults).
+  useEffect(() => {
+    (async () => {
+      const [d, w, wh] = await Promise.all([
+        loadStoredTags(TAG_KEYS.doing),
+        loadStoredTags(TAG_KEYS.with),
+        loadStoredTags(TAG_KEYS.where),
+      ]);
+      if (d) setDoingOptions(d);
+      if (w) setWithOptions(w);
+      if (wh) setWhereOptions(wh);
+    })();
+  }, []);
+
   // One session id per check-in (this screen mount) — used by the AI proxy's cap.
   const [sessionId] = useState(generateId);
   const [chatInput, setChatInput] = useState('');
@@ -220,8 +286,6 @@ export default function EmotionLogScreen() {
   // (i.e. once the user has replied at least once), when the AI has just spoken.
   const chatUserTurns = chatMessages.filter((m) => m.role === 'user').length;
   const lastMsg = chatMessages[chatMessages.length - 1];
-  // After max turns each button is single-use; the used one grays out, the other stays live.
-  const atMaxTurns = chatUserTurns >= MAX_CHAT_TURNS;
   const verseDisabled = verseUsed;
   const prayDisabled = prayerUsed;
   // Once both have been used after max turns, remove the row entirely.
@@ -611,10 +675,19 @@ export default function EmotionLogScreen() {
               selected={selectedDoing}
               onSelect={(item) => setSelectedDoing((prev) => (prev[0] === item ? [] : [item]))}
               onAdd={(item) => {
-                setDoingOptions((prev) => [...prev, item]);
+                const next = doingOptions.includes(item) ? doingOptions : [...doingOptions, item];
+                setDoingOptions(next);
                 setSelectedDoing([item]);
+                saveTagList(TAG_KEYS.doing, next);
+              }}
+              onDelete={(item) => {
+                const next = doingOptions.filter((t) => t !== item);
+                setDoingOptions(next);
+                setSelectedDoing((prev) => (prev[0] === item ? [] : prev));
+                saveTagList(TAG_KEYS.doing, next);
               }}
               accentColor={HOME_ACCENT}
+              onAddFocus={scrollAddInputIntoView}
             />
             <TagSection
               title="Who are you with?"
@@ -622,10 +695,19 @@ export default function EmotionLogScreen() {
               selected={selectedWith}
               onSelect={(item) => setSelectedWith((prev) => (prev[0] === item ? [] : [item]))}
               onAdd={(item) => {
-                setWithOptions((prev) => [...prev, item]);
+                const next = withOptions.includes(item) ? withOptions : [...withOptions, item];
+                setWithOptions(next);
                 setSelectedWith([item]);
+                saveTagList(TAG_KEYS.with, next);
+              }}
+              onDelete={(item) => {
+                const next = withOptions.filter((t) => t !== item);
+                setWithOptions(next);
+                setSelectedWith((prev) => (prev[0] === item ? [] : prev));
+                saveTagList(TAG_KEYS.with, next);
               }}
               accentColor={HOME_ACCENT}
+              onAddFocus={scrollAddInputIntoView}
             />
             <TagSection
               title="Where are you?"
@@ -633,10 +715,19 @@ export default function EmotionLogScreen() {
               selected={selectedWhere}
               onSelect={(item) => setSelectedWhere((prev) => (prev[0] === item ? [] : [item]))}
               onAdd={(item) => {
-                setWhereOptions((prev) => [...prev, item]);
+                const next = whereOptions.includes(item) ? whereOptions : [...whereOptions, item];
+                setWhereOptions(next);
                 setSelectedWhere([item]);
+                saveTagList(TAG_KEYS.where, next);
+              }}
+              onDelete={(item) => {
+                const next = whereOptions.filter((t) => t !== item);
+                setWhereOptions(next);
+                setSelectedWhere((prev) => (prev[0] === item ? [] : prev));
+                saveTagList(TAG_KEYS.where, next);
               }}
               accentColor={HOME_ACCENT}
+              onAddFocus={scrollAddInputIntoView}
             />
           </>
         )}
@@ -848,6 +939,25 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: 'Jost_400Regular',
   },
+  chipConfirm: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: 22,
+    backgroundColor: 'rgba(219,83,60,0.15)',
+  },
+  chipDeleteText: {
+    color: '#E8614D',
+    fontSize: 15,
+    fontFamily: 'Jost_700Bold',
+  },
+  chipCancelText: {
+    color: '#9A9A9A',
+    fontSize: 15,
+    fontFamily: 'Jost_400Regular',
+  },
   chipTextSelected: {
     color: '#000000',
   },
@@ -883,10 +993,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A1A1A',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    height: 44,
+    paddingVertical: 0,
     color: '#FFFFFF',
     fontFamily: 'Jost_400Regular',
     fontSize: 15,
+    textAlignVertical: 'center', // Android
+    includeFontPadding: false, // drop extra font padding that pushes text down
   },
   contextLine: {
     color: '#6E6E6E',
