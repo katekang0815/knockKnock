@@ -5,19 +5,19 @@ import {
   Jost_700Bold,
   useFonts,
 } from "@expo-google-fonts/jost";
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
+import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
-import { useColorScheme } from "@/hooks/use-color-scheme";
+// The app is always dark, so force a black-backed theme regardless of the device's
+// light/dark setting — prevents white flashes behind screens and during transitions.
+const AppTheme = {
+  ...DarkTheme,
+  colors: { ...DarkTheme.colors, background: "#000000" },
+};
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [fontsLoaded] = useFonts({
     Jost_700Bold,
     Jost_400Regular,
@@ -28,7 +28,7 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={AppTheme}>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="welcome" options={{ headerShown: false }} />
@@ -45,7 +45,7 @@ export default function RootLayout() {
           }}
         />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
     </ThemeProvider>
   );
 }
