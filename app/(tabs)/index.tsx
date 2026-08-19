@@ -1,13 +1,17 @@
 import BouncingBall from "@/components/BouncingBall";
 import { getSessions } from "@/services/beliefStore";
+import { getNotes, saveNote, type Note } from "@/services/notesStore";
 import type { SessionRecord } from "@/types/belief";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   Dimensions,
+  KeyboardAvoidingView,
+  Modal,
   Platform,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
@@ -123,6 +127,31 @@ function CardBackground({ id }: { id: string }) {
   );
 }
 
+// Quick-note card background: a vertical gradient #161616 (top) -> #251A12 (bottom).
+function NoteCardBackground() {
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  return (
+    <View
+      style={StyleSheet.absoluteFill}
+      onLayout={(e) =>
+        setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })
+      }
+    >
+      {size.w > 0 && (
+        <Svg width={size.w} height={size.h}>
+          <Defs>
+            <LinearGradient id="noteBg" x1="0" y1="0" x2="0" y2={size.h} gradientUnits="userSpaceOnUse">
+              <Stop offset="0" stopColor="#232222" />
+              <Stop offset="1" stopColor="#402614" />
+            </LinearGradient>
+          </Defs>
+          <Rect x={0} y={0} width={size.w} height={size.h} rx={CARD_RADIUS} ry={CARD_RADIUS} fill="url(#noteBg)" />
+        </Svg>
+      )}
+    </View>
+  );
+}
+
 // Black → transparent vertical fade, laid over the top of the peeking card so the
 // list appears to fade in from the top.
 // Clear at the top → full black by `blackAt` (the pill bar's top edge) → stays
@@ -198,6 +227,32 @@ function FriendsIcon() {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+
+  // Quick-note popup (the star button) — a private on-device reflection.
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteText, setNoteText] = useState("");
+  const closeNote = () => {
+    setNoteOpen(false);
+    setNoteText("");
+  };
+  const handleSaveNote = async () => {
+    await saveNote(noteText);
+    closeNote();
+  };
+
+  // Look back (long-press the star) — a list of saved notes; tap one to read it.
+  const [listOpen, setListOpen] = useState(false);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [viewNote, setViewNote] = useState<Note | null>(null);
+  const openList = async () => {
+    setNotes(await getNotes());
+    setViewNote(null);
+    setListOpen(true);
+  };
+  const closeList = () => {
+    setListOpen(false);
+    setViewNote(null);
+  };
 
   // Saved check-ins — the stacked list of cards at the bottom.
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
@@ -391,7 +446,11 @@ export default function HomeScreen() {
             <SettingsIcon />
           </TouchableOpacity>
           <View style={{ flex: 1 }} />
-          <TouchableOpacity style={styles.pillIconBox} activeOpacity={0.7} onPress={() => {}}>
+          <TouchableOpacity
+            style={styles.pillIconBox}
+            activeOpacity={0.7}
+            onPress={() => setNoteOpen(true)}
+          >
             <SparkleIcon />
           </TouchableOpacity>
           <TouchableOpacity
@@ -403,6 +462,49 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Quick-note popup (star button) — a private reflection saved on-device. */}
+      <Modal
+        visible={noteOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={closeNote}
+        statusBarTranslucent
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={[styles.noteBackdrop, { paddingTop: insets.top + 30 }]}
+        >
+          <View style={styles.noteCard}>
+            <NoteCardBackground />
+            <TextInput
+              style={styles.noteInput}
+              value={noteText}
+              onChangeText={setNoteText}
+              placeholder="What's in your mind? Quick note for this moment..."
+              placeholderTextColor="#8A8074"
+              selectionColor="#FFFFFF"
+              cursorColor="#FFFFFF"
+              multiline
+              autoFocus
+              textAlignVertical="top"
+            />
+            {/* Save */}
+            <TouchableOpacity style={styles.noteSave} onPress={handleSaveNote} activeOpacity={0.8}>
+              <Svg width={26} height={26} viewBox="0 0 24 24">
+                <Path
+                  d="M5 13 l4 4 L19 7"
+                  stroke="#E0E0E0"
+                  strokeWidth={2.4}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              </Svg>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -498,6 +600,40 @@ const styles = StyleSheet.create({
     padding: 7,
     borderRadius: 12,
     backgroundColor: "rgba(255,255,255,0.06)",
+  },
+  noteBackdrop: {
+    flex: 1,
+    backgroundColor: "#232222", // match the card top so there's no black frame
+    paddingHorizontal: 0, // card fills the width (edge to edge)
+    paddingBottom: 48, // gap between the card and the keyboard / typing pad
+  },
+  noteCard: {
+    flex: 1,
+    borderRadius: 28,
+    overflow: "hidden",
+    padding: 24,
+  },
+  noteInput: {
+    flex: 1,
+    color: "#FFFFFF",
+    fontSize: 18,
+    lineHeight: 26,
+    fontFamily: "Jost_400Regular",
+    paddingTop: 2,
+    marginBottom: 50, // shorten the typing area so it clears the bottom / save button
+  },
+  noteSave: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    width: 52,
+    height: 52,
+    borderRadius: 26, // round
+    backgroundColor: "#181615", // fill (matches the card)
+    borderWidth: 1,
+    borderColor: "#2B2626", // stroke
+    justifyContent: "center",
+    alignItems: "center",
   },
   cardListContent: {
     paddingHorizontal: 16,
