@@ -2,6 +2,7 @@ import BouncingBall from "@/components/BouncingBall";
 import { getSessions } from "@/services/beliefStore";
 import { deleteNote, getNotes, saveNote, type Note } from "@/services/notesStore";
 import type { SessionRecord } from "@/types/belief";
+import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -10,6 +11,7 @@ import {
   Modal,
   Platform,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -51,6 +53,10 @@ const AnimatedText = Animated.createAnimatedComponent(Text);
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// Friend invite. TODO: swap INVITE_URL for the App Store link once the app is live.
+const INVITE_URL = "https://katekang0815.github.io/knockKnock/";
+const INVITE_MESSAGE = `Join me on KnockKnock — a daily prayer & reflection space. 🙏\n${INVITE_URL}`;
 
 function formatCardDate(iso: string): string {
   const d = new Date(iso);
@@ -272,6 +278,26 @@ export default function HomeScreen() {
     setExpandedId((cur) => (cur === id ? null : cur));
   };
 
+  // Invite a friend (Friends button) — share the invite link or copy it. No backend.
+  const [friendsOpen, setFriendsOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const closeFriends = () => {
+    setFriendsOpen(false);
+    setCopied(false);
+  };
+  const handleShareInvite = async () => {
+    try {
+      await Share.share({ message: INVITE_MESSAGE, url: INVITE_URL });
+    } catch {
+      // user dismissed the share sheet — nothing to do
+    }
+  };
+  const handleCopyInvite = async () => {
+    await Clipboard.setStringAsync(INVITE_URL);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
   // Saved check-ins — the stacked list of cards at the bottom.
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   useFocusEffect(
@@ -476,7 +502,7 @@ export default function HomeScreen() {
           <TouchableOpacity
             style={[styles.pillIcon, { marginLeft: 18 }]}
             activeOpacity={0.7}
-            onPress={() => {}}
+            onPress={() => setFriendsOpen(true)}
           >
             <FriendsIcon />
           </TouchableOpacity>
@@ -590,6 +616,46 @@ export default function HomeScreen() {
             )}
           </View>
         </View>
+      </Modal>
+
+      {/* Invite a friend (Friends button) — share or copy the invite link. */}
+      <Modal
+        visible={friendsOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={closeFriends}
+        statusBarTranslucent
+      >
+        <TouchableWithoutFeedback onPress={closeFriends}>
+          <View style={styles.friendsBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={styles.friendsCard}>
+                <Text style={styles.friendsTitle}>Invite a friend</Text>
+                <Text style={styles.friendsSubtitle}>
+                  Share KnockKnock with someone you care about.
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.friendsShareBtn}
+                  onPress={handleShareInvite}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.friendsShareText}>Share invite link</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.friendsCopyBtn}
+                  onPress={handleCopyInvite}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.friendsCopyText}>
+                    {copied ? "Link copied ✓" : "Copy link"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </View>
   );
@@ -779,6 +845,59 @@ const styles = StyleSheet.create({
     color: "#9A9A9A",
     fontSize: 15,
     fontFamily: "Jost_400Regular",
+  },
+  friendsBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  friendsCard: {
+    width: "100%",
+    backgroundColor: "#1E1C1A",
+    borderRadius: 24,
+    paddingTop: 26,
+    paddingBottom: 22,
+    paddingHorizontal: 22,
+  },
+  friendsTitle: {
+    color: "#FFFFFF",
+    fontSize: 21,
+    fontFamily: "Jost_700Bold",
+    textAlign: "center",
+  },
+  friendsSubtitle: {
+    color: "#B8AC9E",
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: "Jost_400Regular",
+    textAlign: "center",
+    marginTop: 8,
+    marginBottom: 22,
+  },
+  friendsShareBtn: {
+    backgroundColor: "#DB533C",
+    borderRadius: 16,
+    paddingVertical: 15,
+    alignItems: "center",
+  },
+  friendsShareText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: "Jost_600SemiBold",
+  },
+  friendsCopyBtn: {
+    backgroundColor: "#2E2A26",
+    borderRadius: 16,
+    paddingVertical: 15,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  friendsCopyText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: "Jost_600SemiBold",
   },
   cardListContent: {
     paddingHorizontal: 16,
