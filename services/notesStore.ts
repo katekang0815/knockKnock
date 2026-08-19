@@ -30,6 +30,16 @@ export async function getNotes(): Promise<Note[]> {
   }
 }
 
+/** Delete a note by id. */
+export async function deleteNote(id: string): Promise<void> {
+  try {
+    const notes = await getNotes();
+    await AsyncStorage.setItem(NOTES_KEY, JSON.stringify(notes.filter((n) => n.id !== id)));
+  } catch {
+    // best-effort
+  }
+}
+
 /** Save a new note; returns it (or null if empty / on failure). */
 export async function saveNote(text: string): Promise<Note | null> {
   const trimmed = text.trim();

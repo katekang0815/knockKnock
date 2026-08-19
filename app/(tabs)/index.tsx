@@ -1,6 +1,6 @@
 import BouncingBall from "@/components/BouncingBall";
 import { getSessions } from "@/services/beliefStore";
-import { getNotes, saveNote, type Note } from "@/services/notesStore";
+import { deleteNote, getNotes, saveNote, type Note } from "@/services/notesStore";
 import type { SessionRecord } from "@/types/belief";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -63,6 +64,14 @@ function formatCardTime(iso: string): string {
   const ampm = h >= 12 ? "PM" : "AM";
   h = h % 12 || 12;
   return `${h}:${m.toString().padStart(2, "0")} ${ampm}`;
+}
+
+// First sentence (or line) of a note, truncated — used as the list preview.
+function firstSentence(text: string): string {
+  const line = text.trim().split("\n")[0];
+  const match = line.match(/^.*?[.!?](\s|$)/);
+  const s = (match ? match[0] : line).trim();
+  return s.length > 70 ? s.slice(0, 70).trimEnd() + "…" : s;
 }
 
 // Serif face used on the cards (matches the reference's Georgia look).
@@ -240,18 +249,27 @@ export default function HomeScreen() {
     closeNote();
   };
 
-  // Look back (long-press the star) — a list of saved notes; tap one to read it.
+  // Look back (long-press the star) — a list of saved notes; tap to expand inline.
   const [listOpen, setListOpen] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
-  const [viewNote, setViewNote] = useState<Note | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const openList = async () => {
     setNotes(await getNotes());
-    setViewNote(null);
+    setExpandedId(null);
+    setPendingDeleteId(null);
     setListOpen(true);
   };
   const closeList = () => {
     setListOpen(false);
-    setViewNote(null);
+    setExpandedId(null);
+    setPendingDeleteId(null);
+  };
+  const handleDeleteNote = async (id: string) => {
+    await deleteNote(id);
+    setNotes(await getNotes());
+    setPendingDeleteId(null);
+    setExpandedId((cur) => (cur === id ? null : cur));
   };
 
   // Saved check-ins — the stacked list of cards at the bottom.
@@ -450,6 +468,8 @@ export default function HomeScreen() {
             style={styles.pillIconBox}
             activeOpacity={0.7}
             onPress={() => setNoteOpen(true)}
+            onLongPress={openList}
+            delayLongPress={350}
           >
             <SparkleIcon />
           </TouchableOpacity>
@@ -504,6 +524,72 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Look-back list (long-press the star) — saved notes; tap one to read it. */}
+      <Modal
+        visible={listOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={closeList}
+        statusBarTranslucent
+      >
+        <View style={[styles.noteBackdrop, { paddingTop: insets.top + 30 }]}>
+          <View style={styles.noteCard}>
+            <NoteCardBackground />
+
+            {/* Close */}
+            <TouchableOpacity style={styles.noteListClose} onPress={closeList} activeOpacity={0.7}>
+              <Svg width={22} height={22} viewBox="0 0 24 24">
+                <Path d="M6 6 L18 18 M18 6 L6 18" stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" />
+              </Svg>
+            </TouchableOpacity>
+
+            <Text style={styles.noteListTitle}>Your notes</Text>
+            {notes.length === 0 ? (
+              <Text style={styles.noteEmpty}>No notes yet. Tap the star to write one.</Text>
+            ) : (
+              <ScrollView style={styles.noteListScroll} contentContainerStyle={{ paddingBottom: 16 }}>
+                {notes.map((n) => {
+                  const expanded = expandedId === n.id;
+                  const pending = pendingDeleteId === n.id;
+                  return (
+                    <View key={n.id} style={styles.noteItem}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setPendingDeleteId(null);
+                          setExpandedId(expanded ? null : n.id);
+                        }}
+                        onLongPress={() => setPendingDeleteId(n.id)}
+                        delayLongPress={350}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.noteItemDate}>
+                          {formatCardDate(n.date)}  ·  {formatCardTime(n.date)}
+                        </Text>
+                        {/* Collapsed: first sentence. Expanded: the full note, spread down. */}
+                        <Text style={styles.noteItemPreview} numberOfLines={expanded ? undefined : 1}>
+                          {expanded ? n.text : firstSentence(n.text)}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {pending && (
+                        <View style={styles.noteDeleteRow}>
+                          <TouchableOpacity onPress={() => handleDeleteNote(n.id)} activeOpacity={0.7}>
+                            <Text style={styles.noteDeleteText}>Delete</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={() => setPendingDeleteId(null)} activeOpacity={0.7}>
+                            <Text style={styles.noteCancelText}>Cancel</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -603,12 +689,14 @@ const styles = StyleSheet.create({
   },
   noteBackdrop: {
     flex: 1,
-    backgroundColor: "#232222", // match the card top so there's no black frame
-    paddingHorizontal: 0, // card fills the width (edge to edge)
-    paddingBottom: 48, // gap between the card and the keyboard / typing pad
+    backgroundColor: "#000000", // dark frame around the floating card
+    paddingHorizontal: 20, // 20px on both side edges
+    // NOTE: no paddingBottom here — KeyboardAvoidingView overrides it with the
+    // keyboard height. The 20px keyboard gap lives on the card's marginBottom.
   },
   noteCard: {
     flex: 1,
+    marginBottom: 20, // 20px gap above the keyboard (KAV-safe)
     borderRadius: 28,
     overflow: "hidden",
     padding: 24,
@@ -629,11 +717,68 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26, // round
-    backgroundColor: "#181615", // fill (matches the card)
-    borderWidth: 1,
-    borderColor: "#2B2626", // stroke
+    backgroundColor: "#2E2A26", // opaque fill (no border)
     justifyContent: "center",
     alignItems: "center",
+  },
+  noteListClose: {
+    position: "absolute",
+    top: 14,
+    right: 14,
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 2,
+  },
+  noteListTitle: {
+    color: "#FFFFFF",
+    fontSize: 22,
+    fontFamily: "Jost_700Bold",
+    marginTop: 4,
+    marginBottom: 14,
+    paddingRight: 44,
+  },
+  noteEmpty: {
+    color: "#8A8074",
+    fontSize: 15,
+    fontFamily: "Jost_400Regular",
+    marginTop: 6,
+  },
+  noteListScroll: {
+    flex: 1,
+  },
+  noteItem: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.08)",
+  },
+  noteItemDate: {
+    color: "#B8AC9E",
+    fontSize: 13,
+    fontFamily: "Jost_400Regular",
+    marginBottom: 5,
+  },
+  noteItemPreview: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    lineHeight: 24,
+    fontFamily: "Jost_400Regular",
+  },
+  noteDeleteRow: {
+    flexDirection: "row",
+    marginTop: 12,
+    gap: 24,
+  },
+  noteDeleteText: {
+    color: "#E8614D",
+    fontSize: 15,
+    fontFamily: "Jost_600SemiBold",
+  },
+  noteCancelText: {
+    color: "#9A9A9A",
+    fontSize: 15,
+    fontFamily: "Jost_400Regular",
   },
   cardListContent: {
     paddingHorizontal: 16,
