@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { View } from "react-native";
 import Animated, {
+  cancelAnimation,
   Easing,
   useAnimatedStyle,
   useSharedValue,
@@ -97,14 +98,24 @@ export default function RollingOrb({ size, fadeBall = true, rolling = true, rain
       -1,
       false,
     );
+  }, []);
+
+  // Start/stop the rain clock reactively. On the check-in wheel, Rain and Breezy
+  // both render RollingOrb, so dialing between them REUSES this instance (no
+  // remount) — a mount-only effect would leave the rain frozen when arriving
+  // from the Breezy side. Keying on `rain` restarts it every time it turns on.
+  useEffect(() => {
     if (rain) {
       rainClock.value = withRepeat(
         withTiming(1, { duration: 2000, easing: Easing.linear }), // half speed
         -1,
         false,
       );
+    } else {
+      cancelAnimation(rainClock);
+      rainClock.value = 0;
     }
-  }, []);
+  }, [rain]);
 
   const ball = size * 0.4;    // reference ball diameter (base/halo scaling)
   // Total left↔right distance — both variants use the same range (0 = bounce in place).

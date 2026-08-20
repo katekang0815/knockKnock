@@ -55,7 +55,8 @@
         {
           "faceIDPermission": "Use Face ID to unlock KnockKnock and protect your check-ins."
         }
-      ]
+      ],
+      "./plugins/withNoPush"
     ],
     "experiments": {
       "typedRoutes": true,
