@@ -1,8 +1,9 @@
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
+import { getDisplayName } from "@/services/profileStore";
 
 const SERIF = Platform.select({ ios: "Georgia", default: "serif" });
 
@@ -122,6 +123,15 @@ export default function SettingsScreen() {
   const [bannerHidden, setBannerHidden] = useState(false);
   const hideBanner = () => setBannerHidden(true);
 
+  // Reflect the saved display name on the profile row; refresh on focus so an
+  // edit on the profile screen shows here when the user comes back.
+  const [displayName, setName] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      getDisplayName().then(setName);
+    }, []),
+  );
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -149,15 +159,19 @@ export default function SettingsScreen() {
                 style={styles.row}
                 activeOpacity={0.6}
                 onPress={() =>
-                  item.slug === "donate"
-                    ? router.push("/settings/donate")
-                    : router.push({ pathname: "/settings/[slug]", params: { slug: item.slug, title: item.label } })
+                  item.slug === "profile"
+                    ? router.push("/settings/profile")
+                    : item.slug === "donate"
+                      ? router.push("/settings/donate")
+                      : router.push({ pathname: "/settings/[slug]", params: { slug: item.slug, title: item.label } })
                 }
               >
                 <View style={styles.rowIcon}>
                   <Icon />
                 </View>
-                <Text style={styles.rowLabel}>{item.label}</Text>
+                <Text style={styles.rowLabel}>
+                  {item.slug === "profile" ? displayName ?? item.label : item.label}
+                </Text>
                 <Arrow />
               </TouchableOpacity>
             );

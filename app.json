@@ -42,6 +42,12 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow KnockKnock to access your photos so you can set a profile picture."
+        }
       ]
     ],
     "experiments": {
