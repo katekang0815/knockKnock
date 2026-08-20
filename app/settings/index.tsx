@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { getDisplayName } from "@/services/profileStore";
@@ -69,13 +69,6 @@ function FeedbackIcon() {
     </Svg>
   );
 }
-function ChatIcon() {
-  return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-      <Path d="M4.5 6 C4.5 5 5.3 4.2 6.3 4.2 L17.7 4.2 C18.7 4.2 19.5 5 19.5 6 L19.5 14 C19.5 15 18.7 15.8 17.7 15.8 L9.5 15.8 L5.5 19.5 L5.5 15.8 C4.9 15.8 4.5 15.2 4.5 14.5 Z" stroke={STROKE} strokeWidth={SW} strokeLinejoin="round" />
-    </Svg>
-  );
-}
 function InfoIcon() {
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
@@ -112,7 +105,6 @@ const ITEMS: Item[] = [
   { slug: "language", label: "Language", icon: GlobeIcon },
   { slug: "hotlines", label: "Mental health hotlines", icon: LifebuoyIcon },
   { slug: "feedback", label: "Feedback", icon: FeedbackIcon },
-  { slug: "contact", label: "Contact the team", icon: ChatIcon },
   { slug: "about", label: "About", icon: InfoIcon },
   { slug: "donate", label: "Donate", icon: DonateIcon },
 ];
@@ -167,9 +159,17 @@ export default function SettingsScreen() {
                         ? router.push("/settings/security")
                         : item.slug === "accessibility"
                           ? router.push("/settings/accessibility")
-                          : item.slug === "donate"
-                            ? router.push("/settings/donate")
-                            : router.push({ pathname: "/settings/[slug]", params: { slug: item.slug, title: item.label } })
+                          : item.slug === "language"
+                            ? Linking.openSettings()
+                            : item.slug === "hotlines"
+                              ? router.push("/settings/hotlines")
+                              : item.slug === "feedback"
+                                ? router.push("/settings/feedback")
+                                : item.slug === "about"
+                                  ? router.push("/settings/about")
+                                  : item.slug === "donate"
+                                    ? router.push("/settings/donate")
+                                    : router.push({ pathname: "/settings/[slug]", params: { slug: item.slug, title: item.label } })
                 }
               >
                 <View style={styles.rowIcon}>

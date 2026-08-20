@@ -92,7 +92,7 @@ export default function VibratingOrb({ size, thunder = true }: Props) {
   }));
   const boltGlyph = size * 0.14; // one bolt
   // Anchor the pair up-and-right of the ball (which sits at ballBottom, centered).
-  const boltBottom = ballBottom + ball * 0.55;
+  const boltBottom = ballBottom + ball * 0.55 + 20; // nudged up 20px
   const boltLeft = size / 2 + ball * 0.15;
 
   return (

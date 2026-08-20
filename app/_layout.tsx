@@ -32,7 +32,8 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="welcome" options={{ headerShown: false }} />
-        <Stack.Screen name="splash" options={{ headerShown: false }} />
+        {/* Splash: no slide — the content grows from center (see splash.tsx). */}
+        <Stack.Screen name="splash" options={{ headerShown: false, animation: "none" }} />
         <Stack.Screen name="checkin" options={{ headerShown: false }} />
         <Stack.Screen name="emotionlog" options={{ headerShown: false }} />
         <Stack.Screen name="settings/index" options={{ headerShown: false }} />
@@ -40,7 +41,9 @@ export default function RootLayout() {
         <Stack.Screen name="settings/notifications" options={{ headerShown: false }} />
         <Stack.Screen name="settings/security" options={{ headerShown: false }} />
         <Stack.Screen name="settings/accessibility" options={{ headerShown: false }} />
-        <Stack.Screen name="settings/language" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/hotlines" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/feedback" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/about" options={{ headerShown: false }} />
         <Stack.Screen name="settings/donate" options={{ headerShown: false }} />
         <Stack.Screen name="settings/[slug]" options={{ headerShown: false }} />
         <Stack.Screen
