@@ -161,9 +161,11 @@ export default function SettingsScreen() {
                 onPress={() =>
                   item.slug === "profile"
                     ? router.push("/settings/profile")
-                    : item.slug === "donate"
-                      ? router.push("/settings/donate")
-                      : router.push({ pathname: "/settings/[slug]", params: { slug: item.slug, title: item.label } })
+                    : item.slug === "notifications"
+                      ? router.push("/settings/notifications")
+                      : item.slug === "donate"
+                        ? router.push("/settings/donate")
+                        : router.push({ pathname: "/settings/[slug]", params: { slug: item.slug, title: item.label } })
                 }
               >
                 <View style={styles.rowIcon}>
