@@ -38,6 +38,9 @@ export default function RootLayout() {
         <Stack.Screen name="settings/index" options={{ headerShown: false }} />
         <Stack.Screen name="settings/profile" options={{ headerShown: false }} />
         <Stack.Screen name="settings/notifications" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/security" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/accessibility" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/language" options={{ headerShown: false }} />
         <Stack.Screen name="settings/donate" options={{ headerShown: false }} />
         <Stack.Screen name="settings/[slug]" options={{ headerShown: false }} />
         <Stack.Screen

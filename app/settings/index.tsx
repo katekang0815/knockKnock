@@ -163,9 +163,13 @@ export default function SettingsScreen() {
                     ? router.push("/settings/profile")
                     : item.slug === "notifications"
                       ? router.push("/settings/notifications")
-                      : item.slug === "donate"
-                        ? router.push("/settings/donate")
-                        : router.push({ pathname: "/settings/[slug]", params: { slug: item.slug, title: item.label } })
+                      : item.slug === "security"
+                        ? router.push("/settings/security")
+                        : item.slug === "accessibility"
+                          ? router.push("/settings/accessibility")
+                          : item.slug === "donate"
+                            ? router.push("/settings/donate")
+                            : router.push({ pathname: "/settings/[slug]", params: { slug: item.slug, title: item.label } })
                 }
               >
                 <View style={styles.rowIcon}>
