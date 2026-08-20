@@ -15,8 +15,8 @@ import Svg, { Path } from "react-native-svg";
 
 const SERIF = Platform.select({ ios: "Georgia", default: "serif" });
 
-// Buy Me a Coffee page. TODO: replace with your real BMC URL once created.
-const DONATE_URL = "https://buymeacoffee.com/yehsun";
+// Buy Me a Coffee page (Yehsun Kang).
+const DONATE_URL = "https://buymeacoffee.com/katekang";
 
 const AMOUNTS = [25, 75, 150, 300];
 
@@ -24,10 +24,11 @@ export default function DonateScreen() {
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<number | null>(null);
 
-  const openDonate = (amount?: number) => {
-    // Buy Me a Coffee opens in the browser, where Apple Pay is offered.
-    const url = amount ? `${DONATE_URL}?amount=${amount}` : DONATE_URL;
-    Linking.openURL(url).catch(() => {});
+  const openDonate = () => {
+    // Buy Me a Coffee opens in the browser, where the supporter picks the
+    // amount and can pay with Apple Pay. (BMC has no reliable preset-amount
+    // URL param, so the in-app amounts are suggestions only.)
+    Linking.openURL(DONATE_URL).catch(() => {});
   };
 
   return (
@@ -84,14 +85,8 @@ export default function DonateScreen() {
 
       {/* Sticky donate button */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + 14 }]}>
-        <TouchableOpacity
-          style={styles.donateBtn}
-          activeOpacity={0.85}
-          onPress={() => openDonate(selected ?? undefined)}
-        >
-          <Text style={styles.donateText}>
-            Donate{selected ? ` $${selected}` : ""} with Buy Me a Coffee
-          </Text>
+        <TouchableOpacity style={styles.donateBtn} activeOpacity={0.85} onPress={openDonate}>
+          <Text style={styles.donateText}>Donate with Buy Me a Coffee</Text>
         </TouchableOpacity>
       </View>
     </View>

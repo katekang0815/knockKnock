@@ -4,23 +4,28 @@ import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withRepeat,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
-import Svg, { Defs, LinearGradient, Stop, Circle } from "react-native-svg";
+import Svg, { Circle, Defs, LinearGradient, Path, Stop } from "react-native-svg";
 
 interface Props {
   size: number;
+  thunder?: boolean; // Stormy-only: flashing lightning bolts over the orb
 }
 
 // The same gradient orb as BouncingOrb, sitting on the same base — but the ball
 // jitters in place (the sub-emotion circles' vibration) and the base pulses on a
 // steady interval instead of flashing on impact.
-export default function VibratingOrb({ size }: Props) {
+export default function VibratingOrb({ size, thunder = true }: Props) {
   // Fast jitter for the ball.
   const idle = useSharedValue(0);
   // Grow/brighten cycle for the halo.
   const halo = useSharedValue(0);
+  // Lightning flash (0 = off, 1 = full strike).
+  const bolt = useSharedValue(0);
 
   useEffect(() => {
     idle.value = withRepeat(
@@ -32,6 +37,18 @@ export default function VibratingOrb({ size }: Props) {
       withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.quad) }),
       -1,
       true,
+    );
+    // Thunder: quick double-flicker, then hold dark for a beat, on a loop.
+    bolt.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 55 }),
+        withTiming(0.25, { duration: 70 }),
+        withTiming(1, { duration: 55 }),
+        withTiming(0, { duration: 130 }),
+        withDelay(1700, withTiming(0, { duration: 0 })),
+      ),
+      -1,
+      false,
     );
   }, []);
 
@@ -67,6 +84,16 @@ export default function VibratingOrb({ size }: Props) {
     opacity: 0.5 * (1 - Math.abs(2 * halo.value - 1)), // 0.0 small → 0.5 mid → 0.0 fully grown
     transform: [{ scale: 1 + halo.value * 0.45 }],
   }));
+
+  // Lightning bolts: fade+pop in on each flash, sit at the upper-right of the orb.
+  const boltStyle = useAnimatedStyle(() => ({
+    opacity: bolt.value,
+    transform: [{ scale: 0.86 + bolt.value * 0.2 }],
+  }));
+  const boltGlyph = size * 0.14; // one bolt
+  // Anchor the pair up-and-right of the ball (which sits at ballBottom, centered).
+  const boltBottom = ballBottom + ball * 0.55;
+  const boltLeft = size / 2 + ball * 0.15;
 
   return (
     <View style={{ width: size, height: size }}>
@@ -117,6 +144,42 @@ export default function VibratingOrb({ size }: Props) {
           <Circle cx={50} cy={50} r={48} fill="url(#orbGradVibe)" />
         </Svg>
       </Animated.View>
+
+      {/* Thunder — two orange bolts flashing over the upper-right of the orb */}
+      {thunder && (
+        <Animated.View
+          style={[
+            {
+              position: "absolute",
+              bottom: boltBottom,
+              left: boltLeft,
+              width: boltGlyph * 1.7,
+              height: boltGlyph * 1.7,
+            },
+            boltStyle,
+          ]}
+          pointerEvents="none"
+        >
+          {/* back bolt (lower/right, slightly smaller) */}
+          <Svg
+            width={boltGlyph * 0.9}
+            height={boltGlyph * 0.9}
+            viewBox="0 0 24 24"
+            style={{ position: "absolute", right: 0, bottom: 0 }}
+          >
+            <Path d="M13 1 L4 14 L10 14 L8 23 L19 9 L12 9 Z" fill="#F0562B" />
+          </Svg>
+          {/* front bolt (upper/left) */}
+          <Svg
+            width={boltGlyph}
+            height={boltGlyph}
+            viewBox="0 0 24 24"
+            style={{ position: "absolute", left: 0, top: 0 }}
+          >
+            <Path d="M13 1 L4 14 L10 14 L8 23 L19 9 L12 9 Z" fill="#FF6A3D" />
+          </Svg>
+        </Animated.View>
+      )}
     </View>
   );
 }

@@ -8,7 +8,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import Svg, { Defs, LinearGradient, Stop, Circle } from "react-native-svg";
+import Svg, { Circle, Defs, Line, LinearGradient, Stop } from "react-native-svg";
 
 interface Props {
   size: number;
@@ -17,7 +17,20 @@ interface Props {
   fadeBall?: boolean;
   // false = stay in place (bounce only, no horizontal roll).
   rolling?: boolean;
+  // Rain-only: diagonal streaks that fade in and out over the orb.
+  rain?: boolean;
 }
+
+// Diagonal rain streaks (viewBox 0..40), staggered "/" dashes.
+const RAIN_STREAKS: [number, number, number, number][] = [
+  [7, 21, 12, 12],
+  [11, 15, 15, 9],
+  [14, 25, 19, 16],
+  [18, 18, 22, 11],
+  [22, 27, 26, 19],
+  [25, 16, 29, 9],
+  [30, 22, 34, 14],
+];
 
 // The same gradient orb, slowly rolling left → right and back, repeating. The
 // rotation is tied to the horizontal travel so it reads as a true roll.
