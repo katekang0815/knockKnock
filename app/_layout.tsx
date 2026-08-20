@@ -35,6 +35,9 @@ export default function RootLayout() {
         <Stack.Screen name="splash" options={{ headerShown: false }} />
         <Stack.Screen name="checkin" options={{ headerShown: false }} />
         <Stack.Screen name="emotionlog" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/index" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/donate" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/[slug]" options={{ headerShown: false }} />
         <Stack.Screen
           name="(tabs)"
           options={{

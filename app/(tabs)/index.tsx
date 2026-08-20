@@ -486,7 +486,11 @@ export default function HomeScreen() {
       {/* Bottom pill bar — Friends + placeholders (settings, sparkle) */}
       <View style={[styles.pillBarWrap, { bottom: insets.bottom }]} pointerEvents="box-none">
         <View style={styles.pillBar}>
-          <TouchableOpacity style={styles.pillIcon} activeOpacity={0.7} onPress={() => {}}>
+          <TouchableOpacity
+            style={styles.pillIcon}
+            activeOpacity={0.7}
+            onPress={() => router.push("/settings")}
+          >
             <SettingsIcon />
           </TouchableOpacity>
           <View style={{ flex: 1 }} />
