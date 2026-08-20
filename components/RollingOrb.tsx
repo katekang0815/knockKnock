@@ -9,7 +9,7 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from "react-native-reanimated";
-import Svg, { Circle, Defs, Line, LinearGradient, Stop } from "react-native-svg";
+import Svg, { Circle, Defs, LinearGradient, Path, Stop } from "react-native-svg";
 
 interface Props {
   size: number;
@@ -59,8 +59,11 @@ function RainStreak({
   return (
     <Animated.View style={[{ position: "absolute", left, top: 0, width: dash, height: dash }, style]}>
       <Svg width={dash} height={dash} viewBox="0 0 12 12">
-        {/* short "/" dash slanting up-right */}
-        <Line x1={2} y1={10} x2={10} y2={2} stroke={color} strokeWidth={2.4} strokeLinecap="round" />
+        {/* teardrop: pointed top, round bottom */}
+        <Path
+          d="M6 1.5 C7.8 5 9.5 7 9.5 8.5 C9.5 10.4 7.9 11.5 6 11.5 C4.1 11.5 2.5 10.4 2.5 8.5 C2.5 7 4.2 5 6 1.5 Z"
+          fill={color}
+        />
       </Svg>
     </Animated.View>
   );
@@ -96,7 +99,7 @@ export default function RollingOrb({ size, fadeBall = true, rolling = true, rain
     );
     if (rain) {
       rainClock.value = withRepeat(
-        withTiming(1, { duration: 1000, easing: Easing.linear }),
+        withTiming(1, { duration: 2000, easing: Easing.linear }), // half speed
         -1,
         false,
       );
@@ -122,10 +125,10 @@ export default function RollingOrb({ size, fadeBall = true, rolling = true, rain
 
   // Rain-streak layout: a small box above the orb that drops slant dashes.
   const rainBox = size * 0.36;
-  const rainDash = size * 0.09;
+  const rainDash = size * 0.045; // half size
   const rainFall = size * 0.24;
-  const rainBottom = ballBottom + ballDiameter * 0.35;
-  const rainLeft = size / 2 - rainBox * 0.5;
+  const rainBottom = ballBottom + ballDiameter * 0.35 + 60; // nudged up 60px
+  const rainLeft = size / 2 - rainBox * 0.5 + 30; // nudged right 30px (moved left 30)
 
   // Rolling ball: translate across and rotate by the arc length it covers. Breezy
   // adds a vertical bounce + squash; rain just rolls at a constant size.
@@ -244,7 +247,7 @@ export default function RollingOrb({ size, fadeBall = true, rolling = true, rain
               left={s.x * (rainBox - rainDash)}
               fall={rainFall}
               dash={rainDash}
-              color="#F0562B"
+              color="#E8C6AB"
             />
           ))}
         </View>

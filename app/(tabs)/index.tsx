@@ -97,7 +97,8 @@ const PILL_BAR_FOOTPRINT = 70;
 
 // One warm scheme for every card — a subtle dark warm-brown (lighter top-left →
 // darker bottom-right), matching the reference "Vulnerable" card.
-const CARD_GRADIENT: [string, string] = ["#372A1C", "#211710"];
+// Matches the quick-note popup gradient (charcoal → warm brown).
+const CARD_GRADIENT: [string, string] = ["#232222", "#402614"];
 const CARD_RADIUS = 28;
 
 // Rounded-rectangle gradient fill, drawn at the card's actual pixel size so the
