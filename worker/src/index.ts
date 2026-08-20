@@ -17,6 +17,9 @@
 export interface Env {
   RL: KVNamespace;
   ANTHROPIC_API_KEY: string;
+  // Optional Resend API key for emailing feedback to the owner.
+  //   npx wrangler secret put RESEND_API_KEY
+  RESEND_API_KEY?: string;
 }
 
 // ---- Tunable limits -------------------------------------------------------
@@ -28,6 +31,7 @@ const PER_DEVICE_DAILY_CHECKINS = 100; // TESTING value — set back to 5 before
 const GLOBAL_DAILY_CALL_CAP = 1600; // hard: ~$5/day at ~$0.003/call — tune here
 const MAX_CHAT_TURNS = 3; // chat/opener turns before the wrap-up message
 const COUNTER_TTL_SECONDS = 172800; // keep day counters ~2 days
+const FEEDBACK_TO = 'yehsunkang@gmail.com'; // where in-app feedback is emailed
 
 // ---- Prompt (source of truth for production) ------------------------------
 
@@ -148,6 +152,59 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
     if (request.method !== 'POST') return json(405, { error: 'method_not_allowed' });
+
+    // ---- Feedback route: store in KV, optionally ping a Discord webhook ----
+    if (new URL(request.url).pathname.endsWith('/feedback')) {
+      let fb: any;
+      try {
+        fb = await request.json();
+      } catch {
+        return json(400, { error: 'bad_json' });
+      }
+      const message = String(fb?.message || '').slice(0, 4000).trim();
+      if (!message) return json(400, { error: 'empty' });
+      const rating = Math.max(0, Math.min(5, Number(fb?.rating) || 0));
+      const contact = String(fb?.contact || '').slice(0, 200);
+      const appVersion = String(fb?.appVersion || '').slice(0, 40);
+      const device = request.headers.get('x-device-id') || 'unknown';
+
+      const entry = { at: new Date().toISOString(), rating, message, contact, appVersion, device };
+      try {
+        await env.RL.put(`feedback:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`, JSON.stringify(entry));
+      } catch {
+        // storage best-effort
+      }
+
+      if (env.RESEND_API_KEY) {
+        const stars = rating ? '★'.repeat(rating) + '☆'.repeat(5 - rating) : '(no rating)';
+        const text =
+          `Rating: ${stars}\n\n${message}\n\n` +
+          `— — —\n` +
+          (contact ? `Contact: ${contact}\n` : '') +
+          (appVersion ? `App version: ${appVersion}\n` : '') +
+          `Device: ${device}\n` +
+          `At: ${entry.at}`;
+        try {
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              authorization: `Bearer ${env.RESEND_API_KEY}`,
+            },
+            body: JSON.stringify({
+              from: 'KnockKnock Feedback <onboarding@resend.dev>',
+              to: [FEEDBACK_TO],
+              reply_to: contact || undefined,
+              subject: `KnockKnock feedback ${rating ? `(${rating}★)` : ''}`.trim(),
+              text,
+            }),
+          });
+        } catch {
+          // email best-effort; feedback is already stored in KV
+        }
+      }
+      return json(200, { ok: true });
+    }
 
     const deviceId = request.headers.get('x-device-id');
     if (!deviceId) return json(400, { error: 'missing_device_id' });
