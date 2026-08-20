@@ -7,6 +7,7 @@ import Animated, {
   withRepeat,
   withSequence,
   withTiming,
+  type SharedValue,
 } from "react-native-reanimated";
 import Svg, { Circle, Defs, Line, LinearGradient, Stop } from "react-native-svg";
 
@@ -17,29 +18,64 @@ interface Props {
   fadeBall?: boolean;
   // false = stay in place (bounce only, no horizontal roll).
   rolling?: boolean;
-  // Rain-only: diagonal streaks that fade in and out over the orb.
+  // Rain-only: diagonal streaks that fall and fade out over the orb.
   rain?: boolean;
 }
 
-// Diagonal rain streaks (viewBox 0..40), staggered "/" dashes.
-const RAIN_STREAKS: [number, number, number, number][] = [
-  [7, 21, 12, 12],
-  [11, 15, 15, 9],
-  [14, 25, 19, 16],
-  [18, 18, 22, 11],
-  [22, 27, 26, 19],
-  [25, 16, 29, 9],
-  [30, 22, 34, 14],
+// Each streak: horizontal position (0..1 across the rain box) + phase offset
+// (0..1) so drops fall at staggered times rather than all together.
+const RAIN_STREAKS: { x: number; offset: number }[] = [
+  { x: 0.08, offset: 0.0 },
+  { x: 0.5, offset: 0.14 },
+  { x: 0.26, offset: 0.31 },
+  { x: 0.7, offset: 0.48 },
+  { x: 0.42, offset: 0.62 },
+  { x: 0.88, offset: 0.79 },
+  { x: 0.6, offset: 0.9 },
 ];
+
+// One falling streak. Reads a shared 0→1 clock; its own offset shifts its phase.
+function RainStreak({
+  clock,
+  offset,
+  left,
+  fall,
+  dash,
+  color,
+}: {
+  clock: SharedValue<number>;
+  offset: number;
+  left: number;
+  fall: number;
+  dash: number;
+  color: string;
+}) {
+  const style = useAnimatedStyle(() => {
+    const p = (clock.value + offset) % 1; // 0 at top → 1 at bottom
+    // Quick fade-in, then fade out as it falls; gone by the end.
+    const opacity = Math.min(p * 6, 1) * (1 - p);
+    return { opacity, transform: [{ translateY: p * fall }] };
+  });
+  return (
+    <Animated.View style={[{ position: "absolute", left, top: 0, width: dash, height: dash }, style]}>
+      <Svg width={dash} height={dash} viewBox="0 0 12 12">
+        {/* short "/" dash slanting up-right */}
+        <Line x1={2} y1={10} x2={10} y2={2} stroke={color} strokeWidth={2.4} strokeLinecap="round" />
+      </Svg>
+    </Animated.View>
+  );
+}
 
 // The same gradient orb, slowly rolling left → right and back, repeating. The
 // rotation is tied to the horizontal travel so it reads as a true roll.
-export default function RollingOrb({ size, fadeBall = true, rolling = true }: Props) {
+export default function RollingOrb({ size, fadeBall = true, rolling = true, rain = false }: Props) {
   // 0 = far left, 1 = far right.
   const roll = useSharedValue(0);
   // Vertical bounce (Breezy variant) — decoupled from the roll so its speed is
   // independent. 0 = on the base, 1 = apex.
   const bounce = useSharedValue(0);
+  // Rain streaks clock: linear 0→1 loop (~1s), each streak phase-shifted.
+  const rainClock = useSharedValue(0);
 
   useEffect(() => {
     // Rain (fading) rolls slower than the bouncing (Breezy) variant.
@@ -58,6 +94,13 @@ export default function RollingOrb({ size, fadeBall = true, rolling = true }: Pr
       -1,
       false,
     );
+    if (rain) {
+      rainClock.value = withRepeat(
+        withTiming(1, { duration: 1000, easing: Easing.linear }),
+        -1,
+        false,
+      );
+    }
   }, []);
 
   const ball = size * 0.4;    // reference ball diameter (base/halo scaling)
@@ -76,6 +119,13 @@ export default function RollingOrb({ size, fadeBall = true, rolling = true }: Pr
   // Ball/halo resting bottom — baseH above the text base top (same gap as Stormy).
   // Rain is nudged up 5px; Breezy stays put.
   const ballBottom = bottom + baseH + 5;
+
+  // Rain-streak layout: a small box above the orb that drops slant dashes.
+  const rainBox = size * 0.36;
+  const rainDash = size * 0.09;
+  const rainFall = size * 0.24;
+  const rainBottom = ballBottom + ballDiameter * 0.35;
+  const rainLeft = size / 2 - rainBox * 0.5;
 
   // Rolling ball: translate across and rotate by the arc length it covers. Breezy
   // adds a vertical bounce + squash; rain just rolls at a constant size.
@@ -173,6 +223,32 @@ export default function RollingOrb({ size, fadeBall = true, rolling = true }: Pr
           <Circle cx={50} cy={50} r={48} fill={`url(#${gradId})`} />
         </Svg>
       </Animated.View>
+
+      {/* Rain — slant dashes falling and fading over the orb, each staggered */}
+      {rain && (
+        <View
+          style={{
+            position: "absolute",
+            bottom: rainBottom,
+            left: rainLeft,
+            width: rainBox,
+            height: rainFall + rainDash,
+          }}
+          pointerEvents="none"
+        >
+          {RAIN_STREAKS.map((s, i) => (
+            <RainStreak
+              key={i}
+              clock={rainClock}
+              offset={s.offset}
+              left={s.x * (rainBox - rainDash)}
+              fall={rainFall}
+              dash={rainDash}
+              color="#F0562B"
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 }
