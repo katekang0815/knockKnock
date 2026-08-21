@@ -31,7 +31,7 @@ const ICON_SIZE = 180;
 const EMOTIONS: { category: EmotionCategory; render: (s: number) => React.ReactNode }[] = [
   { category: 'Stormy', render: (s) => <VibratingOrb size={s} /> },
   { category: 'Rain',   render: (s) => <RollingOrb size={s} rain /> },
-  { category: 'Breezy', render: (s) => <RollingOrb size={s} fadeBall={false} /> },
+  { category: 'Breezy', render: (s) => <RollingOrb size={s} fadeBall={false} rainbow /> },
   { category: 'Sunny',  render: (s) => <BouncingOrb size={s} /> },
 ];
 const DEFAULT_INDEX = EMOTIONS.findIndex((e) => e.category === 'Breezy');
@@ -481,7 +481,7 @@ export default function CheckInScreen() {
           EMOTIONS[active].render(ICON_SIZE)
         ) : (
           // Default screen: dedicated Breezy icon that only bounces (no roll).
-          <RollingOrb size={ICON_SIZE} fadeBall={false} rolling={false} />
+          <RollingOrb size={ICON_SIZE} fadeBall={false} rolling={false} rainbow />
         )}
       </View>
 
