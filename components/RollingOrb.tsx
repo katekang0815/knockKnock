@@ -6,6 +6,7 @@ import Animated, {
   useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withRepeat,
   withSequence,
   withTiming,
@@ -63,14 +64,18 @@ interface Props {
   rays?: boolean;
 }
 
-// Number of radial streaks in the rotating shimmer.
-const RAY_COUNT = 12;
+// Rays occupy the top-right QUARTER only (0° = top → 90° = right, clockwise),
+// evenly spaced across that arc.
+const RAY_COUNT = 7;
+const RAY_START_ANGLE = 0; // top (12 o'clock)
+const RAY_ARC = 90; // quarter circle, ending at 3 o'clock
 
-// One radial streak: a small rounded bar at `radius` from center, rotated to
-// point outward, whose opacity peaks as the rotating "wave" passes its angle.
+// One radial streak at `angle`, lighting when the wave front (clock) reaches its
+// `phase` (0..1 across the arc), then fading. All dark during the pause.
 function Ray({
   clock,
-  index,
+  angle,
+  phase,
   cx,
   cy,
   radius,
@@ -78,21 +83,21 @@ function Ray({
   thickness,
 }: {
   clock: SharedValue<number>;
-  index: number;
+  angle: number;
+  phase: number;
   cx: number;
   cy: number;
   radius: number;
   length: number;
   thickness: number;
 }) {
-  const angle = (360 / RAY_COUNT) * index; // 0 = top, clockwise
   const rad = ((angle - 90) * Math.PI) / 180;
   const x = cx + radius * Math.cos(rad);
   const y = cy + radius * Math.sin(rad);
   const style = useAnimatedStyle(() => {
-    const window = 0.4; // fraction of the loop each streak stays lit
-    const p = (clock.value + index / RAY_COUNT) % 1;
-    const opacity = p < window ? 1 - p / window : 0;
+    const window = 0.4; // how long each streak stays lit as the wave passes
+    const p = clock.value - phase;
+    const opacity = p >= 0 && p < window ? 1 - p / window : 0;
     return { opacity };
   });
   return (
@@ -234,11 +239,16 @@ export default function RollingOrb({
     }
   }, [rainbow]);
 
-  // Rotating rays — reactive so it starts even when the wheel reuses this instance.
+  // Rays: sweep the wave across the arc once (0 → 1 + window so all fade out),
+  // hold dark for a pause, then repeat. Reactive so it restarts on reuse.
   useEffect(() => {
     if (rays) {
       raysClock.value = withRepeat(
-        withTiming(1, { duration: 2600, easing: Easing.linear }),
+        withSequence(
+          withTiming(0, { duration: 0 }), // reset to start of sweep
+          withTiming(1.4, { duration: 2200, easing: Easing.linear }), // 1 + window
+          withDelay(1400, withTiming(1.4, { duration: 0 })), // hold dark (pause)
+        ),
         -1,
         false,
       );
@@ -280,7 +290,7 @@ export default function RollingOrb({
 
   // Rotating rays layout — a ring centered on the ball, streaks just outside it.
   const rayCx = size / 2;
-  const rayCy = size - ballBottom - ballDiameter / 2; // ball center from the top
+  const rayCy = size - ballBottom - ballDiameter / 2 - 50; // ball center, nudged up 50px
   const rayRadius = size * 0.24;
   const rayLength = size * 0.05;
   const rayThickness = 3;
@@ -431,20 +441,24 @@ export default function RollingOrb({
         </Animated.View>
       )}
 
-      {/* Rays — radial streaks around the orb glowing/fading in rotation (Breezy) */}
+      {/* Rays — streaks across the top-right quarter, sweeping then pausing (Breezy) */}
       {rays &&
-        Array.from({ length: RAY_COUNT }).map((_, i) => (
-          <Ray
-            key={i}
-            clock={raysClock}
-            index={i}
-            cx={rayCx}
-            cy={rayCy}
-            radius={rayRadius}
-            length={rayLength}
-            thickness={rayThickness}
-          />
-        ))}
+        Array.from({ length: RAY_COUNT }).map((_, i) => {
+          const t = i / (RAY_COUNT - 1); // 0..1 across the arc
+          return (
+            <Ray
+              key={i}
+              clock={raysClock}
+              angle={RAY_START_ANGLE + RAY_ARC * t}
+              phase={t}
+              cx={rayCx}
+              cy={rayCy}
+              radius={rayRadius}
+              length={rayLength}
+              thickness={rayThickness}
+            />
+          );
+        })}
     </View>
   );
 }
