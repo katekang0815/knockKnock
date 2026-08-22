@@ -22,8 +22,6 @@ const RAINBOW_BANDS: { r: number; color: string }[] = [
   { r: 52, color: "#E8A6A0" }, // pink
   { r: 43, color: "#E79B63" }, // orange
   { r: 34, color: "#E7C766" }, // yellow
-  { r: 25, color: "#86B491" }, // green
-  { r: 16, color: "#5E8FB0" }, // blue
 ];
 const RAINBOW_WIDTH = 8;
 function arcPath(r: number): string {
@@ -204,9 +202,9 @@ export default function RollingOrb({
   const rainLeft = size / 2 - rainBox * 0.5 + 30; // nudged right 30px (moved left 30)
 
   // Rainbow layout: arch above the orb.
-  const rainbowW = size * 0.52;
+  const rainbowW = size * 1.04; // doubled
   const rainbowH = rainbowW * (74 / 120);
-  const rainbowBottom = ballBottom + ball * 0.5;
+  const rainbowBottom = ballBottom + ball * 0.5 + 40; // nudged up 40px
   const rainbowLeft = size / 2 - rainbowW / 2;
 
   // Rolling ball: translate across and rotate by the arc length it covers. Breezy
