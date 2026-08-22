@@ -59,6 +59,60 @@ interface Props {
   rain?: boolean;
   // Breezy-only: a rainbow that draws on left→right over the orb, then loops.
   rainbow?: boolean;
+  // Breezy-only: radial streaks around the orb that glow and fade in rotation.
+  rays?: boolean;
+}
+
+// Number of radial streaks in the rotating shimmer.
+const RAY_COUNT = 12;
+
+// One radial streak: a small rounded bar at `radius` from center, rotated to
+// point outward, whose opacity peaks as the rotating "wave" passes its angle.
+function Ray({
+  clock,
+  index,
+  cx,
+  cy,
+  radius,
+  length,
+  thickness,
+}: {
+  clock: SharedValue<number>;
+  index: number;
+  cx: number;
+  cy: number;
+  radius: number;
+  length: number;
+  thickness: number;
+}) {
+  const angle = (360 / RAY_COUNT) * index; // 0 = top, clockwise
+  const rad = ((angle - 90) * Math.PI) / 180;
+  const x = cx + radius * Math.cos(rad);
+  const y = cy + radius * Math.sin(rad);
+  const style = useAnimatedStyle(() => {
+    const window = 0.4; // fraction of the loop each streak stays lit
+    const p = (clock.value + index / RAY_COUNT) % 1;
+    const opacity = p < window ? 1 - p / window : 0;
+    return { opacity };
+  });
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: 'absolute',
+          left: x - thickness / 2,
+          top: y - length / 2,
+          width: thickness,
+          height: length,
+          borderRadius: thickness / 2,
+          backgroundColor: '#EBD9C4',
+          transform: [{ rotate: `${angle}deg` }],
+        },
+        style,
+      ]}
+    />
+  );
 }
 
 // Each streak: horizontal position (0..1 across the rain box) + phase offset
@@ -116,6 +170,7 @@ export default function RollingOrb({
   rolling = true,
   rain = false,
   rainbow = false,
+  rays = false,
 }: Props) {
   // 0 = far left, 1 = far right.
   const roll = useSharedValue(0);
@@ -126,6 +181,8 @@ export default function RollingOrb({
   const rainClock = useSharedValue(0);
   // Rainbow draw-on clock: linear 0→1 loop.
   const rainbowClock = useSharedValue(0);
+  // Rotating rays clock: linear 0→1 loop; each ray phase-shifted by its index.
+  const raysClock = useSharedValue(0);
 
   useEffect(() => {
     // Rain (fading) rolls slower than the bouncing (Breezy) variant.
@@ -177,6 +234,20 @@ export default function RollingOrb({
     }
   }, [rainbow]);
 
+  // Rotating rays — reactive so it starts even when the wheel reuses this instance.
+  useEffect(() => {
+    if (rays) {
+      raysClock.value = withRepeat(
+        withTiming(1, { duration: 2600, easing: Easing.linear }),
+        -1,
+        false,
+      );
+    } else {
+      cancelAnimation(raysClock);
+      raysClock.value = 0;
+    }
+  }, [rays]);
+
   const ball = size * 0.4;    // reference ball diameter (base/halo scaling)
   // Total left↔right distance — both variants use the same range (0 = bounce in place).
   const travel = rolling ? size * 0.18 : 0;
@@ -206,6 +277,13 @@ export default function RollingOrb({
   const rainbowH = rainbowW * (74 / 120);
   const rainbowBottom = ballBottom + ball * 0.5 + 40; // nudged up 40px
   const rainbowLeft = size / 2 - rainbowW / 2;
+
+  // Rotating rays layout — a ring centered on the ball, streaks just outside it.
+  const rayCx = size / 2;
+  const rayCy = size - ballBottom - ballDiameter / 2; // ball center from the top
+  const rayRadius = size * 0.24;
+  const rayLength = size * 0.05;
+  const rayThickness = 3;
 
   // Rolling ball: translate across and rotate by the arc length it covers. Breezy
   // adds a vertical bounce + squash; rain just rolls at a constant size.
@@ -352,6 +430,21 @@ export default function RollingOrb({
           </Svg>
         </Animated.View>
       )}
+
+      {/* Rays — radial streaks around the orb glowing/fading in rotation (Breezy) */}
+      {rays &&
+        Array.from({ length: RAY_COUNT }).map((_, i) => (
+          <Ray
+            key={i}
+            clock={raysClock}
+            index={i}
+            cx={rayCx}
+            cy={rayCy}
+            radius={rayRadius}
+            length={rayLength}
+            thickness={rayThickness}
+          />
+        ))}
     </View>
   );
 }

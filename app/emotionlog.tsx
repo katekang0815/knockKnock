@@ -41,7 +41,7 @@ function emotionIcon(category: EmotionCategory, size: number) {
     case 'Rain':
       return <RollingOrb size={size} rain />;
     case 'Breezy':
-      return <RollingOrb size={size} fadeBall={false} />;
+      return <RollingOrb size={size} fadeBall={false} rays />;
     default:
       return <BouncingOrb size={size} />; // Sunny
   }
