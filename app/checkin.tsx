@@ -480,8 +480,8 @@ export default function CheckInScreen() {
         {started ? (
           EMOTIONS[active].render(ICON_SIZE)
         ) : (
-          // Default screen: dedicated Breezy icon that only bounces (no roll).
-          <RollingOrb size={ICON_SIZE} fadeBall={false} rolling={false} rays />
+          // Default screen: calm Breezy icon — no rays until a category is dialed.
+          <RollingOrb size={ICON_SIZE} fadeBall={false} rolling={false} />
         )}
       </View>
 
