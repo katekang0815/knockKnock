@@ -46,7 +46,8 @@ const TURN_LIMIT_RESPONSE =
 
 // What each call is for. The Worker derives max_tokens + turn enforcement from this.
 // 'reflection' = a short reflection for an app-chosen (curated) verse.
-export type ChatKind = 'chat' | 'opener' | 'prayer' | 'verse' | 'reflection';
+// 'versePick'  = choose a reference from a provided pool AND write a reflection.
+export type ChatKind = 'chat' | 'opener' | 'prayer' | 'verse' | 'reflection' | 'versePick';
 // Conversation stage (chat/opener only); the Worker maps this to a stage directive.
 export type ChatStage = 'listen' | 'suggest' | 'wrap' | '';
 
@@ -149,7 +150,8 @@ export async function sendChatMessage(
   }
 
   const enforceTurnLimit = kind === 'chat' || kind === 'opener';
-  const maxTokens = kind === 'verse' ? 280 : kind === 'reflection' ? 100 : 150;
+  const maxTokens =
+    kind === 'verse' ? 280 : kind === 'reflection' ? 100 : kind === 'versePick' ? 140 : 150;
   const userTurns = history.filter((m) => m.role === 'user').length;
   const messages = buildMessages(userMessage, history);
 

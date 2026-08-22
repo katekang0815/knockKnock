@@ -18,7 +18,13 @@ import RollingOrb from '@/components/RollingOrb';
 import { EmotionCategory } from '@/constants/emotions';
 import { sendChatMessage, type ChatStage } from '@/services/aiService';
 import { getSessions, recordSession, extractVerse } from '@/services/beliefStore';
-import { selectVerse } from '@/services/verses';
+import {
+  commitUsed,
+  findVerse,
+  getUnusedCandidates,
+  hasVersePoolForCategory,
+  pickFallback,
+} from '@/services/verses';
 import { generateId } from '@/services/deviceId';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -420,34 +426,46 @@ export default function EmotionLogScreen() {
     if (verseUsed) return; // single use per session
     setSending(true);
 
-    // ---- Curated pool (deterministic, no AI picks the verse) — Stormy for now ----
-    const picked = categoryKey ? await selectVerse(categoryKey, emotion ?? '') : null;
-    if (picked) {
-      // Render the exact verse instantly (accurate, guaranteed non-repeating).
-      const verseMsg = `${picked.ref}  ${picked.text}`;
-      setChatMessages((prev) => [
-        ...prev,
-        { role: 'ai' as const, text: verseMsg, kind: 'verse' as const },
-      ]);
-      setVerseUsed(true);
+    // ---- Curated pool (Stormy): AI picks a reference from the pool + writes a
+    //      reflection in one call; the app renders its own exact verse text. ----
+    if (categoryKey && hasVersePoolForCategory(categoryKey)) {
+      const candidates = await getUnusedCandidates(categoryKey);
+      const refList = candidates.map((v) => v.ref).join(', ');
 
-      // AI writes ONLY a personalized reflection for this verse. Fallback: verse alone.
+      let aiVerse: ReturnType<typeof findVerse> = null;
+      let aiReflection = '';
       try {
-        const reflectionRaw = await sendChatMessage(
-          `A Bible verse is being shared with the user, who selected the emotion "${emotion}": ${picked.ref} - ${picked.text} Write ONLY a warm, personal 1 to 2 sentence reflection connecting this verse to what they're going through. Do not include the verse text or its reference, and no preamble.`,
+        const raw = await sendChatMessage(
+          `The user selected the emotion "${emotion}". Candidate Bible verse references: ${refList}. Choose the ONE that best fits, then reply in exactly two lines — line 1: the reference copied exactly; line 2: a warm 1 to 2 sentence reflection (no verse text, no preamble).`,
           chatMessages,
           chatContext,
-          'reflection',
+          'versePick',
         );
-        const reflection = sanitizeAI(reflectionRaw);
-        if (reflection) {
-          setChatMessages((prev) => [...prev, { role: 'ai' as const, text: reflection }]);
-        }
+        const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
+        aiVerse = findVerse(categoryKey, lines[0] ?? '');
+        aiReflection = sanitizeAI(lines.slice(1).join(' '));
       } catch {
-        // reflection failed/capped → leave the verse alone
+        // network/AI failure → app picks below, verse alone
       }
-      setSending(false);
-      return;
+
+      // Use the AI's pick if valid; otherwise the app picks (and drop the
+      // reflection, since it was written for a different verse).
+      const chosen = aiVerse ?? pickFallback(candidates);
+      const reflection = aiVerse ? aiReflection : '';
+
+      if (chosen) {
+        await commitUsed(categoryKey, chosen.ref);
+        const verseMsg = `${chosen.ref}  ${chosen.text}`;
+        setChatMessages((prev) => {
+          const next = [...prev, { role: 'ai' as const, text: verseMsg, kind: 'verse' as const }];
+          if (reflection) next.push({ role: 'ai' as const, text: reflection });
+          return next;
+        });
+        setVerseUsed(true);
+        setSending(false);
+        return;
+      }
+      // Empty pool (shouldn't happen) → fall through to AI free-generation.
     }
 
     // ---- Fallback: no curated pool for this category → AI generates the verse ----

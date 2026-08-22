@@ -202,3 +202,87 @@ export async function selectVerse(category: string, emotion: string): Promise<Pi
   const v = VERSES[em]?.[idx];
   return v ? { emotion: em, ref: v.ref, text: v.text } : null;
 }
+
+// ===========================================================================
+// Constrained selection (pick + reflection): the AI chooses a reference from a
+// category's pool; the app validates it and renders its own exact text. Keyed
+// by reference (unique across a pool), with a global used-set per category.
+// The chain code above (selectVerse) is kept dormant for an easy revert.
+// ===========================================================================
+
+// Flattened per-category pools. Only Stormy is populated for now.
+const CATEGORY_POOLS: Record<string, Verse[]> = {
+  Stormy: Object.values(VERSES).flat(),
+};
+
+function usedKey(category: string): string {
+  return `knockknock.verses.used.${category}.v2`;
+}
+
+function normalizeRef(s: string): string {
+  return s
+    .replace(/[–—]/g, '-') // en/em dash → hyphen
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+/** True if the major category has a curated pool (Stormy, for now). */
+export function hasVersePoolForCategory(category: string): boolean {
+  return !!CATEGORY_POOLS[category];
+}
+
+/** Verses in the category's pool not yet in the used-set (resets when empty). */
+export async function getUnusedCandidates(category: string): Promise<Verse[]> {
+  const pool = CATEGORY_POOLS[category];
+  if (!pool) return [];
+  let used: string[] = [];
+  try {
+    const raw = await AsyncStorage.getItem(usedKey(category));
+    if (raw) used = JSON.parse(raw) as string[];
+  } catch {
+    used = [];
+  }
+  const usedSet = new Set(used.map(normalizeRef));
+  const candidates = pool.filter((v) => !usedSet.has(normalizeRef(v.ref)));
+  if (candidates.length === 0) {
+    // Whole pool consumed → reset and offer everything again.
+    try {
+      await AsyncStorage.removeItem(usedKey(category));
+    } catch {
+      // best-effort
+    }
+    return pool.slice();
+  }
+  return candidates;
+}
+
+/** Look up the exact verse for a reference (validates the AI's choice). */
+export function findVerse(category: string, ref: string): Verse | null {
+  const pool = CATEGORY_POOLS[category];
+  if (!pool) return null;
+  const target = normalizeRef(ref);
+  return pool.find((v) => normalizeRef(v.ref) === target) ?? null;
+}
+
+/** App-side fallback pick when the AI's choice is invalid or the call fails. */
+export function pickFallback(candidates: Verse[]): Verse | null {
+  return candidates.length ? candidates[0] : null;
+}
+
+/** Record a reference as shown (global used-set per category). */
+export async function commitUsed(category: string, ref: string): Promise<void> {
+  let used: string[] = [];
+  try {
+    const raw = await AsyncStorage.getItem(usedKey(category));
+    if (raw) used = JSON.parse(raw) as string[];
+  } catch {
+    used = [];
+  }
+  if (!used.some((r) => normalizeRef(r) === normalizeRef(ref))) used.push(ref);
+  try {
+    await AsyncStorage.setItem(usedKey(category), JSON.stringify(used));
+  } catch {
+    // best-effort
+  }
+}

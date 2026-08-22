@@ -130,6 +130,11 @@ function buildSystemPrompt(context: Ctx, recapBlock: string, stage: string): str
 // curated verse; the model writes just a short, personal reflection for it.
 const REFLECTION_PROMPT = `You are a warm, caring spiritual companion in the KnockKnock app. A Bible verse has just been shared with the user. Write ONLY a short, personal reflection (1 to 2 sentences) that gently connects the verse to what the user is feeling right now. Do NOT include the verse text or its reference, no preamble, no lists, no quotation marks around it. Keep it warm, human, and specific to them. If the user has expressed self-harm or crisis, gently encourage them to reach out to a trusted person or the 988 Suicide & Crisis Lifeline.`;
 
+// Constrained selection: the app supplies candidate references; the model picks
+// the best-fitting one and writes a reflection. The app renders the exact verse
+// text itself (from the chosen reference), so accuracy stays app-controlled.
+const PICK_PROMPT = `You are a warm, caring spiritual companion in the KnockKnock app. You will be given the user's context and a list of candidate Bible verse references. Choose the ONE reference that best fits what the user is feeling right now, then reply in EXACTLY two lines:\nLine 1: the chosen reference, copied EXACTLY from the list, and nothing else.\nLine 2: a warm, personal 1 to 2 sentence reflection connecting that verse to what they are going through — no verse text, no preamble.\nOnly choose from the provided references. If the user has expressed self-harm or crisis, gently encourage them to reach out to a trusted person or the 988 Suicide & Crisis Lifeline.`;
+
 const CORS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -250,15 +255,23 @@ export default {
 
     // Assemble the Anthropic request (prompt + tunables owned here).
     const maxTokens = Math.min(
-      kind === 'verse' ? 280 : kind === 'reflection' ? 100 : 150,
+      kind === 'verse'
+        ? 280
+        : kind === 'reflection'
+          ? 100
+          : kind === 'versePick'
+            ? 140
+            : 150,
       MAX_OUTPUT_TOKENS,
     );
-    // Reflection-only calls (the app already chose a curated verse) use a light
-    // prompt — no full system prompt / recap needed, just tone + safety.
+    // Reflection / versePick calls use a light prompt (the app owns the verse
+    // pool and text) — no full system prompt / recap needed, just tone + safety.
     const system =
       kind === 'reflection'
         ? REFLECTION_PROMPT
-        : buildSystemPrompt(body.context || {}, buildRecapBlock(body.recap || []), body.stage || '');
+        : kind === 'versePick'
+          ? PICK_PROMPT
+          : buildSystemPrompt(body.context || {}, buildRecapBlock(body.recap || []), body.stage || '');
     const forwardBody = {
       model: ALLOWED_MODEL,
       max_tokens: maxTokens,
