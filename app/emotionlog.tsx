@@ -17,7 +17,8 @@ import VibratingOrb from '@/components/VibratingOrb';
 import RollingOrb from '@/components/RollingOrb';
 import { EmotionCategory } from '@/constants/emotions';
 import { sendChatMessage, type ChatStage } from '@/services/aiService';
-import { recordSession, extractVerse } from '@/services/beliefStore';
+import { getSessions, recordSession, extractVerse } from '@/services/beliefStore';
+import { selectVerse } from '@/services/verses';
 import { generateId } from '@/services/deviceId';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -34,7 +35,7 @@ function emotionIcon(category: EmotionCategory, size: number) {
     case 'Rain':
       return <RollingOrb size={size} rain />;
     case 'Breezy':
-      return <RollingOrb size={size} fadeBall={false} rainbow />;
+      return <RollingOrb size={size} fadeBall={false} />;
     default:
       return <BouncingOrb size={size} />; // Sunny
   }
@@ -418,8 +419,58 @@ export default function EmotionLogScreen() {
     if (sending) return;
     if (verseUsed) return; // single use per session
     setSending(true);
+
+    // ---- Curated pool (deterministic, no AI picks the verse) — Stormy for now ----
+    const picked = categoryKey ? await selectVerse(categoryKey, emotion ?? '') : null;
+    if (picked) {
+      // Render the exact verse instantly (accurate, guaranteed non-repeating).
+      const verseMsg = `${picked.ref}  ${picked.text}`;
+      setChatMessages((prev) => [
+        ...prev,
+        { role: 'ai' as const, text: verseMsg, kind: 'verse' as const },
+      ]);
+      setVerseUsed(true);
+
+      // AI writes ONLY a personalized reflection for this verse. Fallback: verse alone.
+      try {
+        const reflectionRaw = await sendChatMessage(
+          `A Bible verse is being shared with the user, who selected the emotion "${emotion}": ${picked.ref} - ${picked.text} Write ONLY a warm, personal 1 to 2 sentence reflection connecting this verse to what they're going through. Do not include the verse text or its reference, and no preamble.`,
+          chatMessages,
+          chatContext,
+          'reflection',
+        );
+        const reflection = sanitizeAI(reflectionRaw);
+        if (reflection) {
+          setChatMessages((prev) => [...prev, { role: 'ai' as const, text: reflection }]);
+        }
+      } catch {
+        // reflection failed/capped → leave the verse alone
+      }
+      setSending(false);
+      return;
+    }
+
+    // ---- Fallback: no curated pool for this category → AI generates the verse ----
+    // Collect verses already shared in past check-ins so the AI won't repeat them.
+    let avoidClause =
+      ' Choose a fresh, fitting verse; vary the book and theme, and do not default to the most common anxiety verses.';
+    try {
+      const past = await getSessions();
+      const refs = Array.from(
+        new Set(past.map((s) => s.verse?.reference).filter((r): r is string => !!r)),
+      ).slice(0, 12);
+      if (refs.length) {
+        avoidClause =
+          ` Do NOT reuse any of these recently shared verses: ${refs.join('; ')}.` +
+          ' Pick a DIFFERENT, fitting verse from another passage; vary the book and theme.';
+      }
+    } catch {
+      // no history available — fall back to the generic variety nudge
+    }
+
     const raw = await sendChatMessage(
-      "The user tapped the verses button. Reply in two parts. PART 1: the Bible verse — its reference (e.g. Ecclesiastes 3:11) and the full verse text, kept together with NO blank line between them. Then ONE blank line. PART 2: a warm 1 to 2 sentence reflection connecting the verse to what they're feeling. Add nothing else.",
+      "The user tapped the verses button. Reply in two parts. PART 1: the Bible verse — its reference (e.g. Ecclesiastes 3:11) and the full verse text, kept together with NO blank line between them. Then ONE blank line. PART 2: a warm 1 to 2 sentence reflection connecting the verse to what they're feeling. Add nothing else." +
+        avoidClause,
       chatMessages,
       chatContext,
       'verse', // larger token budget + bypasses the turn limit (handled server-side)

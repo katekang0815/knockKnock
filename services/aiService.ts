@@ -45,7 +45,8 @@ const TURN_LIMIT_RESPONSE =
   "We've had a really meaningful conversation. I'd encourage you to take a moment to reflect on what we talked about. You can always start a new check-in whenever you need to. You're doing great.";
 
 // What each call is for. The Worker derives max_tokens + turn enforcement from this.
-export type ChatKind = 'chat' | 'opener' | 'prayer' | 'verse';
+// 'reflection' = a short reflection for an app-chosen (curated) verse.
+export type ChatKind = 'chat' | 'opener' | 'prayer' | 'verse' | 'reflection';
 // Conversation stage (chat/opener only); the Worker maps this to a stage directive.
 export type ChatStage = 'listen' | 'suggest' | 'wrap' | '';
 
@@ -148,7 +149,7 @@ export async function sendChatMessage(
   }
 
   const enforceTurnLimit = kind === 'chat' || kind === 'opener';
-  const maxTokens = kind === 'verse' ? 280 : 150;
+  const maxTokens = kind === 'verse' ? 280 : kind === 'reflection' ? 100 : 150;
   const userTurns = history.filter((m) => m.role === 'user').length;
   const messages = buildMessages(userMessage, history);
 

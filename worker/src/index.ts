@@ -126,6 +126,10 @@ function buildSystemPrompt(context: Ctx, recapBlock: string, stage: string): str
   );
 }
 
+// Light prompt for reflection-only calls: the app has already chosen and shown a
+// curated verse; the model writes just a short, personal reflection for it.
+const REFLECTION_PROMPT = `You are a warm, caring spiritual companion in the KnockKnock app. A Bible verse has just been shared with the user. Write ONLY a short, personal reflection (1 to 2 sentences) that gently connects the verse to what the user is feeling right now. Do NOT include the verse text or its reference, no preamble, no lists, no quotation marks around it. Keep it warm, human, and specific to them. If the user has expressed self-harm or crisis, gently encourage them to reach out to a trusted person or the 988 Suicide & Crisis Lifeline.`;
+
 const CORS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -245,11 +249,20 @@ export default {
     }
 
     // Assemble the Anthropic request (prompt + tunables owned here).
-    const maxTokens = Math.min(kind === 'verse' ? 280 : 150, MAX_OUTPUT_TOKENS);
+    const maxTokens = Math.min(
+      kind === 'verse' ? 280 : kind === 'reflection' ? 100 : 150,
+      MAX_OUTPUT_TOKENS,
+    );
+    // Reflection-only calls (the app already chose a curated verse) use a light
+    // prompt — no full system prompt / recap needed, just tone + safety.
+    const system =
+      kind === 'reflection'
+        ? REFLECTION_PROMPT
+        : buildSystemPrompt(body.context || {}, buildRecapBlock(body.recap || []), body.stage || '');
     const forwardBody = {
       model: ALLOWED_MODEL,
       max_tokens: maxTokens,
-      system: buildSystemPrompt(body.context || {}, buildRecapBlock(body.recap || []), body.stage || ''),
+      system,
       messages: body.messages,
     };
     const forwardRaw = JSON.stringify(forwardBody);
