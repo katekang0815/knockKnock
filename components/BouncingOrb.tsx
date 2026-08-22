@@ -9,14 +9,17 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Stop, Circle } from "react-native-svg";
+import FlickerRays from "@/components/FlickerRays";
 
 interface Props {
   size: number;
+  // Sunny-only: flickering radial streaks around the orb (one at a time).
+  rays?: boolean;
 }
 
 // A single gradient ball that bounces up and down on the same spot — the
 // home-screen BouncingBall's look and warm palette, minus the stair climb.
-export default function BouncingOrb({ size }: Props) {
+export default function BouncingOrb({ size, rays = false }: Props) {
   // 0 = resting on the ground, 1 = apex of the jump.
   const bounce = useSharedValue(0);
 
@@ -112,6 +115,17 @@ export default function BouncingOrb({ size }: Props) {
           <Circle cx={50} cy={50} r={48} fill="url(#orbGrad)" />
         </Svg>
       </Animated.View>
+
+      {/* Flickering rays around the orb (Sunny) — one streak lit at a time */}
+      {rays && (
+        <FlickerRays
+          active={rays}
+          cx={size / 2 + 10}
+          cy={size - ballBottom - ball / 2 - 50}
+          radius={size * 0.32}
+          length={size * 0.05}
+        />
+      )}
     </View>
   );
 }

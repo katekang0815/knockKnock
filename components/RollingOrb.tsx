@@ -6,7 +6,6 @@ import Animated, {
   useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withRepeat,
   withSequence,
   withTiming,
@@ -60,64 +59,6 @@ interface Props {
   rain?: boolean;
   // Breezy-only: a rainbow that draws on left→right over the orb, then loops.
   rainbow?: boolean;
-  // Breezy-only: radial streaks around the orb that glow and fade in rotation.
-  rays?: boolean;
-}
-
-// Rays occupy the top-right QUARTER only (0° = top → 90° = right, clockwise),
-// evenly spaced across that arc.
-const RAY_COUNT = 7;
-const RAY_START_ANGLE = 0; // top (12 o'clock)
-const RAY_ARC = 90; // quarter circle, ending at 3 o'clock
-
-// One radial streak at `angle`, lighting when the wave front (clock) reaches its
-// `phase` (0..1 across the arc), then fading. All dark during the pause.
-function Ray({
-  clock,
-  angle,
-  phase,
-  cx,
-  cy,
-  radius,
-  length,
-  thickness,
-}: {
-  clock: SharedValue<number>;
-  angle: number;
-  phase: number;
-  cx: number;
-  cy: number;
-  radius: number;
-  length: number;
-  thickness: number;
-}) {
-  const rad = ((angle - 90) * Math.PI) / 180;
-  const x = cx + radius * Math.cos(rad);
-  const y = cy + radius * Math.sin(rad);
-  const style = useAnimatedStyle(() => {
-    const window = 0.4; // how long each streak stays lit as the wave passes
-    const p = clock.value - phase;
-    const opacity = p >= 0 && p < window ? 1 - p / window : 0;
-    return { opacity };
-  });
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        {
-          position: 'absolute',
-          left: x - thickness / 2,
-          top: y - length / 2,
-          width: thickness,
-          height: length,
-          borderRadius: thickness / 2,
-          backgroundColor: '#EBD9C4',
-          transform: [{ rotate: `${angle}deg` }],
-        },
-        style,
-      ]}
-    />
-  );
 }
 
 // Each streak: horizontal position (0..1 across the rain box) + phase offset
@@ -175,19 +116,16 @@ export default function RollingOrb({
   rolling = true,
   rain = false,
   rainbow = false,
-  rays = false,
 }: Props) {
   // 0 = far left, 1 = far right.
   const roll = useSharedValue(0);
   // Vertical bounce (Breezy variant) — decoupled from the roll so its speed is
   // independent. 0 = on the base, 1 = apex.
   const bounce = useSharedValue(0);
-  // Rain streaks clock: linear 0→1 loop (~1s), each streak phase-shifted.
+  // Rain streaks clock: linear 0→1 loop, each streak phase-shifted.
   const rainClock = useSharedValue(0);
   // Rainbow draw-on clock: linear 0→1 loop.
   const rainbowClock = useSharedValue(0);
-  // Rotating rays clock: linear 0→1 loop; each ray phase-shifted by its index.
-  const raysClock = useSharedValue(0);
 
   useEffect(() => {
     // Rain (fading) rolls slower than the bouncing (Breezy) variant.
@@ -197,7 +135,6 @@ export default function RollingOrb({
       -1,
       true, // reverse: left→right→left forever
     );
-    // 1000ms per hop = 1.0 hops/second.
     bounce.value = withRepeat(
       withSequence(
         withTiming(1, { duration: 523, easing: Easing.out(Easing.quad) }), // rise
@@ -208,14 +145,12 @@ export default function RollingOrb({
     );
   }, []);
 
-  // Start/stop the rain clock reactively. On the check-in wheel, Rain and Breezy
-  // both render RollingOrb, so dialing between them REUSES this instance (no
-  // remount) — a mount-only effect would leave the rain frozen when arriving
-  // from the Breezy side. Keying on `rain` restarts it every time it turns on.
+  // Start/stop the rain clock reactively (the wheel reuses this instance between
+  // Rain and Breezy, so a mount-only effect would leave rain frozen).
   useEffect(() => {
     if (rain) {
       rainClock.value = withRepeat(
-        withTiming(1, { duration: 2000, easing: Easing.linear }), // half speed
+        withTiming(1, { duration: 2000, easing: Easing.linear }),
         -1,
         false,
       );
@@ -225,7 +160,7 @@ export default function RollingOrb({
     }
   }, [rain]);
 
-  // Rainbow draw-on — reactive for the same reason (Breezy reuses this instance).
+  // Rainbow draw-on — reactive for the same reason.
   useEffect(() => {
     if (rainbow) {
       rainbowClock.value = withRepeat(
@@ -238,25 +173,6 @@ export default function RollingOrb({
       rainbowClock.value = 0;
     }
   }, [rainbow]);
-
-  // Rays: sweep the wave across the arc once (0 → 1 + window so all fade out),
-  // hold dark for a pause, then repeat. Reactive so it restarts on reuse.
-  useEffect(() => {
-    if (rays) {
-      raysClock.value = withRepeat(
-        withSequence(
-          withTiming(0, { duration: 0 }), // reset to start of sweep
-          withTiming(1.4, { duration: 2200, easing: Easing.linear }), // 1 + window
-          withDelay(1400, withTiming(1.4, { duration: 0 })), // hold dark (pause)
-        ),
-        -1,
-        false,
-      );
-    } else {
-      cancelAnimation(raysClock);
-      raysClock.value = 0;
-    }
-  }, [rays]);
 
   const ball = size * 0.4;    // reference ball diameter (base/halo scaling)
   // Total left↔right distance — both variants use the same range (0 = bounce in place).
@@ -272,12 +188,11 @@ export default function RollingOrb({
   // Hop height for the non-fading variant's edge bounce.
   const bounceHeight = ball * 0.4;
   // Ball/halo resting bottom — baseH above the text base top (same gap as Stormy).
-  // Rain is nudged up 5px; Breezy stays put.
   const ballBottom = bottom + baseH + 5;
 
   // Rain-streak layout: a small box above the orb that drops slant dashes.
   const rainBox = size * 0.36;
-  const rainDash = size * 0.045; // half size
+  const rainDash = size * 0.045;
   const rainFall = size * 0.24;
   const rainBottom = ballBottom + ballDiameter * 0.35 + 60; // nudged up 60px
   const rainLeft = size / 2 - rainBox * 0.5 + 30; // nudged right 30px (moved left 30)
@@ -288,30 +203,19 @@ export default function RollingOrb({
   const rainbowBottom = ballBottom + ball * 0.5 + 40; // nudged up 40px
   const rainbowLeft = size / 2 - rainbowW / 2;
 
-  // Rotating rays layout — a ring centered on the ball, streaks just outside it.
-  const rayCx = size / 2;
-  const rayCy = size - ballBottom - ballDiameter / 2 - 50; // ball center, nudged up 50px
-  const rayRadius = size * 0.24;
-  const rayLength = size * 0.05;
-  const rayThickness = 3;
-
   // Rolling ball: translate across and rotate by the arc length it covers. Breezy
   // adds a vertical bounce + squash; rain just rolls at a constant size.
   const ballStyle = useAnimatedStyle(() => {
     const x = (roll.value - 0.5) * travel; // -travel/2 → +travel/2
     const rot = (x / (Math.PI * ballDiameter)) * 360; // distance / circumference → degrees
     if (!fadeBall) {
-      // Vertical hop from the dedicated bounce driver (independent of roll speed).
       const b = bounce.value; // 0 on the base → 1 at the apex
       const hop = b * bounceHeight;
-      // Sunny-style squash: only a brief pulse right at the base contact.
       const grounded = Math.min(b / 0.12, 1); // 0 at the base → 1 once airborne
       const scaleY = 0.86 + 0.14 * grounded; // 0.86 squashed on contact → 1 round in the air
       const scaleX = 2 - scaleY; // preserve rough volume
       return {
         opacity: 1,
-        // rotate rightmost (applied first) so the gradient spins; the squash after
-        // it (world axes) flattens the ball straight down on contact.
         transform: [
           { translateX: x },
           { translateY: -hop },
@@ -321,7 +225,6 @@ export default function RollingOrb({
         ],
       };
     }
-    // Rain: constant largest size (no size-shifting).
     return {
       opacity: 1,
       transform: [{ translateX: x }, { rotate: `${rot}deg` }],
@@ -335,7 +238,6 @@ export default function RollingOrb({
     if (!fadeBall) {
       const hop = bounce.value * bounceHeight;
       return {
-        // Reversed: brightest when hitting the base, lighter as it bounces back up.
         opacity: 0.4 - bounce.value * 0.22, // 0.40 on the base → 0.18 at the apex
         transform: [{ translateX: x }, { translateY: -hop }],
       };
@@ -387,7 +289,6 @@ export default function RollingOrb({
       >
         <Svg width={ballDiameter} height={ballDiameter} viewBox="0 0 100 100">
           <Defs>
-            {/* Home-screen palette: coral → dusty rose → cream */}
             <LinearGradient id={gradId} x1="0.5" y1="0" x2="0.5" y2="1">
               <Stop offset="0" stopColor="#DB533C" />
               <Stop offset="0.5" stopColor="#C78E7D" />
@@ -440,25 +341,6 @@ export default function RollingOrb({
           </Svg>
         </Animated.View>
       )}
-
-      {/* Rays — streaks across the top-right quarter, sweeping then pausing (Breezy) */}
-      {rays &&
-        Array.from({ length: RAY_COUNT }).map((_, i) => {
-          const t = i / (RAY_COUNT - 1); // 0..1 across the arc
-          return (
-            <Ray
-              key={i}
-              clock={raysClock}
-              angle={RAY_START_ANGLE + RAY_ARC * t}
-              phase={t}
-              cx={rayCx}
-              cy={rayCy}
-              radius={rayRadius}
-              length={rayLength}
-              thickness={rayThickness}
-            />
-          );
-        })}
     </View>
   );
 }

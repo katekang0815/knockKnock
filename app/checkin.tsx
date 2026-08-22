@@ -31,8 +31,8 @@ const ICON_SIZE = 180;
 const EMOTIONS: { category: EmotionCategory; render: (s: number) => React.ReactNode }[] = [
   { category: 'Stormy', render: (s) => <VibratingOrb size={s} /> },
   { category: 'Rain',   render: (s) => <RollingOrb size={s} rain /> },
-  { category: 'Breezy', render: (s) => <RollingOrb size={s} fadeBall={false} rays /> },
-  { category: 'Sunny',  render: (s) => <BouncingOrb size={s} /> },
+  { category: 'Breezy', render: (s) => <RollingOrb size={s} fadeBall={false} /> },
+  { category: 'Sunny',  render: (s) => <BouncingOrb size={s} rays /> },
 ];
 const DEFAULT_INDEX = EMOTIONS.findIndex((e) => e.category === 'Breezy');
 
