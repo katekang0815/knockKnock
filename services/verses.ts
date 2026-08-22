@@ -1,14 +1,17 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
- * Deterministic curated verse pool (no AI picks the verse). Tapping "Look for
- * verses" renders the next unused verse for the selected sub-emotion, following
- * that sub-emotion's tag-priority chain, using a global used-set per major
- * category (loops once the whole chain is consumed). References use ASCII
- * hyphens for ranges so the home-card verse parser (extractVerse) reads them.
+ * Deterministic curated verse pool. Tapping "Look for verses" renders a verse
+ * from this pool (the app owns the exact text, so Scripture is always accurate).
  *
- * Only Stormy is populated for now; other categories return null so the caller
- * falls back to AI verse generation.
+ * Stormy is populated. Selection is currently "pick + reflection" (see
+ * getUnusedCandidates/findVerse/commitUsed) — the AI chooses a reference from the
+ * used-filtered pool and the app renders its own text. The chain helpers
+ * (selectVerse/CHAINS) are kept dormant for an easy revert.
+ *
+ * Text is World English Bible (WEB, public domain), with the divine name
+ * rendered as "the LORD" for familiarity with the teen/young-adult audience.
+ * References use ASCII hyphens for ranges so extractVerse (home card) parses them.
  */
 
 export interface Verse {
@@ -20,7 +23,7 @@ export interface PickedVerse extends Verse {
   emotion: string;
 }
 
-// Sub-detailed categories → member emotions (listed order = intra-group order).
+// Sub-detailed categories → member emotions (dormant; used only by selectVerse).
 const SUBCATEGORIES: Record<string, string[]> = {
   a: ['Furious', 'Annoyed', 'Irritated'],
   b: ['Scared', 'Nervous', 'Worried'],
@@ -31,7 +34,6 @@ const SUBCATEGORIES: Record<string, string[]> = {
   g: ['Confused'],
 };
 
-// Tag-priority chain per sub-category (which groups to draw from, in order).
 const CHAINS: Record<string, string[]> = {
   a: ['a', 'c', 'b', 'd', 'g', 'f', 'e'],
   b: ['b', 'c', 'd', 'a', 'g', 'f', 'e'],
@@ -42,107 +44,104 @@ const CHAINS: Record<string, string[]> = {
   g: ['g', 'c', 'b', 'd', 'a', 'f', 'e'],
 };
 
-// emotion → sub-category (built from SUBCATEGORIES).
 const EMOTION_TO_SUBCAT: Record<string, string> = {};
 for (const [sub, emotions] of Object.entries(SUBCATEGORIES)) {
   for (const e of emotions) EMOTION_TO_SUBCAT[e] = sub;
 }
 
-// 3 verses each; 6 for Jealous / Embarrassed / Confused. KJV (public domain).
+// WEB text (public domain). Verify against an authoritative WEB source before
+// public launch. 3 verses each; 6 for Jealous / Embarrassed / Confused.
 const VERSES: Record<string, Verse[]> = {
   Furious: [
-    { ref: 'Ephesians 4:26', text: 'Be ye angry, and sin not: let not the sun go down upon your wrath.' },
-    { ref: 'Proverbs 29:11', text: 'A fool uttereth all his mind: but a wise man keepeth it in till afterwards.' },
-    { ref: 'Romans 12:19', text: 'Dearly beloved, avenge not yourselves, but rather give place unto wrath: for it is written, Vengeance is mine; I will repay, saith the Lord.' },
+    { ref: 'Ephesians 4:26', text: "Be angry, and don't sin. Don't let the sun go down on your wrath." },
+    { ref: 'Psalm 103:8', text: 'The LORD is merciful and gracious, slow to anger, and abundant in loving kindness.' },
+    { ref: 'Romans 12:19', text: "Don't seek revenge yourselves, beloved, but give place to God's wrath. For it is written, 'Vengeance belongs to me; I will repay, says the Lord.'" },
   ],
   Annoyed: [
-    { ref: 'Proverbs 19:11', text: 'The discretion of a man deferreth his anger; and it is his glory to pass over a transgression.' },
-    { ref: 'Ecclesiastes 7:9', text: 'Be not hasty in thy spirit to be angry: for anger resteth in the bosom of fools.' },
-    { ref: 'Colossians 3:13', text: 'Forbearing one another, and forgiving one another, if any man have a quarrel against any: even as Christ forgave you, so also do ye.' },
+    { ref: 'Proverbs 19:11', text: 'The discretion of a man makes him slow to anger. It is his glory to overlook an offense.' },
+    { ref: 'Proverbs 16:32', text: 'One who is slow to anger is better than the mighty; one who rules his spirit, than he who takes a city.' },
+    { ref: 'Colossians 3:13', text: 'bearing with one another, and forgiving each other, if any man has a complaint against any; even as Christ forgave you, so you also do.' },
   ],
   Irritated: [
-    { ref: 'Proverbs 15:1', text: 'A soft answer turneth away wrath: but grievous words stir up anger.' },
-    { ref: 'James 1:19', text: 'Wherefore, my beloved brethren, let every man be swift to hear, slow to speak, slow to wrath.' },
-    { ref: 'Ephesians 4:31-32', text: 'Let all bitterness, and wrath, and anger, and clamour, and evil speaking, be put away from you, with all malice: and be ye kind one to another, tenderhearted, forgiving one another, even as God for Christ’s sake hath forgiven you.' },
+    { ref: 'Proverbs 15:1', text: 'A gentle answer turns away wrath, but a harsh word stirs up anger.' },
+    { ref: 'James 1:19', text: 'let every man be swift to hear, slow to speak, and slow to anger;' },
+    { ref: 'Ephesians 4:31-32', text: 'Let all bitterness, wrath, anger, outcry, and slander be put away from you, with all malice. And be kind to one another, tenderhearted, forgiving each other, just as God also in Christ forgave you.' },
   ],
   Scared: [
-    { ref: 'Psalm 23:4', text: 'Yea, though I walk through the valley of the shadow of death, I will fear no evil: for thou art with me; thy rod and thy staff they comfort me.' },
-    { ref: 'Psalm 27:1', text: 'The LORD is my light and my salvation; whom shall I fear? the LORD is the strength of my life; of whom shall I be afraid?' },
-    { ref: 'Isaiah 41:13', text: 'For I the LORD thy God will hold thy right hand, saying unto thee, Fear not; I will help thee.' },
+    { ref: 'Psalm 23:4', text: 'Even though I walk through the valley of the shadow of death, I will fear no evil, for you are with me. Your rod and your staff, they comfort me.' },
+    { ref: 'Psalm 27:1', text: 'The LORD is my light and my salvation. Whom shall I fear? The LORD is the strength of my life. Of whom shall I be afraid?' },
+    { ref: 'Isaiah 41:13', text: "For I, the LORD your God, will hold your right hand, saying to you, 'Don't be afraid. I will help you.'" },
   ],
   Nervous: [
-    { ref: 'Joshua 1:9', text: 'Have not I commanded thee? Be strong and of a good courage; be not afraid, neither be thou dismayed: for the LORD thy God is with thee whithersoever thou goest.' },
-    { ref: 'Isaiah 41:10', text: 'Fear thou not; for I am with thee: be not dismayed; for I am thy God: I will strengthen thee; yea, I will help thee; yea, I will uphold thee with the right hand of my righteousness.' },
-    { ref: '2 Timothy 1:7', text: 'For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind.' },
+    { ref: 'Joshua 1:9', text: "Haven't I commanded you? Be strong and courageous. Don't be afraid. Don't be dismayed, for the LORD your God is with you wherever you go." },
+    { ref: 'Isaiah 41:10', text: "Don't be afraid, for I am with you. Don't be dismayed, for I am your God. I will strengthen you. Yes, I will help you. Yes, I will uphold you with the right hand of my righteousness." },
+    { ref: '2 Timothy 1:7', text: "For God didn't give us a spirit of fear, but of power, love, and self-control." },
   ],
   Worried: [
-    { ref: 'Matthew 6:25-27', text: 'Therefore I say unto you, Take no thought for your life, what ye shall eat, or what ye shall drink; nor yet for your body, what ye shall put on. Is not the life more than meat, and the body than raiment? Behold the fowls of the air: for they sow not, neither do they reap, nor gather into barns; yet your heavenly Father feedeth them. Are ye not much better than they?' },
-    { ref: 'Psalm 94:19', text: 'In the multitude of my thoughts within me thy comforts delight my soul.' },
-    { ref: 'John 14:27', text: 'Peace I leave with you, my peace I give unto you: not as the world giveth, give I unto you. Let not your heart be troubled, neither let it be afraid.' },
+    { ref: 'Matthew 6:25-27', text: "Therefore don't be anxious for your life: what you will eat, or what you will drink; nor yet for your body, what you will wear. Isn't life more than food, and the body more than clothing? See the birds of the sky, that they don't sow, neither do they reap, nor gather into barns. Your heavenly Father feeds them. Aren't you of much more value than they?" },
+    { ref: 'Psalm 94:19', text: 'In the multitude of my thoughts within me, your comforts delight my soul.' },
+    { ref: 'John 14:27', text: "Peace I leave with you. My peace I give to you; not as the world gives, give I to you. Don't let your heart be troubled, neither let it be fearful." },
   ],
   Tense: [
-    { ref: 'Isaiah 26:3', text: 'Thou wilt keep him in perfect peace, whose mind is stayed on thee: because he trusteth in thee.' },
-    { ref: 'Psalm 46:10', text: 'Be still, and know that I am God: I will be exalted among the heathen, I will be exalted in the earth.' },
-    { ref: 'Matthew 11:28', text: 'Come unto me, all ye that labour and are heavy laden, and I will give you rest.' },
+    { ref: 'Isaiah 26:3', text: "You will keep whoever's mind is steadfast in perfect peace, because he trusts in you." },
+    { ref: 'Psalm 46:10', text: 'Be still, and know that I am God. I will be exalted among the nations. I will be exalted in the earth.' },
+    { ref: 'Matthew 11:28', text: 'Come to me, all you who labor and are heavily burdened, and I will give you rest.' },
   ],
   Anxious: [
-    { ref: 'Philippians 4:6-7', text: 'Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God. And the peace of God, which passeth all understanding, shall keep your hearts and minds through Christ Jesus.' },
-    { ref: '1 Peter 5:7', text: 'Casting all your care upon him; for he careth for you.' },
-    { ref: 'Matthew 6:34', text: 'Take therefore no thought for the morrow: for the morrow shall take thought for the things of itself. Sufficient unto the day is the evil thereof.' },
+    { ref: 'Philippians 4:6-7', text: 'In nothing be anxious, but in everything, by prayer and petition with thanksgiving, let your requests be made known to God. And the peace of God, which surpasses all understanding, will guard your hearts and your thoughts in Christ Jesus.' },
+    { ref: '1 Peter 5:7', text: 'casting all your worries on him, because he cares for you.' },
+    { ref: 'Matthew 6:34', text: "Therefore don't be anxious for tomorrow, for tomorrow will be anxious for itself. Each day's own evil is sufficient." },
   ],
   Stressed: [
-    { ref: 'Psalm 55:22', text: 'Cast thy burden upon the LORD, and he shall sustain thee: he shall never suffer the righteous to be moved.' },
-    { ref: 'Psalm 61:2', text: 'From the end of the earth will I cry unto thee, when my heart is overwhelmed: lead me to the rock that is higher than I.' },
-    { ref: 'Exodus 33:14', text: 'And he said, My presence shall go with thee, and I will give thee rest.' },
+    { ref: 'Psalm 55:22', text: 'Cast your burden on the LORD and he will sustain you. He will never allow the righteous to be moved.' },
+    { ref: 'Psalm 61:2', text: 'From the end of the earth, I will call to you when my heart is overwhelmed. Lead me to the rock that is higher than I.' },
+    { ref: 'Exodus 33:14', text: "He said, 'My presence will go with you, and I will give you rest.'" },
   ],
   Frustrated: [
-    { ref: 'Galatians 6:9', text: 'And let us not be weary in well doing: for in due season we shall reap, if we faint not.' },
-    { ref: 'Proverbs 3:5-6', text: 'Trust in the LORD with all thine heart; and lean not unto thine own understanding. In all thy ways acknowledge him, and he shall direct thy paths.' },
-    { ref: 'Romans 8:28', text: 'And we know that all things work together for good to them that love God, to them who are the called according to his purpose.' },
+    { ref: 'Galatians 6:9', text: "Let us not be weary in doing good, for we will reap in due season, if we don't give up." },
+    { ref: 'Proverbs 3:5-6', text: "Trust in the LORD with all your heart, and don't lean on your own understanding. In all your ways acknowledge him, and he will make your paths straight." },
+    { ref: 'Isaiah 40:31', text: 'but those who wait for the LORD will renew their strength. They will mount up with wings like eagles. They will run, and not be weary. They will walk, and not faint.' },
   ],
   Shocked: [
     { ref: 'Psalm 46:1', text: 'God is our refuge and strength, a very present help in trouble.' },
-    { ref: '2 Corinthians 4:8-9', text: 'We are troubled on every side, yet not distressed; we are perplexed, but not in despair; persecuted, but not forsaken; cast down, but not destroyed.' },
-    { ref: 'Habakkuk 3:17-19', text: 'Although the fig tree shall not blossom, neither shall fruit be in the vines; the labour of the olive shall fail, and the fields shall yield no meat; the flock shall be cut off from the fold, and there shall be no herd in the stalls: yet I will rejoice in the LORD, I will joy in the God of my salvation.' },
+    { ref: '2 Corinthians 4:8-9', text: 'We are pressed on every side, yet not crushed; perplexed, yet not to despair; pursued, yet not forsaken; struck down, yet not destroyed;' },
+    { ref: 'Isaiah 43:2', text: 'When you pass through the waters, I will be with you, and through the rivers, they will not overflow you. When you walk through the fire, you will not be burned, and flame will not scorch you.' },
   ],
   Overwhelmed: [
-    { ref: 'Psalm 42:11', text: 'Why art thou cast down, O my soul? and why art thou disquieted within me? hope thou in God: for I shall yet praise him, who is the health of my countenance, and my God.' },
-    { ref: '2 Corinthians 12:9', text: 'And he said unto me, My grace is sufficient for thee: for my strength is made perfect in weakness. Most gladly therefore will I rather glory in my infirmities, that the power of Christ may rest upon me.' },
-    { ref: 'Psalm 18:16', text: 'He sent from above, he took me, he drew me out of many waters.' },
+    { ref: 'Psalm 42:11', text: 'Why are you in despair, my soul? Why are you disturbed within me? Hope in God! For I shall still praise him, the saving help of my countenance, and my God.' },
+    { ref: '2 Corinthians 12:9', text: "He has said to me, 'My grace is sufficient for you, for my power is made perfect in weakness.' Most gladly therefore I will rather glory in my weaknesses, that the power of Christ may rest on me." },
+    { ref: 'Psalm 18:16', text: 'He sent from on high. He took me. He drew me out of many waters.' },
   ],
   Jealous: [
-    { ref: '1 Corinthians 13:4', text: 'Charity suffereth long, and is kind; charity envieth not; charity vaunteth not itself, is not puffed up.' },
-    { ref: 'Proverbs 14:30', text: 'A sound heart is the life of the flesh: but envy the rottenness of the bones.' },
-    { ref: 'James 3:16', text: 'For where envying and strife is, there is confusion and every evil work.' },
-    { ref: 'Galatians 5:26', text: 'Let us not be desirous of vain glory, provoking one another, envying one another.' },
-    { ref: 'Psalm 37:1', text: 'Fret not thyself because of evildoers, neither be thou envious against the workers of iniquity.' },
-    { ref: 'Philippians 4:11', text: 'Not that I speak in respect of want: for I have learned, in whatsoever state I am, therewith to be content.' },
+    { ref: '1 Corinthians 13:4', text: "Love is patient and is kind. Love doesn't envy. Love doesn't brag, is not proud," },
+    { ref: 'Psalm 139:14', text: 'I will give thanks to you, for I am fearfully and wonderfully made. Your works are wonderful, and my soul knows that very well.' },
+    { ref: 'Galatians 6:4', text: 'But let each man examine his own work, and then he will have reason for boasting in himself alone, and not in someone else.' },
+    { ref: 'Galatians 5:26', text: "Let's not become conceited, provoking one another, and envying one another." },
+    { ref: 'Psalm 37:1', text: "Don't fret because of evildoers, neither be envious against those who work unrighteousness." },
+    { ref: 'Philippians 4:11', text: 'I have learned, in whatever state I am, to be content in it.' },
   ],
   Embarrassed: [
-    { ref: 'Psalm 34:5', text: 'They looked unto him, and were lightened: and their faces were not ashamed.' },
-    { ref: 'Romans 10:11', text: 'For the scripture saith, Whosoever believeth on him shall not be ashamed.' },
-    { ref: 'Isaiah 54:4', text: 'Fear not; for thou shalt not be ashamed: neither be thou confounded; for thou shalt not be put to shame: for thou shalt forget the shame of thy youth.' },
-    { ref: 'Psalm 25:3', text: 'Yea, let none that wait on thee be ashamed: let them be ashamed which transgress without cause.' },
-    { ref: 'Romans 8:1', text: 'There is therefore now no condemnation to them which are in Christ Jesus, who walk not after the flesh, but after the Spirit.' },
-    { ref: 'Hebrews 4:16', text: 'Let us therefore come boldly unto the throne of grace, that we may obtain mercy, and find grace to help in time of need.' },
+    { ref: 'Psalm 34:5', text: 'They looked to him, and were radiant. Their faces shall never be covered with shame.' },
+    { ref: 'Romans 10:11', text: "For the Scripture says, 'Whoever believes in him will not be disappointed.'" },
+    { ref: 'Isaiah 54:4', text: "Don't be afraid, for you will not be ashamed. Don't be confounded, for you will not be disappointed. For you will forget the shame of your youth." },
+    { ref: 'Psalm 25:3', text: 'Yes, no one who waits for you will be shamed.' },
+    { ref: 'Romans 8:1', text: 'There is therefore now no condemnation to those who are in Christ Jesus.' },
+    { ref: 'Hebrews 4:16', text: "Let's therefore draw near with boldness to the throne of grace, that we may receive mercy, and may find grace for help in time of need." },
   ],
   Confused: [
-    { ref: 'James 1:5', text: 'If any of you lack wisdom, let him ask of God, that giveth to all men liberally, and upbraideth not; and it shall be given him.' },
-    { ref: '1 Corinthians 14:33', text: 'For God is not the author of confusion, but of peace, as in all churches of the saints.' },
-    { ref: 'Psalm 119:105', text: 'Thy word is a lamp unto my feet, and a light unto my path.' },
-    { ref: 'Proverbs 16:9', text: 'A man’s heart deviseth his way: but the LORD directeth his steps.' },
-    { ref: 'Isaiah 30:21', text: 'And thine ears shall hear a word behind thee, saying, This is the way, walk ye in it, when ye turn to the right hand, and when ye turn to the left.' },
-    { ref: 'Psalm 32:8', text: 'I will instruct thee and teach thee in the way which thou shalt go: I will guide thee with mine eye.' },
+    { ref: 'James 1:5', text: 'But if any of you lacks wisdom, let him ask of God, who gives to all liberally and without reproach, and it will be given to him.' },
+    { ref: '1 Corinthians 14:33', text: 'for God is not a God of confusion, but of peace.' },
+    { ref: 'Psalm 119:105', text: 'Your word is a lamp to my feet, and a light for my path.' },
+    { ref: 'Proverbs 16:9', text: "A man's heart plans his course, but the LORD directs his steps." },
+    { ref: 'Isaiah 30:21', text: "When you turn to the right hand, and when you turn to the left, your ears will hear a voice behind you, saying, 'This is the way. Walk in it.'" },
+    { ref: 'Psalm 32:8', text: 'I will instruct you and teach you in the way which you shall go. I will counsel you with my eye on you.' },
   ],
 };
 
-// Verse id = `${emotion}::${index}` (emotion labels contain no "::").
 function verseId(emotion: string, index: number): string {
   return `${emotion}::${index}`;
 }
 
-// Full priority-ordered verse-id sequence for a chosen emotion: walk its chain;
-// in the starting sub-category the tapped emotion leads, then its peers.
 function buildSequence(emotion: string): string[] {
   const startSub = EMOTION_TO_SUBCAT[emotion];
   if (!startSub) return [];
@@ -160,20 +159,15 @@ function buildSequence(emotion: string): string[] {
   return ids;
 }
 
-/** True if there's a curated pool for this emotion (i.e. Stormy, for now). */
+/** True if there's a curated pool for this emotion. */
 export function hasVersePool(emotion: string): boolean {
   return !!VERSES[emotion];
 }
 
-/**
- * Pick the next unused verse for `emotion`, in tag-priority order, tracking a
- * global used-set per `category`. Loops (resets the used-set) once exhausted.
- * Returns null when there's no pool for the emotion.
- */
+/** DORMANT: deterministic tag-chain selection (kept for an easy revert). */
 export async function selectVerse(category: string, emotion: string): Promise<PickedVerse | null> {
   const seq = buildSequence(emotion);
   if (seq.length === 0) return null;
-
   const key = `knockknock.verses.used.${category}.v1`;
   let used: string[] = [];
   try {
@@ -182,20 +176,18 @@ export async function selectVerse(category: string, emotion: string): Promise<Pi
   } catch {
     used = [];
   }
-
   const usedSet = new Set(used);
   let chosen = seq.find((id) => !usedSet.has(id));
   if (!chosen) {
-    used = []; // whole chain consumed → reset and loop
+    used = [];
     chosen = seq[0];
   }
   used.push(chosen);
   try {
     await AsyncStorage.setItem(key, JSON.stringify(used));
   } catch {
-    // best-effort; a failed write just risks a possible repeat next time
+    // best-effort
   }
-
   const sep = chosen.lastIndexOf('::');
   const em = chosen.slice(0, sep);
   const idx = Number(chosen.slice(sep + 2));
@@ -205,12 +197,9 @@ export async function selectVerse(category: string, emotion: string): Promise<Pi
 
 // ===========================================================================
 // Constrained selection (pick + reflection): the AI chooses a reference from a
-// category's pool; the app validates it and renders its own exact text. Keyed
-// by reference (unique across a pool), with a global used-set per category.
-// The chain code above (selectVerse) is kept dormant for an easy revert.
+// category's pool; the app validates it and renders its own exact text.
 // ===========================================================================
 
-// Flattened per-category pools. Only Stormy is populated for now.
 const CATEGORY_POOLS: Record<string, Verse[]> = {
   Stormy: Object.values(VERSES).flat(),
 };
@@ -221,7 +210,7 @@ function usedKey(category: string): string {
 
 function normalizeRef(s: string): string {
   return s
-    .replace(/[–—]/g, '-') // en/em dash → hyphen
+    .replace(/[–—]/g, '-')
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase();
@@ -246,7 +235,6 @@ export async function getUnusedCandidates(category: string): Promise<Verse[]> {
   const usedSet = new Set(used.map(normalizeRef));
   const candidates = pool.filter((v) => !usedSet.has(normalizeRef(v.ref)));
   if (candidates.length === 0) {
-    // Whole pool consumed → reset and offer everything again.
     try {
       await AsyncStorage.removeItem(usedKey(category));
     } catch {
