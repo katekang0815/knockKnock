@@ -581,12 +581,14 @@ export default function HomeScreen() {
                 textAlignVertical="top"
               />
             )}
-            {/* Actions: quick prayer / look for verses, with save on the right */}
+            {/* Actions: quick prayer (once per session), with save on the right */}
             <View style={styles.noteActions}>
               <View style={styles.notePills}>
-                <TouchableOpacity style={styles.notePill} onPress={onQuickPrayer} activeOpacity={0.8}>
-                  <Text style={styles.notePillText}>Quick Prayer</Text>
-                </TouchableOpacity>
+                {!notePrayer && !prayerLoading && (
+                  <TouchableOpacity style={styles.notePill} onPress={onQuickPrayer} activeOpacity={0.8}>
+                    <Text style={styles.notePillText}>Quick Prayer</Text>
+                  </TouchableOpacity>
+                )}
               </View>
               <TouchableOpacity style={styles.noteSave} onPress={handleSaveNote} activeOpacity={0.8}>
                 <Svg width={26} height={26} viewBox="0 0 24 24">

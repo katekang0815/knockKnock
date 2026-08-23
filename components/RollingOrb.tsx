@@ -3,7 +3,6 @@ import { View } from "react-native";
 import Animated, {
   cancelAnimation,
   Easing,
-  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -12,41 +11,6 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from "react-native-svg";
-
-const AnimatedPath = Animated.createAnimatedComponent(Path);
-
-// Rainbow bands (outer → inner), muted pastels matching the reference.
-const RAINBOW_CX = 60;
-const RAINBOW_CY = 68;
-const RAINBOW_BANDS: { r: number; color: string }[] = [
-  { r: 52, color: "#E8A6A0" }, // pink
-  { r: 43, color: "#E79B63" }, // orange
-  { r: 34, color: "#E7C766" }, // yellow
-];
-const RAINBOW_WIDTH = 8;
-function arcPath(r: number): string {
-  return `M ${RAINBOW_CX - r} ${RAINBOW_CY} A ${r} ${r} 0 0 1 ${RAINBOW_CX + r} ${RAINBOW_CY}`;
-}
-
-// One rainbow band that "draws on" from the left end as `clock` runs 0→1.
-function RainbowArc({ clock, r, color }: { clock: SharedValue<number>; r: number; color: string }) {
-  const length = Math.PI * r; // semicircle arc length
-  const props = useAnimatedProps(() => {
-    const dp = Math.min(clock.value / 0.4, 1); // draw over the first 40% of the loop
-    return { strokeDashoffset: length * (1 - dp) };
-  });
-  return (
-    <AnimatedPath
-      d={arcPath(r)}
-      stroke={color}
-      strokeWidth={RAINBOW_WIDTH}
-      strokeLinecap="round"
-      fill="none"
-      strokeDasharray={length}
-      animatedProps={props}
-    />
-  );
-}
 
 interface Props {
   size: number;
@@ -57,8 +21,6 @@ interface Props {
   rolling?: boolean;
   // Rain-only: diagonal streaks that fall and fade out over the orb.
   rain?: boolean;
-  // Breezy-only: a rainbow that draws on left→right over the orb, then loops.
-  rainbow?: boolean;
 }
 
 // Each streak: horizontal position (0..1 across the rain box) + phase offset
@@ -115,7 +77,6 @@ export default function RollingOrb({
   fadeBall = true,
   rolling = true,
   rain = false,
-  rainbow = false,
 }: Props) {
   // 0 = far left, 1 = far right.
   const roll = useSharedValue(0);
@@ -124,8 +85,6 @@ export default function RollingOrb({
   const bounce = useSharedValue(0);
   // Rain streaks clock: linear 0→1 loop, each streak phase-shifted.
   const rainClock = useSharedValue(0);
-  // Rainbow draw-on clock: linear 0→1 loop.
-  const rainbowClock = useSharedValue(0);
 
   useEffect(() => {
     // Rain (fading) rolls slower than the bouncing (Breezy) variant.
@@ -160,20 +119,6 @@ export default function RollingOrb({
     }
   }, [rain]);
 
-  // Rainbow draw-on — reactive for the same reason.
-  useEffect(() => {
-    if (rainbow) {
-      rainbowClock.value = withRepeat(
-        withTiming(1, { duration: 3600, easing: Easing.linear }),
-        -1,
-        false,
-      );
-    } else {
-      cancelAnimation(rainbowClock);
-      rainbowClock.value = 0;
-    }
-  }, [rainbow]);
-
   const ball = size * 0.4;    // reference ball diameter (base/halo scaling)
   // Total left↔right distance — both variants use the same range (0 = bounce in place).
   const travel = rolling ? size * 0.18 : 0;
@@ -196,12 +141,6 @@ export default function RollingOrb({
   const rainFall = size * 0.24;
   const rainBottom = ballBottom + ballDiameter * 0.35 + 60; // nudged up 60px
   const rainLeft = size / 2 - rainBox * 0.5 + 30; // nudged right 30px (moved left 30)
-
-  // Rainbow layout: arch above the orb.
-  const rainbowW = size * 1.04; // doubled
-  const rainbowH = rainbowW * (74 / 120);
-  const rainbowBottom = ballBottom + ball * 0.5 + 40; // nudged up 40px
-  const rainbowLeft = size / 2 - rainbowW / 2;
 
   // Rolling ball: translate across and rotate by the arc length it covers. Breezy
   // adds a vertical bounce + squash; rain just rolls at a constant size.
@@ -243,12 +182,6 @@ export default function RollingOrb({
       };
     }
     return { transform: [{ translateX: x }] };
-  });
-
-  // Rainbow holds full once drawn, then fades out before the loop restarts.
-  const rainbowStyle = useAnimatedStyle(() => {
-    const p = rainbowClock.value;
-    return { opacity: p < 0.85 ? 1 : Math.max(0, (1 - p) / 0.15) };
   });
 
   return (
@@ -323,23 +256,6 @@ export default function RollingOrb({
             />
           ))}
         </View>
-      )}
-
-      {/* Rainbow — draws on left→right over the orb, holds, fades, loops (Breezy) */}
-      {rainbow && (
-        <Animated.View
-          style={[
-            { position: "absolute", bottom: rainbowBottom, left: rainbowLeft, width: rainbowW, height: rainbowH },
-            rainbowStyle,
-          ]}
-          pointerEvents="none"
-        >
-          <Svg width={rainbowW} height={rainbowH} viewBox="0 0 120 74">
-            {RAINBOW_BANDS.map((b) => (
-              <RainbowArc key={b.r} clock={rainbowClock} r={b.r} color={b.color} />
-            ))}
-          </Svg>
-        </Animated.View>
       )}
     </View>
   );
