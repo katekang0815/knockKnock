@@ -43,7 +43,7 @@ function emotionIcon(category: EmotionCategory, size: number) {
     case 'Breezy':
       return <RollingOrb size={size} fadeBall={false} />;
     default:
-      return <BouncingOrb size={size} rays />; // Sunny
+      return <BouncingOrb size={size} />; // Sunny
   }
 }
 const HEADER_MAX = 240;

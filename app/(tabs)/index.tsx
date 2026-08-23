@@ -1,11 +1,13 @@
 import BouncingBall from "@/components/BouncingBall";
 import { getSessions } from "@/services/beliefStore";
 import { deleteNote, getNotes, saveNote, type Note } from "@/services/notesStore";
+import { sendChatMessage } from "@/services/aiService";
 import type { SessionRecord } from "@/types/belief";
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   KeyboardAvoidingView,
   Modal,
@@ -247,16 +249,38 @@ export default function HomeScreen() {
   // Quick-note popup (the star button) — a private on-device reflection.
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteText, setNoteText] = useState("");
+  const [notePrayer, setNotePrayer] = useState<string | null>(null);
+  const [prayerLoading, setPrayerLoading] = useState(false);
   const closeNote = () => {
     setNoteOpen(false);
     setNoteText("");
+    setNotePrayer(null);
+    setPrayerLoading(false);
   };
   const handleSaveNote = async () => {
     await saveNote(noteText);
     closeNote();
   };
-  // TODO: wire these — e.g. generate a prayer / find a verse from the note text.
-  const onQuickPrayer = () => {};
+  // Quick prayer: the AI reads the current note text and writes a short prayer
+  // from it — no check-in / emotion selection needed.
+  const onQuickPrayer = async () => {
+    const text = noteText.trim();
+    if (!text || prayerLoading) return;
+    setPrayerLoading(true);
+    try {
+      const prayer = await sendChatMessage(
+        `The user wrote this personal note: "${text}". Based on what they wrote, write a short, warm, personal first-person prayer (2 to 4 sentences) bringing it to God. No preamble — just the prayer.`,
+        [],
+        { emotion: "", category: "" },
+        "prayer",
+      );
+      setNotePrayer(prayer.trim());
+    } catch {
+      setNotePrayer(null);
+    } finally {
+      setPrayerLoading(false);
+    }
+  };
   const onLookVerses = () => {};
 
   // Look back (long-press the star) — a list of saved notes; tap to expand inline.
@@ -531,18 +555,34 @@ export default function HomeScreen() {
         >
           <View style={styles.noteCard}>
             <NoteCardBackground />
-            <TextInput
-              style={styles.noteInput}
-              value={noteText}
-              onChangeText={setNoteText}
-              placeholder="What's in your mind? Quick note for this moment..."
-              placeholderTextColor="#8A8074"
-              selectionColor="#FFFFFF"
-              cursorColor="#FFFFFF"
-              multiline
-              autoFocus
-              textAlignVertical="top"
-            />
+            {prayerLoading ? (
+              <View style={styles.notePrayerBox}>
+                <ActivityIndicator color="#E0E0E0" />
+              </View>
+            ) : notePrayer ? (
+              // Tap the prayer to go back to editing the note.
+              <TouchableOpacity
+                style={styles.notePrayerBox}
+                activeOpacity={0.9}
+                onPress={() => setNotePrayer(null)}
+              >
+                <Text style={styles.notePrayerText}>{notePrayer}</Text>
+                <Text style={styles.notePrayerHint}>Tap to edit your note</Text>
+              </TouchableOpacity>
+            ) : (
+              <TextInput
+                style={styles.noteInput}
+                value={noteText}
+                onChangeText={setNoteText}
+                placeholder="What's in your mind? Quick note for this moment..."
+                placeholderTextColor="#8A8074"
+                selectionColor="#FFFFFF"
+                cursorColor="#FFFFFF"
+                multiline
+                autoFocus
+                textAlignVertical="top"
+              />
+            )}
             {/* Actions: quick prayer / look for verses, with save on the right */}
             <View style={styles.noteActions}>
               <View style={styles.notePills}>
@@ -793,6 +833,24 @@ const styles = StyleSheet.create({
     fontFamily: "Jost_400Regular",
     paddingTop: 2,
     marginBottom: 50, // shorten the typing area so it clears the bottom / save button
+  },
+  notePrayerBox: {
+    flex: 1,
+    marginBottom: 50,
+    paddingTop: 2,
+    justifyContent: "center",
+  },
+  notePrayerText: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    lineHeight: 27,
+    fontFamily: "Jost_400Regular_Italic",
+  },
+  notePrayerHint: {
+    color: "#8A8074",
+    fontSize: 13,
+    fontFamily: "Jost_400Regular",
+    marginTop: 18,
   },
   noteActions: {
     position: "absolute",

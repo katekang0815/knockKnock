@@ -32,7 +32,7 @@ const EMOTIONS: { category: EmotionCategory; render: (s: number) => React.ReactN
   { category: 'Stormy', render: (s) => <VibratingOrb size={s} /> },
   { category: 'Rain',   render: (s) => <RollingOrb size={s} rain /> },
   { category: 'Breezy', render: (s) => <RollingOrb size={s} fadeBall={false} /> },
-  { category: 'Sunny',  render: (s) => <BouncingOrb size={s} rays /> },
+  { category: 'Sunny',  render: (s) => <BouncingOrb size={s} /> },
 ];
 const DEFAULT_INDEX = EMOTIONS.findIndex((e) => e.category === 'Breezy');
 
