@@ -258,7 +258,7 @@ export default function HomeScreen() {
     setPrayerLoading(false);
   };
   const handleSaveNote = async () => {
-    await saveNote(noteText);
+    await saveNote(noteText, notePrayer ?? undefined);
     closeNote();
   };
   // Quick prayer: the AI reads the current note text and writes a short prayer
@@ -566,7 +566,6 @@ export default function HomeScreen() {
                 onPress={() => setNotePrayer(null)}
               >
                 <Text style={styles.notePrayerText}>{notePrayer}</Text>
-                <Text style={styles.notePrayerHint}>Tap to edit your note</Text>
               </TouchableOpacity>
             ) : (
               <TextInput
@@ -651,6 +650,10 @@ export default function HomeScreen() {
                         <Text style={styles.noteItemPreview} numberOfLines={expanded ? undefined : 1}>
                           {expanded ? n.text : firstSentence(n.text)}
                         </Text>
+                        {/* Expanded: the saved quick prayer, if any. */}
+                        {expanded && n.prayer ? (
+                          <Text style={styles.noteItemPrayer}>{n.prayer}</Text>
+                        ) : null}
                       </TouchableOpacity>
 
                       {pending && (
@@ -842,11 +845,12 @@ const styles = StyleSheet.create({
     lineHeight: 27,
     fontFamily: "Jost_400Regular_Italic",
   },
-  notePrayerHint: {
-    color: "#8A8074",
-    fontSize: 13,
-    fontFamily: "Jost_400Regular",
-    marginTop: 18,
+  noteItemPrayer: {
+    color: "#C9BCA9",
+    fontSize: 14,
+    lineHeight: 21,
+    fontFamily: "Jost_400Regular_Italic",
+    marginTop: 8,
   },
   noteActions: {
     position: "absolute",

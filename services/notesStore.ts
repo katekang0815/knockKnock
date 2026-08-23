@@ -11,6 +11,7 @@ export interface Note {
   id: string;
   date: string; // ISO 8601
   text: string;
+  prayer?: string; // AI-generated "quick prayer" saved with the note
 }
 
 function genId(): string {
@@ -40,13 +41,14 @@ export async function deleteNote(id: string): Promise<void> {
   }
 }
 
-/** Save a new note; returns it (or null if empty / on failure). */
-export async function saveNote(text: string): Promise<Note | null> {
+/** Save a new note (optionally with a generated prayer); returns it or null. */
+export async function saveNote(text: string, prayer?: string): Promise<Note | null> {
   const trimmed = text.trim();
   if (!trimmed) return null;
   try {
     const notes = await getNotes();
     const note: Note = { id: genId(), date: new Date().toISOString(), text: trimmed };
+    if (prayer && prayer.trim()) note.prayer = prayer.trim();
     await AsyncStorage.setItem(NOTES_KEY, JSON.stringify([note, ...notes]));
     return note;
   } catch {
