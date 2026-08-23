@@ -585,7 +585,7 @@ export default function HomeScreen() {
             <View style={styles.noteActions}>
               <View style={styles.notePills}>
                 <TouchableOpacity style={styles.notePill} onPress={onQuickPrayer} activeOpacity={0.8}>
-                  <Text style={styles.notePillText}>Quick prayer</Text>
+                  <Text style={styles.notePillText}>Quick Prayer</Text>
                 </TouchableOpacity>
               </View>
               <TouchableOpacity style={styles.noteSave} onPress={handleSaveNote} activeOpacity={0.8}>
