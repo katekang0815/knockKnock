@@ -873,6 +873,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     paddingVertical: 11,
     paddingHorizontal: 16,
+    backgroundColor: "rgba(255,255,255,0.06)", // match the pill-bar star button
   },
   notePillText: {
     color: "#FFFFFF",
@@ -883,7 +884,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26, // round
-    backgroundColor: "#2E2A26", // opaque fill (no border)
+    backgroundColor: "rgba(255,255,255,0.06)", // match the pill-bar star button
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 8,
