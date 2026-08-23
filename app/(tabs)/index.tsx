@@ -592,6 +592,13 @@ export default function HomeScreen() {
                 </View>
               </>
             )}
+
+            {/* Close (top-right) — dismisses without saving */}
+            <TouchableOpacity style={styles.noteClose} onPress={closeNote} activeOpacity={0.7}>
+              <Svg width={22} height={22} viewBox="0 0 24 24">
+                <Path d="M6 6 L18 18 M18 6 L6 18" stroke="#E0E0E0" strokeWidth={2} strokeLinecap="round" />
+              </Svg>
+            </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -833,6 +840,16 @@ const styles = StyleSheet.create({
   notePrayerTap: {
     padding: 24,
     justifyContent: "center",
+  },
+  noteClose: {
+    position: "absolute",
+    top: 14,
+    right: 14,
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 5,
   },
   notePrayerText: {
     color: "#FFFFFF",
