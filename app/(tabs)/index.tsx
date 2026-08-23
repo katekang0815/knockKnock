@@ -281,7 +281,6 @@ export default function HomeScreen() {
       setPrayerLoading(false);
     }
   };
-  const onLookVerses = () => {};
 
   // Look back (long-press the star) — a list of saved notes; tap to expand inline.
   const [listOpen, setListOpen] = useState(false);
@@ -588,9 +587,6 @@ export default function HomeScreen() {
               <View style={styles.notePills}>
                 <TouchableOpacity style={styles.notePill} onPress={onQuickPrayer} activeOpacity={0.8}>
                   <Text style={styles.notePillText}>Quick prayer</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.notePill} onPress={onLookVerses} activeOpacity={0.8}>
-                  <Text style={styles.notePillText}>Look for verses</Text>
                 </TouchableOpacity>
               </View>
               <TouchableOpacity style={styles.noteSave} onPress={handleSaveNote} activeOpacity={0.8}>
