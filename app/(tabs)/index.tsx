@@ -559,46 +559,39 @@ export default function HomeScreen() {
                 <ActivityIndicator color="#E0E0E0" />
               </View>
             ) : notePrayer ? (
-              // Once the prayer is generated, the note is locked (not editable).
-              <View style={styles.notePrayerBox}>
+              // Prayer generated: note is locked. Tap anywhere to save note + prayer.
+              <TouchableOpacity
+                style={[StyleSheet.absoluteFill, styles.notePrayerTap]}
+                activeOpacity={1}
+                onPress={handleSaveNote}
+              >
                 <Text style={styles.notePrayerText}>{notePrayer}</Text>
-              </View>
-            ) : (
-              <TextInput
-                style={styles.noteInput}
-                value={noteText}
-                onChangeText={setNoteText}
-                placeholder="What's in your mind? Quick note for this moment..."
-                placeholderTextColor="#8A8074"
-                selectionColor="#FFFFFF"
-                cursorColor="#FFFFFF"
-                multiline
-                autoFocus
-                textAlignVertical="top"
-              />
-            )}
-            {/* Actions: quick prayer (once per session), with save on the right */}
-            <View style={styles.noteActions}>
-              <View style={styles.notePills}>
-                {!notePrayer && !prayerLoading && (
-                  <TouchableOpacity style={styles.notePill} onPress={onQuickPrayer} activeOpacity={0.8}>
-                    <Text style={styles.notePillText}>Quick Prayer</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              <TouchableOpacity style={styles.noteSave} onPress={handleSaveNote} activeOpacity={0.8}>
-                <Svg width={26} height={26} viewBox="0 0 24 24">
-                  <Path
-                    d="M5 13 l4 4 L19 7"
-                    stroke="#E0E0E0"
-                    strokeWidth={2.4}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    fill="none"
-                  />
-                </Svg>
+                <Text style={styles.notePrayerHint}>Tap anywhere to save</Text>
               </TouchableOpacity>
-            </View>
+            ) : (
+              <>
+                <TextInput
+                  style={styles.noteInput}
+                  value={noteText}
+                  onChangeText={setNoteText}
+                  placeholder="What's in your mind? Quick note for this moment..."
+                  placeholderTextColor="#8A8074"
+                  selectionColor="#FFFFFF"
+                  cursorColor="#FFFFFF"
+                  multiline
+                  autoFocus
+                  textAlignVertical="top"
+                />
+                {/* Quick prayer (once per session) */}
+                <View style={styles.noteActions}>
+                  <View style={styles.notePills}>
+                    <TouchableOpacity style={styles.notePill} onPress={onQuickPrayer} activeOpacity={0.8}>
+                      <Text style={styles.notePillText}>Quick Prayer</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </>
+            )}
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -837,11 +830,21 @@ const styles = StyleSheet.create({
     paddingTop: 2,
     justifyContent: "center",
   },
+  notePrayerTap: {
+    padding: 24,
+    justifyContent: "center",
+  },
   notePrayerText: {
     color: "#FFFFFF",
     fontSize: 18,
     lineHeight: 27,
     fontFamily: "Jost_400Regular_Italic",
+  },
+  notePrayerHint: {
+    color: "#8A8074",
+    fontSize: 13,
+    fontFamily: "Jost_400Regular",
+    marginTop: 18,
   },
   noteItemPrayer: {
     color: "#C9BCA9",
