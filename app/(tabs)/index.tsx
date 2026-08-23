@@ -559,14 +559,10 @@ export default function HomeScreen() {
                 <ActivityIndicator color="#E0E0E0" />
               </View>
             ) : notePrayer ? (
-              // Tap the prayer to go back to editing the note.
-              <TouchableOpacity
-                style={styles.notePrayerBox}
-                activeOpacity={0.9}
-                onPress={() => setNotePrayer(null)}
-              >
+              // Once the prayer is generated, the note is locked (not editable).
+              <View style={styles.notePrayerBox}>
                 <Text style={styles.notePrayerText}>{notePrayer}</Text>
-              </TouchableOpacity>
+              </View>
             ) : (
               <TextInput
                 style={styles.noteInput}
