@@ -868,8 +868,6 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   notePill: {
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.5)",
     borderRadius: 22,
     paddingVertical: 11,
     paddingHorizontal: 16,
