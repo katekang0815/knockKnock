@@ -855,7 +855,7 @@ const styles = StyleSheet.create({
     bottom: 20,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
   },
   notePills: {
     flexDirection: "row",
