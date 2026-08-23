@@ -255,6 +255,9 @@ export default function HomeScreen() {
     await saveNote(noteText);
     closeNote();
   };
+  // TODO: wire these — e.g. generate a prayer / find a verse from the note text.
+  const onQuickPrayer = () => {};
+  const onLookVerses = () => {};
 
   // Look back (long-press the star) — a list of saved notes; tap to expand inline.
   const [listOpen, setListOpen] = useState(false);
@@ -540,19 +543,29 @@ export default function HomeScreen() {
               autoFocus
               textAlignVertical="top"
             />
-            {/* Save */}
-            <TouchableOpacity style={styles.noteSave} onPress={handleSaveNote} activeOpacity={0.8}>
-              <Svg width={26} height={26} viewBox="0 0 24 24">
-                <Path
-                  d="M5 13 l4 4 L19 7"
-                  stroke="#E0E0E0"
-                  strokeWidth={2.4}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                />
-              </Svg>
-            </TouchableOpacity>
+            {/* Actions: quick prayer / look for verses, with save on the right */}
+            <View style={styles.noteActions}>
+              <View style={styles.notePills}>
+                <TouchableOpacity style={styles.notePill} onPress={onQuickPrayer} activeOpacity={0.8}>
+                  <Text style={styles.notePillText}>Quick prayer</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.notePill} onPress={onLookVerses} activeOpacity={0.8}>
+                  <Text style={styles.notePillText}>Look for verses</Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity style={styles.noteSave} onPress={handleSaveNote} activeOpacity={0.8}>
+                <Svg width={26} height={26} viewBox="0 0 24 24">
+                  <Path
+                    d="M5 13 l4 4 L19 7"
+                    stroke="#E0E0E0"
+                    strokeWidth={2.4}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                  />
+                </Svg>
+              </TouchableOpacity>
+            </View>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -781,16 +794,41 @@ const styles = StyleSheet.create({
     paddingTop: 2,
     marginBottom: 50, // shorten the typing area so it clears the bottom / save button
   },
-  noteSave: {
+  noteActions: {
     position: "absolute",
+    left: 24,
+    right: 24,
     bottom: 20,
-    right: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  notePills: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 1,
+  },
+  notePill: {
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.5)",
+    borderRadius: 22,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+  },
+  notePillText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontFamily: "Jost_600SemiBold",
+  },
+  noteSave: {
     width: 52,
     height: 52,
     borderRadius: 26, // round
     backgroundColor: "#2E2A26", // opaque fill (no border)
     justifyContent: "center",
     alignItems: "center",
+    marginLeft: 8,
   },
   noteListClose: {
     position: "absolute",

@@ -120,7 +120,7 @@ export default function BouncingOrb({ size, rays = false }: Props) {
       {rays && (
         <FlickerRays
           active={rays}
-          cx={size / 2 + 10}
+          cx={size / 2 - 40}
           cy={size - ballBottom - ball / 2 - 50}
           radius={size * 0.32}
           length={size * 0.05}
