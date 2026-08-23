@@ -868,9 +868,11 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   notePill: {
-    borderRadius: 22,
-    paddingVertical: 11,
-    paddingHorizontal: 16,
+    height: 52, // match the save button height
+    borderRadius: 26,
+    paddingHorizontal: 18,
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.06)", // match the pill-bar star button
   },
   notePillText: {
