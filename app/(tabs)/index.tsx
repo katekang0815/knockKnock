@@ -191,13 +191,16 @@ function TopFade({ height, blackAt }: { height: number; blackAt: number }) {
   );
 }
 
-// Pill-bar "more" icon (three dots) — opens Settings.
+// Pill-bar "sliders" icon (two rails with knobs) — opens the Settings hub.
 function DotsIcon() {
   return (
-    <Svg width={26} height={26} viewBox="0 0 24 24">
-      <Circle cx={5} cy={12} r={1.9} fill="#FFFFFF" />
-      <Circle cx={12} cy={12} r={1.9} fill="#FFFFFF" />
-      <Circle cx={19} cy={12} r={1.9} fill="#FFFFFF" />
+    <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
+      {/* top rail + knob on the left */}
+      <Path d="M4 8.5 L5.7 8.5 M12.3 8.5 L20 8.5" stroke="#FFFFFF" strokeWidth={1.6} strokeLinecap="round" />
+      <Circle cx={9} cy={8.5} r={2.4} stroke="#FFFFFF" strokeWidth={1.6} />
+      {/* bottom rail + knob on the right */}
+      <Path d="M4 15.5 L11.7 15.5 M18.3 15.5 L20 15.5" stroke="#FFFFFF" strokeWidth={1.6} strokeLinecap="round" />
+      <Circle cx={15} cy={15.5} r={2.4} stroke="#FFFFFF" strokeWidth={1.6} />
     </Svg>
   );
 }
