@@ -41,6 +41,41 @@ export async function deleteNote(id: string): Promise<void> {
   }
 }
 
+/**
+ * Daily cap on AI "Quick Prayer" generations from the note popup — keeps AI cost
+ * bounded. Stored on-device as { day, count }; resets each calendar day.
+ */
+const QUICK_PRAYER_KEY = 'knockknock.quickprayer.daily.v1';
+export const QUICK_PRAYER_DAILY_LIMIT = 5;
+
+function today(): string {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD (local-ish, UTC date)
+}
+
+/** How many quick prayers have been generated today. */
+export async function getQuickPrayerCount(): Promise<number> {
+  try {
+    const raw = await AsyncStorage.getItem(QUICK_PRAYER_KEY);
+    if (!raw) return 0;
+    const { day, count } = JSON.parse(raw) as { day: string; count: number };
+    return day === today() ? count : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Record one quick-prayer generation; returns the new count for today. */
+export async function incrementQuickPrayerCount(): Promise<number> {
+  try {
+    const current = await getQuickPrayerCount();
+    const next = current + 1;
+    await AsyncStorage.setItem(QUICK_PRAYER_KEY, JSON.stringify({ day: today(), count: next }));
+    return next;
+  } catch {
+    return await getQuickPrayerCount();
+  }
+}
+
 /** Save a new note (optionally with a generated prayer); returns it or null. */
 export async function saveNote(text: string, prayer?: string): Promise<Note | null> {
   const trimmed = text.trim();

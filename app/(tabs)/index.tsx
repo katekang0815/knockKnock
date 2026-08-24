@@ -1,6 +1,14 @@
 import BouncingBall from "@/components/BouncingBall";
 import { getSessions } from "@/services/beliefStore";
-import { deleteNote, getNotes, saveNote, type Note } from "@/services/notesStore";
+import {
+  deleteNote,
+  getNotes,
+  saveNote,
+  getQuickPrayerCount,
+  incrementQuickPrayerCount,
+  QUICK_PRAYER_DAILY_LIMIT,
+  type Note,
+} from "@/services/notesStore";
 import { sendChatMessage } from "@/services/aiService";
 import type { SessionRecord } from "@/types/belief";
 import * as Clipboard from "expo-clipboard";
@@ -251,11 +259,18 @@ export default function HomeScreen() {
   const [noteText, setNoteText] = useState("");
   const [notePrayer, setNotePrayer] = useState<string | null>(null);
   const [prayerLoading, setPrayerLoading] = useState(false);
+  // How many quick prayers have been generated today (daily cap on AI cost).
+  const [prayerCount, setPrayerCount] = useState(0);
+  const prayerLimitReached = prayerCount >= QUICK_PRAYER_DAILY_LIMIT;
   const closeNote = () => {
     setNoteOpen(false);
     setNoteText("");
     setNotePrayer(null);
     setPrayerLoading(false);
+  };
+  const openNote = async () => {
+    setPrayerCount(await getQuickPrayerCount());
+    setNoteOpen(true);
   };
   const handleSaveNote = async () => {
     await saveNote(noteText, notePrayer ?? undefined);
@@ -266,6 +281,7 @@ export default function HomeScreen() {
   const onQuickPrayer = async () => {
     const text = noteText.trim();
     if (!text || prayerLoading) return;
+    if (prayerCount >= QUICK_PRAYER_DAILY_LIMIT) return; // daily cap reached
     setPrayerLoading(true);
     try {
       const prayer = await sendChatMessage(
@@ -275,6 +291,7 @@ export default function HomeScreen() {
         "prayer",
       );
       setNotePrayer(prayer.trim());
+      setPrayerCount(await incrementQuickPrayerCount());
     } catch {
       setNotePrayer(null);
     } finally {
@@ -524,7 +541,7 @@ export default function HomeScreen() {
           <TouchableOpacity
             style={styles.pillIconBox}
             activeOpacity={0.7}
-            onPress={() => setNoteOpen(true)}
+            onPress={openNote}
             onLongPress={openList}
             delayLongPress={350}
           >
@@ -581,9 +598,13 @@ export default function HomeScreen() {
             <View style={styles.noteActions}>
               <View style={styles.notePills}>
                 {!notePrayer && !prayerLoading && (
-                  <TouchableOpacity style={styles.notePill} onPress={onQuickPrayer} activeOpacity={0.8}>
-                    <Text style={styles.notePillText}>Quick Prayer</Text>
-                  </TouchableOpacity>
+                  prayerLimitReached ? (
+                    <Text style={styles.notePillLimit}>Daily prayer limit reached</Text>
+                  ) : (
+                    <TouchableOpacity style={styles.notePill} onPress={onQuickPrayer} activeOpacity={0.8}>
+                      <Text style={styles.notePillText}>Quick Prayer</Text>
+                    </TouchableOpacity>
+                  )
                 )}
               </View>
               <TouchableOpacity style={styles.noteSave} onPress={handleSaveNote} activeOpacity={0.8}>
@@ -877,6 +898,11 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
     fontFamily: "Jost_600SemiBold",
+  },
+  notePillLimit: {
+    color: "#8A8074",
+    fontSize: 13,
+    fontFamily: "Jost_400Regular",
   },
   noteSave: {
     width: 52,
