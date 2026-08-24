@@ -19,10 +19,6 @@ export interface Verse {
   text: string;
 }
 
-export interface PickedVerse extends Verse {
-  emotion: string;
-}
-
 // Emotions per major category (must match constants/emotions.ts labels).
 const CATEGORY_EMOTIONS: Record<string, string[]> = {
   Stormy: [
@@ -46,30 +42,6 @@ const CATEGORY_EMOTIONS: Record<string, string[]> = {
     'Excited', 'Thrilled', 'Joyful', 'Determined',
   ],
 };
-
-// Stormy chain data — dormant (kept for an easy revert to tag-chain selection).
-const SUBCATEGORIES: Record<string, string[]> = {
-  a: ['Furious', 'Annoyed', 'Irritated'],
-  b: ['Scared', 'Nervous', 'Worried'],
-  c: ['Tense', 'Anxious', 'Stressed', 'Frustrated'],
-  d: ['Shocked', 'Overwhelmed'],
-  e: ['Jealous'],
-  f: ['Embarrassed'],
-  g: ['Confused'],
-};
-const CHAINS: Record<string, string[]> = {
-  a: ['a', 'c', 'b', 'd', 'g', 'f', 'e'],
-  b: ['b', 'c', 'd', 'a', 'g', 'f', 'e'],
-  c: ['c', 'b', 'd', 'a', 'g', 'f', 'e'],
-  d: ['d', 'b', 'c', 'a', 'g', 'f', 'e'],
-  e: ['e', 'c', 'a', 'b', 'd', 'f', 'g'],
-  f: ['f', 'b', 'a', 'c', 'd', 'g', 'e'],
-  g: ['g', 'c', 'b', 'd', 'a', 'f', 'e'],
-};
-const EMOTION_TO_SUBCAT: Record<string, string> = {};
-for (const [sub, emotions] of Object.entries(SUBCATEGORIES)) {
-  for (const e of emotions) EMOTION_TO_SUBCAT[e] = sub;
-}
 
 const VERSES: Record<string, Verse[]> = {
   // ---- Stormy (reviewed) --------------------------------------------------
@@ -373,59 +345,6 @@ const VERSES: Record<string, Verse[]> = {
 const CATEGORY_POOLS: Record<string, Verse[]> = {};
 for (const [cat, emotions] of Object.entries(CATEGORY_EMOTIONS)) {
   CATEGORY_POOLS[cat] = emotions.flatMap((e) => VERSES[e] || []);
-}
-
-// ---- Dormant tag-chain selection (kept for an easy revert to Stormy chains) ----
-function verseId(emotion: string, index: number): string {
-  return `${emotion}::${index}`;
-}
-function buildSequence(emotion: string): string[] {
-  const startSub = EMOTION_TO_SUBCAT[emotion];
-  if (!startSub) return [];
-  const ids: string[] = [];
-  for (const sub of CHAINS[startSub]) {
-    const members =
-      sub === startSub
-        ? [emotion, ...SUBCATEGORIES[sub].filter((e) => e !== emotion)]
-        : SUBCATEGORIES[sub];
-    for (const e of members) {
-      const list = VERSES[e] || [];
-      for (let i = 0; i < list.length; i++) ids.push(verseId(e, i));
-    }
-  }
-  return ids;
-}
-export function hasVersePool(emotion: string): boolean {
-  return !!VERSES[emotion];
-}
-export async function selectVerse(category: string, emotion: string): Promise<PickedVerse | null> {
-  const seq = buildSequence(emotion);
-  if (seq.length === 0) return null;
-  const key = `knockknock.verses.used.${category}.v1`;
-  let used: string[] = [];
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    if (raw) used = JSON.parse(raw) as string[];
-  } catch {
-    used = [];
-  }
-  const usedSet = new Set(used);
-  let chosen = seq.find((id) => !usedSet.has(id));
-  if (!chosen) {
-    used = [];
-    chosen = seq[0];
-  }
-  used.push(chosen);
-  try {
-    await AsyncStorage.setItem(key, JSON.stringify(used));
-  } catch {
-    // best-effort
-  }
-  const sep = chosen.lastIndexOf('::');
-  const em = chosen.slice(0, sep);
-  const idx = Number(chosen.slice(sep + 2));
-  const v = VERSES[em]?.[idx];
-  return v ? { emotion: em, ref: v.ref, text: v.text } : null;
 }
 
 // ===========================================================================
