@@ -257,11 +257,8 @@ export default function SettingsHubScreen() {
             <Text style={styles.rowLabel}>Feedback</Text>
           </TouchableOpacity>
 
-          {/* Divider then the rest of settings */}
-          <View style={styles.divider} />
-
           <TouchableOpacity
-            style={[styles.row, styles.rowNoBorder]}
+            style={styles.row}
             activeOpacity={0.6}
             onPress={() => router.push("/settings/general")}
           >
@@ -436,14 +433,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
   },
-  rowNoBorder: {},
   rowIcon: { width: 44, height: 44, justifyContent: "center", alignItems: "center", marginRight: 14 },
   rowLabel: { flex: 1, color: "#FFFFFF", fontSize: 17, fontFamily: "Jost_400Regular" },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255,255,255,0.14)",
-    marginVertical: 6,
-  },
 
   /* Edit menu popover */
   menuCard: {
