@@ -248,7 +248,7 @@ export default function SettingsHubScreen() {
             activeOpacity={0.6}
             onPress={() => router.push("/settings/general")}
           >
-            <View style={[styles.rowIcon, styles.rowIconBox]}>
+            <View style={styles.rowIcon}>
               <HexIcon />
             </View>
             <Text style={styles.rowLabel}>Settings</Text>
@@ -410,7 +410,6 @@ const styles = StyleSheet.create({
   },
   rowNoBorder: {},
   rowIcon: { width: 44, height: 44, justifyContent: "center", alignItems: "center", marginRight: 14 },
-  rowIconBox: { backgroundColor: "#1C1C1C", borderRadius: 12 },
   rowLabel: { flex: 1, color: "#FFFFFF", fontSize: 19, fontFamily: "Jost_400Regular" },
   divider: {
     height: StyleSheet.hairlineWidth,
