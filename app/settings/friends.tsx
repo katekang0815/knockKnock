@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   },
   title: { color: "#FFFFFF", fontSize: 34, fontFamily: SERIF, fontWeight: "600", marginTop: 18, marginBottom: 20 },
   body: { color: "#9A938B", fontSize: 16, lineHeight: 23, fontFamily: "Jost_400Regular", marginBottom: 28 },
-  center: { flex: 1, justifyContent: "center" },
+  center: { flex: 1, justifyContent: "center", transform: [{ translateY: -100 }] },
   card: {
     backgroundColor: "#1A1A1A",
     borderRadius: 22,
