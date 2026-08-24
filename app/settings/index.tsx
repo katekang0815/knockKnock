@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 18,
+    paddingVertical: 12,
   },
   rowNoBorder: {},
   rowIcon: { width: 44, height: 44, justifyContent: "center", alignItems: "center", marginRight: 14 },
