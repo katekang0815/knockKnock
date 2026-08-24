@@ -6,6 +6,7 @@ import {
   Linking,
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -15,10 +16,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 import {
-  clearReminder,
+  addReminder,
   ensurePermission,
-  getReminder,
-  saveReminder,
+  getReminders,
+  removeReminder,
+  updateReminder,
   type Reminder,
 } from "@/services/reminderStore";
 
@@ -64,26 +66,35 @@ function Arrow() {
 
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
-  const [reminder, setReminder] = useState<Reminder | null>(null);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [date, setDate] = useState(() => dateFrom(8, 15));
   const [surprise, setSurprise] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
-      getReminder().then(setReminder);
+      getReminders().then(setReminders);
     }, []),
   );
 
-  const openModal = () => {
-    if (reminder) {
-      setDate(dateFrom(reminder.hour, reminder.minute));
-      setSurprise(reminder.surprise);
-    } else {
-      setDate(dateFrom(8, 15));
-      setSurprise(false);
-    }
+  // Sorted by time of day for display.
+  const sorted = [...reminders].sort(
+    (a, b) => a.hour * 60 + a.minute - (b.hour * 60 + b.minute),
+  );
+
+  const openAdd = () => {
+    setEditingId(null);
+    setDate(dateFrom(8, 15));
+    setSurprise(false);
+    setModalOpen(true);
+  };
+
+  const openEdit = (r: Reminder) => {
+    setEditingId(r.id);
+    setDate(dateFrom(r.hour, r.minute));
+    setSurprise(r.surprise);
     setModalOpen(true);
   };
 
@@ -101,66 +112,72 @@ export default function NotificationsScreen() {
       );
       return;
     }
-    const saved = await saveReminder({
-      hour: date.getHours(),
-      minute: date.getMinutes(),
-      surprise,
-    });
-    setReminder(saved);
+    const input = { hour: date.getHours(), minute: date.getMinutes(), surprise };
+    if (editingId) {
+      await updateReminder(editingId, input);
+    } else {
+      await addReminder(input);
+    }
+    setReminders(await getReminders());
     setModalOpen(false);
   };
 
-  const handleRemove = async () => {
-    await clearReminder();
-    setReminder(null);
+  const handleRemove = async (id: string) => {
+    await removeReminder(id);
+    setReminders(await getReminders());
   };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
-      {/* Back */}
-      <TouchableOpacity style={styles.back} onPress={() => router.back()} activeOpacity={0.7}>
-        <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-          <Path d="M15 5 L8 12 L15 19" stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-        </Svg>
-      </TouchableOpacity>
-
-      <Text style={styles.title}>Notifications</Text>
-
-      <Text style={styles.body}>
-        A daily rhythm of prayer and reflection draws you closer to God. Gentle reminders help you
-        keep knocking — one honest moment at a time.
-      </Text>
-      <Text style={styles.bodyBold}>
-        You&apos;ll need to turn on KnockKnock notifications in your iOS Settings.
-      </Text>
-
-      {/* iOS Settings row */}
-      <TouchableOpacity style={styles.row} onPress={() => Linking.openSettings()} activeOpacity={0.6}>
-        <HexIcon />
-        <Text style={styles.rowLabel}>iOS Settings</Text>
-        <Arrow />
-      </TouchableOpacity>
-
-      {/* Current reminder (if set) */}
-      {reminder && (
-        <TouchableOpacity style={styles.reminderRow} onPress={openModal} activeOpacity={0.7}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.reminderTime}>
-              {surprise || reminder.surprise ? "Surprise · " : ""}
-              {fmtTime(dateFrom(reminder.hour, reminder.minute))}
-            </Text>
-            <Text style={styles.reminderSub}>Daily reminder</Text>
-          </View>
-          <TouchableOpacity onPress={handleRemove} activeOpacity={0.7} hitSlop={12}>
-            <Text style={styles.removeText}>Remove</Text>
-          </TouchableOpacity>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+      >
+        {/* Back */}
+        <TouchableOpacity style={styles.back} onPress={() => router.back()} activeOpacity={0.7}>
+          <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+            <Path d="M15 5 L8 12 L15 19" stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          </Svg>
         </TouchableOpacity>
-      )}
+
+        <Text style={styles.title}>Notifications</Text>
+
+        <Text style={styles.body}>
+          A daily rhythm of prayer and reflection draws you closer to God. Gentle reminders help you
+          keep knocking — one honest moment at a time.
+        </Text>
+        <Text style={styles.bodyBold}>
+          You&apos;ll need to turn on KnockKnock notifications in your iOS Settings.
+        </Text>
+
+        {/* iOS Settings row */}
+        <TouchableOpacity style={styles.row} onPress={() => Linking.openSettings()} activeOpacity={0.6}>
+          <HexIcon />
+          <Text style={styles.rowLabel}>iOS Settings</Text>
+          <Arrow />
+        </TouchableOpacity>
+
+        {/* Reminders */}
+        {sorted.map((r) => (
+          <TouchableOpacity key={r.id} style={styles.reminderRow} onPress={() => openEdit(r)} activeOpacity={0.7}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.reminderTime}>
+                {r.surprise ? "Surprise · " : ""}
+                {fmtTime(dateFrom(r.hour, r.minute))}
+              </Text>
+              <Text style={styles.reminderSub}>Daily reminder</Text>
+            </View>
+            <TouchableOpacity onPress={() => handleRemove(r.id)} activeOpacity={0.7} hitSlop={12}>
+              <Text style={styles.removeText}>Remove</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
       {/* Add Daily Reminder button */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + 14 }]}>
-        <TouchableOpacity style={styles.addBtn} onPress={openModal} activeOpacity={0.85}>
-          <Text style={styles.addBtnText}>{reminder ? "Edit Daily Reminder" : "Add Daily Reminder"}</Text>
+        <TouchableOpacity style={styles.addBtn} onPress={openAdd} activeOpacity={0.85}>
+          <Text style={styles.addBtnText}>Add Daily Reminder</Text>
         </TouchableOpacity>
       </View>
 

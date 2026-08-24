@@ -2,12 +2,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 
 /**
- * A single daily reminder notification, stored on-device. Schedules a local
- * notification (no server/push) at a chosen time, or a random daytime slot when
- * "Surprise me" is on.
+ * Daily reminder notifications, stored on-device. Each reminder schedules its own
+ * local notification (no server/push) at a chosen time, or a random daytime slot
+ * when "Surprise me" is on. The user can keep several reminders per day.
  */
 
-const KEY = 'knockknock.reminder.v1';
+const KEY = 'knockknock.reminders.v1';
+const LEGACY_KEY = 'knockknock.reminder.v1'; // old single-reminder object
 
 // Show the reminder even if the app is foregrounded when it fires.
 Notifications.setNotificationHandler({
@@ -20,19 +21,43 @@ Notifications.setNotificationHandler({
 });
 
 export interface Reminder {
+  id: string;
   hour: number; // 0-23
   minute: number; // 0-59
   surprise: boolean;
   notifId?: string;
 }
 
-export async function getReminder(): Promise<Reminder | null> {
+function genId(): string {
+  return (
+    'xxxxxxxx'.replace(/x/g, () => ((Math.random() * 16) | 0).toString(16)) +
+    Date.now().toString(36)
+  );
+}
+
+/** All reminders, in the order they were added. Migrates the old single reminder. */
+export async function getReminders(): Promise<Reminder[]> {
   try {
     const raw = await AsyncStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as Reminder) : null;
+    if (raw) return JSON.parse(raw) as Reminder[];
+
+    // One-time migration from the legacy single-reminder object.
+    const legacy = await AsyncStorage.getItem(LEGACY_KEY);
+    if (legacy) {
+      const old = JSON.parse(legacy) as Omit<Reminder, 'id'>;
+      const migrated: Reminder[] = [{ ...old, id: genId() }];
+      await AsyncStorage.setItem(KEY, JSON.stringify(migrated));
+      await AsyncStorage.removeItem(LEGACY_KEY);
+      return migrated;
+    }
+    return [];
   } catch {
-    return null;
+    return [];
   }
+}
+
+async function writeReminders(list: Reminder[]): Promise<void> {
+  await AsyncStorage.setItem(KEY, JSON.stringify(list));
 }
 
 /** Ask for notification permission; returns true if granted. */
@@ -52,23 +77,8 @@ function randomTime(): { hour: number; minute: number } {
   return { hour, minute };
 }
 
-/** Schedule (replacing any existing) the daily reminder and persist it. */
-export async function saveReminder(input: {
-  hour: number;
-  minute: number;
-  surprise: boolean;
-}): Promise<Reminder> {
-  const existing = await getReminder();
-  if (existing?.notifId) {
-    try {
-      await Notifications.cancelScheduledNotificationAsync(existing.notifId);
-    } catch {
-      // already gone
-    }
-  }
-
-  const { hour, minute } = input.surprise ? randomTime() : input;
-  const notifId = await Notifications.scheduleNotificationAsync({
+async function schedule(hour: number, minute: number): Promise<string> {
+  return Notifications.scheduleNotificationAsync({
     content: {
       title: 'KnockKnock',
       body: 'A moment to pray and reflect. 🙏',
@@ -79,21 +89,54 @@ export async function saveReminder(input: {
       minute,
     },
   });
+}
 
-  const reminder: Reminder = { hour, minute, surprise: input.surprise, notifId };
-  await AsyncStorage.setItem(KEY, JSON.stringify(reminder));
+async function cancel(notifId?: string): Promise<void> {
+  if (!notifId) return;
+  try {
+    await Notifications.cancelScheduledNotificationAsync(notifId);
+  } catch {
+    // already gone
+  }
+}
+
+/** Schedule a new daily reminder and append it. */
+export async function addReminder(input: {
+  hour: number;
+  minute: number;
+  surprise: boolean;
+}): Promise<Reminder> {
+  const { hour, minute } = input.surprise ? randomTime() : input;
+  const notifId = await schedule(hour, minute);
+  const reminder: Reminder = { id: genId(), hour, minute, surprise: input.surprise, notifId };
+  const list = await getReminders();
+  await writeReminders([...list, reminder]);
   return reminder;
 }
 
-/** Cancel and forget the reminder. */
-export async function clearReminder(): Promise<void> {
-  const existing = await getReminder();
-  if (existing?.notifId) {
-    try {
-      await Notifications.cancelScheduledNotificationAsync(existing.notifId);
-    } catch {
-      // already gone
-    }
-  }
-  await AsyncStorage.removeItem(KEY);
+/** Reschedule an existing reminder (by id) and persist it. */
+export async function updateReminder(
+  id: string,
+  input: { hour: number; minute: number; surprise: boolean },
+): Promise<Reminder | null> {
+  const list = await getReminders();
+  const idx = list.findIndex((r) => r.id === id);
+  if (idx === -1) return null;
+
+  await cancel(list[idx].notifId);
+  const { hour, minute } = input.surprise ? randomTime() : input;
+  const notifId = await schedule(hour, minute);
+  const updated: Reminder = { id, hour, minute, surprise: input.surprise, notifId };
+  const next = [...list];
+  next[idx] = updated;
+  await writeReminders(next);
+  return updated;
+}
+
+/** Cancel and forget a single reminder. */
+export async function removeReminder(id: string): Promise<void> {
+  const list = await getReminders();
+  const target = list.find((r) => r.id === id);
+  await cancel(target?.notifId);
+  await writeReminders(list.filter((r) => r.id !== id));
 }
