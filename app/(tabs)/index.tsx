@@ -202,11 +202,14 @@ function DotsIcon() {
   );
 }
 
-// Pill-bar "add" icon (plus) — opens the quick note.
-function PlusIcon() {
+// Pill-bar sparkle icon (4-point star) — opens the quick note.
+function SparkleIcon() {
   return (
-    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-      <Path d="M12 5 L12 19 M5 12 L19 12" stroke="#FFFFFF" strokeWidth={2.2} strokeLinecap="round" />
+    <Svg width={20} height={20} viewBox="0 0 24 24">
+      <Path
+        d="M12 3 L13.4 10.6 L21 12 L13.4 13.4 L12 21 L10.6 13.4 L3 12 L10.6 10.6 Z"
+        fill="#FFFFFF"
+      />
     </Svg>
   );
 }
@@ -485,7 +488,7 @@ export default function HomeScreen() {
             onLongPress={openList}
             delayLongPress={350}
           >
-            <PlusIcon />
+            <SparkleIcon />
           </TouchableOpacity>
         </View>
       </View>
