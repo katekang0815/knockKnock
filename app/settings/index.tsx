@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
   },
   rowNoBorder: {},
   rowIcon: { width: 44, height: 44, justifyContent: "center", alignItems: "center", marginRight: 14 },
-  rowLabel: { flex: 1, color: "#FFFFFF", fontSize: 19, fontFamily: "Jost_400Regular" },
+  rowLabel: { flex: 1, color: "#FFFFFF", fontSize: 17, fontFamily: "Jost_400Regular" },
   divider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: "rgba(255,255,255,0.14)",
