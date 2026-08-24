@@ -11,7 +11,6 @@ import {
 } from "@/services/notesStore";
 import { sendChatMessage } from "@/services/aiService";
 import type { SessionRecord } from "@/types/belief";
-import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -21,7 +20,6 @@ import {
   Modal,
   Platform,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -63,10 +61,6 @@ const AnimatedText = Animated.createAnimatedComponent(Text);
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-// Friend invite. TODO: swap INVITE_URL for the App Store link once the app is live.
-const INVITE_URL = "https://katekang0815.github.io/knockKnock/";
-const INVITE_MESSAGE = `Join me on KnockKnock — a daily prayer & reflection space. 🙏\n${INVITE_URL}`;
 
 function formatCardDate(iso: string): string {
   const d = new Date(iso);
@@ -197,56 +191,22 @@ function TopFade({ height, blackAt }: { height: number; blackAt: number }) {
   );
 }
 
-// Placeholder settings icon (hexagon).
-function SettingsIcon() {
+// Pill-bar "more" icon (three dots) — opens Settings.
+function DotsIcon() {
   return (
-    <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M12 2 L20.5 7 L20.5 17 L12 22 L3.5 17 L3.5 7 Z"
-        stroke="#FFFFFF"
-        strokeWidth={1.5}
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M12 7 L16.3 9.5 L16.3 14.5 L12 17 L7.7 14.5 L7.7 9.5 Z"
-        stroke="#FFFFFF"
-        strokeWidth={1.4}
-        strokeLinejoin="round"
-      />
+    <Svg width={26} height={26} viewBox="0 0 24 24">
+      <Circle cx={5} cy={12} r={1.9} fill="#FFFFFF" />
+      <Circle cx={12} cy={12} r={1.9} fill="#FFFFFF" />
+      <Circle cx={19} cy={12} r={1.9} fill="#FFFFFF" />
     </Svg>
   );
 }
 
-// Placeholder sparkle icon (4-point star).
-function SparkleIcon() {
+// Pill-bar "add" icon (plus) — opens the quick note.
+function PlusIcon() {
   return (
-    <Svg width={20} height={20} viewBox="0 0 24 24">
-      <Path
-        d="M12 3 L13.4 10.6 L21 12 L13.4 13.4 L12 21 L10.6 13.4 L3 12 L10.6 10.6 Z"
-        fill="#FFFFFF"
-      />
-    </Svg>
-  );
-}
-
-// Placeholder "Friends" icon (two people, outline).
-function FriendsIcon() {
-  return (
-    <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
-      <Circle cx="9" cy="7.5" r="3" stroke="#FFFFFF" strokeWidth={1.7} />
-      <Path
-        d="M3.5 19c0-3 2.5-5.2 5.5-5.2s5.5 2.2 5.5 5.2"
-        stroke="#FFFFFF"
-        strokeWidth={1.7}
-        strokeLinecap="round"
-      />
-      <Circle cx="16.9" cy="9" r="2.3" stroke="#FFFFFF" strokeWidth={1.7} />
-      <Path
-        d="M16.9 13.9c2.6 0 4.6 1.9 4.6 4.6"
-        stroke="#FFFFFF"
-        strokeWidth={1.7}
-        strokeLinecap="round"
-      />
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 5 L12 19 M5 12 L19 12" stroke="#FFFFFF" strokeWidth={2.2} strokeLinecap="round" />
     </Svg>
   );
 }
@@ -320,26 +280,6 @@ export default function HomeScreen() {
     setNotes(await getNotes());
     setPendingDeleteId(null);
     setExpandedId((cur) => (cur === id ? null : cur));
-  };
-
-  // Invite a friend (Friends button) — share the invite link or copy it. No backend.
-  const [friendsOpen, setFriendsOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const closeFriends = () => {
-    setFriendsOpen(false);
-    setCopied(false);
-  };
-  const handleShareInvite = async () => {
-    try {
-      await Share.share({ message: INVITE_MESSAGE, url: INVITE_URL });
-    } catch {
-      // user dismissed the share sheet — nothing to do
-    }
-  };
-  const handleCopyInvite = async () => {
-    await Clipboard.setStringAsync(INVITE_URL);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
   };
 
   // Saved check-ins — the stacked list of cards at the bottom.
@@ -527,15 +467,15 @@ export default function HomeScreen() {
         <TopFade height={fadeTotalH} blackAt={fadeBlackAt} />
       </View>
 
-      {/* Bottom pill bar — Friends + placeholders (settings, sparkle) */}
+      {/* Bottom pill bar — ··· (settings) on the left, + (quick note) on the right */}
       <View style={[styles.pillBarWrap, { bottom: insets.bottom }]} pointerEvents="box-none">
         <View style={styles.pillBar}>
           <TouchableOpacity
-            style={styles.pillIcon}
+            style={styles.pillIconBox}
             activeOpacity={0.7}
             onPress={() => router.push("/settings")}
           >
-            <SettingsIcon />
+            <DotsIcon />
           </TouchableOpacity>
           <View style={{ flex: 1 }} />
           <TouchableOpacity
@@ -545,14 +485,7 @@ export default function HomeScreen() {
             onLongPress={openList}
             delayLongPress={350}
           >
-            <SparkleIcon />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.pillIcon, { marginLeft: 18 }]}
-            activeOpacity={0.7}
-            onPress={() => setFriendsOpen(true)}
-          >
-            <FriendsIcon />
+            <PlusIcon />
           </TouchableOpacity>
         </View>
       </View>
@@ -692,46 +625,6 @@ export default function HomeScreen() {
             )}
           </View>
         </View>
-      </Modal>
-
-      {/* Invite a friend (Friends button) — share or copy the invite link. */}
-      <Modal
-        visible={friendsOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={closeFriends}
-        statusBarTranslucent
-      >
-        <TouchableWithoutFeedback onPress={closeFriends}>
-          <View style={styles.friendsBackdrop}>
-            <TouchableWithoutFeedback>
-              <View style={styles.friendsCard}>
-                <Text style={styles.friendsTitle}>Invite a friend</Text>
-                <Text style={styles.friendsSubtitle}>
-                  Share KnockKnock with someone you care about.
-                </Text>
-
-                <TouchableOpacity
-                  style={styles.friendsShareBtn}
-                  onPress={handleShareInvite}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.friendsShareText}>Share invite link</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.friendsCopyBtn}
-                  onPress={handleCopyInvite}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.friendsCopyText}>
-                    {copied ? "Link copied ✓" : "Copy link"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
       </Modal>
     </View>
   );
@@ -971,59 +864,6 @@ const styles = StyleSheet.create({
     color: "#9A9A9A",
     fontSize: 15,
     fontFamily: "Jost_400Regular",
-  },
-  friendsBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 32,
-  },
-  friendsCard: {
-    width: "100%",
-    backgroundColor: "#1E1C1A",
-    borderRadius: 24,
-    paddingTop: 26,
-    paddingBottom: 22,
-    paddingHorizontal: 22,
-  },
-  friendsTitle: {
-    color: "#FFFFFF",
-    fontSize: 21,
-    fontFamily: "Jost_700Bold",
-    textAlign: "center",
-  },
-  friendsSubtitle: {
-    color: "#B8AC9E",
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: "Jost_400Regular",
-    textAlign: "center",
-    marginTop: 8,
-    marginBottom: 22,
-  },
-  friendsShareBtn: {
-    backgroundColor: "#DB533C",
-    borderRadius: 16,
-    paddingVertical: 15,
-    alignItems: "center",
-  },
-  friendsShareText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: "Jost_600SemiBold",
-  },
-  friendsCopyBtn: {
-    backgroundColor: "#2E2A26",
-    borderRadius: 16,
-    paddingVertical: 15,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  friendsCopyText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: "Jost_600SemiBold",
   },
   cardListContent: {
     paddingHorizontal: 16,
