@@ -44,13 +44,15 @@ export default function FriendsScreen() {
         knocking together.
       </Text>
 
-      <TouchableOpacity style={styles.shareBtn} onPress={handleShareInvite} activeOpacity={0.85}>
-        <Text style={styles.shareText}>Share invite link</Text>
-      </TouchableOpacity>
+      <View style={styles.card}>
+        <TouchableOpacity style={styles.shareBtn} onPress={handleShareInvite} activeOpacity={0.85}>
+          <Text style={styles.shareText}>Share invite link</Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity style={styles.copyBtn} onPress={handleCopyInvite} activeOpacity={0.7}>
-        <Text style={styles.copyText}>{copied ? "Link copied ✓" : "Copy link"}</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.copyBtn} onPress={handleCopyInvite} activeOpacity={0.7}>
+          <Text style={styles.copyText}>{copied ? "Link copied ✓" : "Copy link"}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -68,6 +70,11 @@ const styles = StyleSheet.create({
   },
   title: { color: "#FFFFFF", fontSize: 34, fontFamily: SERIF, fontWeight: "600", marginTop: 18, marginBottom: 20 },
   body: { color: "#9A938B", fontSize: 16, lineHeight: 23, fontFamily: "Jost_400Regular", marginBottom: 28 },
+  card: {
+    backgroundColor: "#1A1A1A",
+    borderRadius: 22,
+    padding: 16,
+  },
   shareBtn: { backgroundColor: "#DB533C", borderRadius: 16, paddingVertical: 16, alignItems: "center" },
   shareText: { color: "#FFFFFF", fontSize: 16, fontFamily: "Jost_600SemiBold" },
   copyBtn: { backgroundColor: "#2E2A26", borderRadius: 16, paddingVertical: 16, alignItems: "center", marginTop: 12 },
