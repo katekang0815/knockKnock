@@ -109,11 +109,6 @@ export default function SettingsHubScreen() {
   // Edit name modal
   const [nameOpen, setNameOpen] = useState(false);
   const [draft, setDraft] = useState("");
-  const openNameEdit = () => {
-    setMenuOpen(false);
-    setDraft(name);
-    setNameOpen(true);
-  };
   const saveName = async () => {
     const trimmed = draft.trim();
     if (trimmed) {
@@ -123,9 +118,9 @@ export default function SettingsHubScreen() {
     setNameOpen(false);
   };
 
-  // Change photo
-  const changePhoto = async () => {
-    setMenuOpen(false);
+  // The actual actions (run only after the edit menu has fully dismissed — iOS
+  // can't present the picker / another modal while one is still animating out).
+  const pickImage = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) return;
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -140,6 +135,28 @@ export default function SettingsHubScreen() {
       await setPhotoUri(uri);
     }
   };
+  const startNameEdit = () => {
+    setDraft(name);
+    setNameOpen(true);
+  };
+
+  // Menu -> pick an action; it fires when the menu modal is gone (see onDismiss).
+  const [pending, setPending] = useState<null | "photo" | "name">(null);
+  const runPending = (action: "photo" | "name") => {
+    if (action === "photo") pickImage();
+    else startNameEdit();
+  };
+  const chooseAction = (action: "photo" | "name") => {
+    if (Platform.OS === "ios") {
+      setPending(action); // onDismiss will run it once the menu closes
+      setMenuOpen(false);
+    } else {
+      setMenuOpen(false);
+      runPending(action);
+    }
+  };
+  const changePhoto = () => chooseAction("photo");
+  const openNameEdit = () => chooseAction("name");
 
   // Donation banner (Hide only dismisses for now; returns on reload).
   const [bannerHidden, setBannerHidden] = useState(false);
@@ -287,7 +304,18 @@ export default function SettingsHubScreen() {
       )}
 
       {/* Edit menu — small popover anchored to the pencil. */}
-      <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuOpen(false)}
+        onDismiss={() => {
+          if (pending) {
+            runPending(pending);
+            setPending(null);
+          }
+        }}
+      >
         <TouchableWithoutFeedback onPress={() => setMenuOpen(false)}>
           <View style={{ flex: 1 }}>
             <View style={[styles.menuCard, { top: menuTop, left: menuLeft }]}>
