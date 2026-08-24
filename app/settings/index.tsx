@@ -54,6 +54,14 @@ function FriendsIcon() {
     </Svg>
   );
 }
+function FeedbackIcon() {
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      <Path d="M4 6 L6 6 M4 12 L6 12 M4 18 L6 18" stroke={STROKE} strokeWidth={SW} strokeLinecap="round" />
+      <Path d="M9 6 L20 6 M9 12 L20 12 M9 18 L20 18" stroke={STROKE} strokeWidth={SW} strokeLinecap="round" />
+    </Svg>
+  );
+}
 function HexIcon() {
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
@@ -219,6 +227,17 @@ export default function SettingsHubScreen() {
               <FriendsIcon />
             </View>
             <Text style={styles.rowLabel}>Invite friends</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.row}
+            activeOpacity={0.6}
+            onPress={() => router.push("/settings/feedback")}
+          >
+            <View style={styles.rowIcon}>
+              <FeedbackIcon />
+            </View>
+            <Text style={styles.rowLabel}>Feedback</Text>
           </TouchableOpacity>
 
           {/* Divider then the rest of settings */}

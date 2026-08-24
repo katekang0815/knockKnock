@@ -43,14 +43,6 @@ function LifebuoyIcon() {
     </Svg>
   );
 }
-function FeedbackIcon() {
-  return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-      <Path d="M4 6 L6 6 M4 12 L6 12 M4 18 L6 18" stroke={STROKE} strokeWidth={SW} strokeLinecap="round" />
-      <Path d="M9 6 L20 6 M9 12 L20 12 M9 18 L20 18" stroke={STROKE} strokeWidth={SW} strokeLinecap="round" />
-    </Svg>
-  );
-}
 function InfoIcon() {
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
@@ -84,7 +76,6 @@ const ITEMS: Item[] = [
   { slug: "accessibility", label: "Accessibility", icon: AccessibilityIcon },
   { slug: "language", label: "Language", icon: GlobeIcon },
   { slug: "hotlines", label: "Mental health hotlines", icon: LifebuoyIcon },
-  { slug: "feedback", label: "Feedback", icon: FeedbackIcon },
   { slug: "about", label: "About", icon: InfoIcon },
   { slug: "donate", label: "Donate", icon: DonateIcon },
 ];
@@ -124,8 +115,6 @@ export default function GeneralSettingsScreen() {
                     ? Linking.openSettings()
                     : item.slug === "hotlines"
                     ? router.push("/settings/hotlines")
-                    : item.slug === "feedback"
-                    ? router.push("/settings/feedback")
                     : item.slug === "about"
                     ? router.push("/settings/about")
                     : item.slug === "donate"
