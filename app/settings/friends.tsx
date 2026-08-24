@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#1A1A1A",
     borderRadius: 22,
     padding: 16,
-    marginTop: 100,
+    marginTop: 130,
   },
   shareBtn: { backgroundColor: "#DB533C", borderRadius: 16, paddingVertical: 16, alignItems: "center" },
   shareText: { color: "#FFFFFF", fontSize: 16, fontFamily: "Jost_600SemiBold" },
