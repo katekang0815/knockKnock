@@ -6,7 +6,6 @@ import {
   Modal,
   Platform,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -15,7 +14,6 @@ import {
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import * as Clipboard from "expo-clipboard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 import {
@@ -25,15 +23,10 @@ import {
   setPhotoUri,
 } from "@/services/profileStore";
 
-const SERIF = Platform.select({ ios: "Georgia", default: "serif" });
 const { width: SCREEN_W } = Dimensions.get("window");
 
 const STROKE = "#FFFFFF";
 const SW = 1.6;
-
-// Friend invite. TODO: swap INVITE_URL for the App Store link once the app is live.
-const INVITE_URL = "https://katekang0815.github.io/knockKnock/";
-const INVITE_MESSAGE = `Join me on KnockKnock — a daily prayer & reflection space. 🙏\n${INVITE_URL}`;
 
 /* ---------- Icons ---------- */
 function BellIcon() {
@@ -161,26 +154,6 @@ export default function SettingsHubScreen() {
   // Donation banner (Hide only dismisses for now; returns on reload).
   const [bannerHidden, setBannerHidden] = useState(false);
 
-  // Invite a friend — share the invite link or copy it. No backend.
-  const [friendsOpen, setFriendsOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const closeFriends = () => {
-    setFriendsOpen(false);
-    setCopied(false);
-  };
-  const handleShareInvite = async () => {
-    try {
-      await Share.share({ message: INVITE_MESSAGE, url: INVITE_URL });
-    } catch {
-      // user dismissed the share sheet
-    }
-  };
-  const handleCopyInvite = async () => {
-    await Clipboard.setStringAsync(INVITE_URL);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
-  };
-
   const menuTop = anchor.y + anchor.h + 6;
   const menuLeft = Math.max(12, Math.min(anchor.x + anchor.w - MENU_W, SCREEN_W - MENU_W - 12));
 
@@ -239,7 +212,7 @@ export default function SettingsHubScreen() {
             <Text style={styles.rowLabel}>Notifications</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.row} activeOpacity={0.6} onPress={() => setFriendsOpen(true)}>
+          <TouchableOpacity style={styles.row} activeOpacity={0.6} onPress={() => router.push("/settings/friends")}>
             <View style={styles.rowIcon}>
               <FriendsIcon />
             </View>
@@ -355,27 +328,6 @@ export default function SettingsHubScreen() {
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* Invite a friend — share or copy the invite link. */}
-      <Modal visible={friendsOpen} transparent animationType="fade" onRequestClose={closeFriends} statusBarTranslucent>
-        <TouchableWithoutFeedback onPress={closeFriends}>
-          <View style={styles.friendsBackdrop}>
-            <TouchableWithoutFeedback>
-              <View style={styles.friendsCard}>
-                <Text style={styles.friendsTitle}>Invite a friend</Text>
-                <Text style={styles.friendsSubtitle}>
-                  Share KnockKnock with someone you care about.
-                </Text>
-                <TouchableOpacity style={styles.friendsShareBtn} onPress={handleShareInvite} activeOpacity={0.85}>
-                  <Text style={styles.friendsShareText}>Share invite link</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.friendsCopyBtn} onPress={handleCopyInvite} activeOpacity={0.7}>
-                  <Text style={styles.friendsCopyText}>{copied ? "Link copied ✓" : "Copy link"}</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
     </View>
   );
 }
@@ -508,35 +460,4 @@ const styles = StyleSheet.create({
   bannerDonateText: { color: "#111111", fontSize: 15, fontFamily: "Jost_600SemiBold" },
   bannerHide: { color: "#9A938B", fontSize: 15, fontFamily: "Jost_400Regular", marginLeft: 20 },
   bannerArt: { width: 96, height: 96 },
-
-  /* Friends invite modal */
-  friendsBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 32,
-  },
-  friendsCard: {
-    width: "100%",
-    backgroundColor: "#1E1C1A",
-    borderRadius: 24,
-    paddingTop: 26,
-    paddingBottom: 22,
-    paddingHorizontal: 22,
-  },
-  friendsTitle: { color: "#FFFFFF", fontSize: 21, fontFamily: "Jost_700Bold", textAlign: "center" },
-  friendsSubtitle: {
-    color: "#B8AC9E",
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: "Jost_400Regular",
-    textAlign: "center",
-    marginTop: 8,
-    marginBottom: 22,
-  },
-  friendsShareBtn: { backgroundColor: "#DB533C", borderRadius: 16, paddingVertical: 15, alignItems: "center" },
-  friendsShareText: { color: "#FFFFFF", fontSize: 16, fontFamily: "Jost_600SemiBold" },
-  friendsCopyBtn: { backgroundColor: "#2E2A26", borderRadius: 16, paddingVertical: 15, alignItems: "center", marginTop: 10 },
-  friendsCopyText: { color: "#FFFFFF", fontSize: 16, fontFamily: "Jost_600SemiBold" },
 });
