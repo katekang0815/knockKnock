@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 12,
   },
-  menuItem: { paddingVertical: 14, paddingHorizontal: 18 },
+  menuItem: { paddingVertical: 14, paddingHorizontal: 18, alignItems: "center" },
   menuText: { color: "#FFFFFF", fontSize: 16, fontFamily: "Jost_400Regular" },
   menuDelete: { color: "#E8614D" },
   menuDivider: { height: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.12)", marginHorizontal: 12 },
