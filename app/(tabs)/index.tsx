@@ -950,7 +950,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     overflow: "hidden",
     paddingHorizontal: 24,
-    paddingVertical: 22,
+    paddingVertical: 24,
     minHeight: 75,
   },
   cardTopRow: {
