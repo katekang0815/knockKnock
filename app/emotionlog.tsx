@@ -843,24 +843,28 @@ export default function EmotionLogScreen() {
                   </Text>
                 );
               })}
+
+              {/* Input is always available to reply. When the keyboard is up, the
+                  caption + pills sit right BELOW the input field. */}
+              <View style={styles.inScrollInput}>{inputField}</View>
+              {keyboardVisible && showOptions && (
+                <View style={styles.inScrollControls}>
+                  <Text style={styles.groundText}>{GROUND_TEXT}</Text>
+                  {optionRowEl}
+                </View>
+              )}
             </View>
           </>
         )}
       </Animated.ScrollView>
 
-      {/* Pinned bottom bar: input, then (100px below) the caption + pills. The
-          buttons keep this position whether the keyboard is open or closed; the
-          Complete button appears below them only when the keyboard is down. */}
-      {phase === 'chat' && (
-        <View style={[styles.chatBottomBar, { paddingBottom: keyboardVisible ? 4 : insets.bottom + 10 }]}>
-          {inputField}
-          {showOptions && (
-            <View style={styles.controlsGap}>
-              <Text style={styles.groundText}>{GROUND_TEXT}</Text>
-              {optionRowEl}
-            </View>
-          )}
-          {!keyboardVisible && completeEl}
+      {/* Pinned bottom bar (keyboard down): caption + pills sit right above the
+          Complete check-in button. */}
+      {phase === 'chat' && !keyboardVisible && (
+        <View style={[styles.chatBottomBar, { paddingBottom: insets.bottom + 10 }]}>
+          {showOptions && <Text style={styles.groundText}>{GROUND_TEXT}</Text>}
+          {showOptions && optionRowEl}
+          {completeEl}
         </View>
       )}
 
@@ -1128,6 +1132,7 @@ const styles = StyleSheet.create({
     lineHeight: 36,
     maxHeight: 160,
     padding: 0,
+    paddingBottom: 6,
   },
   sendButton: {
     width: 40,
@@ -1170,14 +1175,11 @@ const styles = StyleSheet.create({
   inScrollControls: {
     marginTop: 20, // space between the message and the wrap-state pills/Complete
   },
-  controlsGap: {
-    marginTop: 100, // space between the text input and the two buttons
-  },
   groundText: {
     color: '#9A938B',
     fontSize: 13,
     fontFamily: 'Jost_400Regular',
-    textAlign: 'left',
+    textAlign: 'center',
     marginBottom: 10,
   },
   bottomFade: {
