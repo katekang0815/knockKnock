@@ -944,7 +944,7 @@ const styles = StyleSheet.create({
   },
   cardListContent: {
     paddingHorizontal: 16,
-    gap: 8,
+    gap: 6,
   },
   card: {
     borderRadius: 28,
