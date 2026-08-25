@@ -1119,10 +1119,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(224,150,125,0.45)',
-    borderRadius: 20,
-    paddingHorizontal: 18,
     paddingVertical: 16,
   },
   chatInput: {
