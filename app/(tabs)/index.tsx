@@ -1019,7 +1019,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  tUserRow: { alignItems: "stretch", marginVertical: 8 },
+  tUserRow: {
+    backgroundColor: "#2E2A26",
+    borderRadius: 16,
+    padding: 16,
+    marginVertical: 8,
+  },
   tUserBubble: {
     color: "#FFFFFF",
     fontSize: 16,
