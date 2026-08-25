@@ -497,6 +497,16 @@ export default function HomeScreen() {
                         </View>
                       ))}
 
+                      {showDetails && verseEntry && (
+                        <View style={styles.tVerseCard}>
+                          {!!verseRef && <Text style={styles.tVerseRef}>{verseRef}</Text>}
+                          <Text style={styles.tVerseText}>{verseBody}</Text>
+                        </View>
+                      )}
+                      {showDetails && prayerEntry && (
+                        <Text style={styles.tPrayer}>{prayerEntry.text}</Text>
+                      )}
+
                       {(verseEntry || prayerEntry) && (
                         <View style={styles.txButtons}>
                           <TouchableOpacity
@@ -511,16 +521,6 @@ export default function HomeScreen() {
                             </Svg>
                           </TouchableOpacity>
                         </View>
-                      )}
-
-                      {showDetails && verseEntry && (
-                        <View style={styles.tVerseCard}>
-                          {!!verseRef && <Text style={styles.tVerseRef}>{verseRef}</Text>}
-                          <Text style={styles.tVerseText}>{verseBody}</Text>
-                        </View>
-                      )}
-                      {showDetails && prayerEntry && (
-                        <Text style={styles.tPrayer}>{prayerEntry.text}</Text>
                       )}
                     </View>
                   );
