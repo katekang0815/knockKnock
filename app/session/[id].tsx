@@ -177,6 +177,17 @@ export default function SessionDetailScreen() {
         {/* Prayer */}
         {prayer && (
           <View style={styles.box}>
+            <View style={styles.prayerHeader}>
+              <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                <Path
+                  d="M12 20.5 C12 20.5 4 14.5 4 9 C4 6.5 6 4.5 8.4 4.5 C10 4.5 11.3 5.4 12 6.6 C12.7 5.4 14 4.5 15.6 4.5 C18 4.5 20 6.5 20 9 C20 14.5 12 20.5 12 20.5 Z"
+                  stroke="#E0967D"
+                  strokeWidth={1.6}
+                  strokeLinejoin="round"
+                />
+              </Svg>
+              <Text style={styles.prayerLabel}>Prayer</Text>
+            </View>
             <Text style={styles.prayerText}>{prayer.text}</Text>
           </View>
         )}
@@ -264,6 +275,8 @@ const styles = StyleSheet.create({
   menuDelete: { color: "#E8614D" },
   menuDivider: { height: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.12)", marginHorizontal: 12 },
   verseRef: { color: "#E0967D", fontSize: 16, fontFamily: "Jost_700Bold", marginBottom: 6 },
+  prayerHeader: { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 12 },
+  prayerLabel: { color: "#E0967D", fontSize: 15, fontFamily: "Jost_600SemiBold" },
   prayerText: {
     color: "#F0E8DE",
     fontSize: 17,
