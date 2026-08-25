@@ -87,28 +87,20 @@ function sessionTranscript(s: SessionRecord): ChatEntry[] {
   return out;
 }
 
-// Keep the conversation in its real order, but always place the verse before the
-// prayer at the end. The reflection that follows a verse is dropped; a missing
-// verse or prayer is simply skipped.
+// Show only what the user said, then the verse, then the prayer. All of the AI's
+// conversational replies (opener, replies, and the verse reflection) are dropped;
+// a missing verse or prayer is simply skipped.
 function orderedTranscript(entries: ChatEntry[]): ChatEntry[] {
+  const userMsgs: ChatEntry[] = [];
   const verseGroup: ChatEntry[] = [];
   const prayerGroup: ChatEntry[] = [];
-  const rest: ChatEntry[] = [];
-  for (let i = 0; i < entries.length; i++) {
-    const e = entries[i];
-    if (e.kind === "verse") {
-      verseGroup.push(e);
-      const next = entries[i + 1];
-      if (next && next.role === "ai" && !next.kind) {
-        i++; // skip the reflection that pairs with this verse
-      }
-    } else if (e.kind === "prayer") {
-      prayerGroup.push(e);
-    } else {
-      rest.push(e);
-    }
+  for (const e of entries) {
+    if (e.kind === "verse") verseGroup.push(e);
+    else if (e.kind === "prayer") prayerGroup.push(e);
+    else if (e.role === "user") userMsgs.push(e);
+    // AI plain-text replies (opener / chat / reflection) are intentionally omitted
   }
-  return [...rest, ...verseGroup, ...prayerGroup];
+  return [...userMsgs, ...verseGroup, ...prayerGroup];
 }
 
 // First sentence (or line) of a note, truncated — used as the list preview.
