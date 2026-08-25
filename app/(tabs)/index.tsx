@@ -303,13 +303,11 @@ export default function HomeScreen() {
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   // Tapping a card opens its full session (chat + verse + prayer, in order).
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
-  // Within an expanded card, the verse/prayer sections start collapsed.
-  const [showVerse, setShowVerse] = useState(false);
-  const [showPrayer, setShowPrayer] = useState(false);
+  // Within an expanded card, the verse + prayer details start collapsed.
+  const [showDetails, setShowDetails] = useState(false);
   const toggleCard = (id: string) => {
     setExpandedSessionId((prev) => (prev === id ? null : id));
-    setShowVerse(false);
-    setShowPrayer(false);
+    setShowDetails(false);
   };
   useFocusEffect(
     useCallback(() => {
@@ -501,34 +499,27 @@ export default function HomeScreen() {
 
                       {(verseEntry || prayerEntry) && (
                         <View style={styles.txButtons}>
-                          {verseEntry && (
-                            <TouchableOpacity
-                              style={[styles.txBtn, showVerse && styles.txBtnActive]}
-                              onPress={() => setShowVerse((v) => !v)}
-                              activeOpacity={0.8}
-                            >
-                              <Text style={styles.txBtnText}>Verse</Text>
-                            </TouchableOpacity>
-                          )}
-                          {prayerEntry && (
-                            <TouchableOpacity
-                              style={[styles.txBtn, showPrayer && styles.txBtnActive]}
-                              onPress={() => setShowPrayer((v) => !v)}
-                              activeOpacity={0.8}
-                            >
-                              <Text style={styles.txBtnText}>Prayer</Text>
-                            </TouchableOpacity>
-                          )}
+                          <TouchableOpacity
+                            style={[styles.dotsBtn, showDetails && styles.dotsBtnActive]}
+                            onPress={() => setShowDetails((v) => !v)}
+                            activeOpacity={0.8}
+                          >
+                            <Svg width={26} height={10} viewBox="0 0 26 10">
+                              <Circle cx={5} cy={5} r={2} fill="#FFFFFF" />
+                              <Circle cx={13} cy={5} r={2} fill="#FFFFFF" />
+                              <Circle cx={21} cy={5} r={2} fill="#FFFFFF" />
+                            </Svg>
+                          </TouchableOpacity>
                         </View>
                       )}
 
-                      {showVerse && verseEntry && (
+                      {showDetails && verseEntry && (
                         <View style={styles.tVerseCard}>
                           {!!verseRef && <Text style={styles.tVerseRef}>{verseRef}</Text>}
                           <Text style={styles.tVerseText}>{verseBody}</Text>
                         </View>
                       )}
-                      {showPrayer && prayerEntry && (
+                      {showDetails && prayerEntry && (
                         <Text style={styles.tPrayer}>{prayerEntry.text}</Text>
                       )}
                     </View>
@@ -994,20 +985,18 @@ const styles = StyleSheet.create({
 
   /* Inline expanded transcript inside a card */
   cardTranscript: { marginTop: 16 },
-  txButtons: { flexDirection: "row", gap: 10, marginTop: 4, marginBottom: 4 },
-  txBtn: {
-    borderRadius: 999,
-    paddingVertical: 8,
-    paddingHorizontal: 18,
+  txButtons: { flexDirection: "row", marginTop: 8, marginBottom: 4 },
+  dotsBtn: {
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  txBtnActive: {
+  dotsBtnActive: {
     backgroundColor: "rgba(224,150,125,0.18)",
-    borderColor: "#E0967D",
   },
-  txBtnText: { color: "#FFFFFF", fontSize: 14, fontFamily: "Jost_600SemiBold" },
 
   /* Session detail modal (unused after inline expansion, kept for styles) */
   sessionBackdrop: { flex: 1, backgroundColor: "#000000" },
