@@ -844,10 +844,10 @@ export default function EmotionLogScreen() {
                 );
               })}
 
-              {/* Input is always available to reply. When the keyboard is up, the
-                  caption + pills sit right BELOW the input field. */}
+              {/* Input box, then the caption + pills anchored right below it. This
+                  group stays put whether the keyboard is open or closed. */}
               <View style={styles.inScrollInput}>{inputField}</View>
-              {keyboardVisible && showOptions && (
+              {showOptions && (
                 <View style={styles.inScrollControls}>
                   <Text style={styles.groundText}>{GROUND_TEXT}</Text>
                   {optionRowEl}
@@ -858,12 +858,9 @@ export default function EmotionLogScreen() {
         )}
       </Animated.ScrollView>
 
-      {/* Pinned bottom bar (keyboard down): caption + pills sit right above the
-          Complete check-in button. */}
+      {/* Complete check-in pins to the bottom only when the keyboard is down. */}
       {phase === 'chat' && !keyboardVisible && (
         <View style={[styles.chatBottomBar, { paddingBottom: insets.bottom + 10 }]}>
-          {showOptions && <Text style={styles.groundText}>{GROUND_TEXT}</Text>}
-          {showOptions && optionRowEl}
           {completeEl}
         </View>
       )}
@@ -1120,8 +1117,13 @@ const styles = StyleSheet.create({
   },
   chatInputRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
     gap: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(224,150,125,0.45)',
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
   },
   chatInput: {
     flex: 1,
@@ -1130,9 +1132,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Jost_400Regular',
     fontSize: 28,
     lineHeight: 36,
-    maxHeight: 160,
+    minHeight: 108, // ~3 lines tall by default; grows with the text
+    textAlignVertical: 'top',
     padding: 0,
-    paddingBottom: 20,
   },
   sendButton: {
     width: 40,
