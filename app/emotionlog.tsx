@@ -308,8 +308,6 @@ export default function EmotionLogScreen() {
     lastMsg?.role === 'ai' &&
     !sending &&
     !bothOptionsUsed;
-  // From the 2nd reply on we're wrapping up — show the small "ground yourself" caption.
-  const atWrap = chatUserTurns >= 2;
 
   // Start the AI chat when entering the chat phase — regardless of whether any
   // context tags were selected.
@@ -846,25 +844,25 @@ export default function EmotionLogScreen() {
                 );
               })}
 
-              {/* When the keyboard is up, the pills (and wrap caption) sit right
-                  above the input; the input is always available to reply. */}
+              {/* Input is always available to reply. When the keyboard is up, the
+                  caption + pills sit right BELOW the input field. */}
+              <View style={styles.inScrollInput}>{inputField}</View>
               {keyboardVisible && showOptions && (
                 <View style={styles.inScrollControls}>
-                  {atWrap && <Text style={styles.groundText}>{GROUND_TEXT}</Text>}
+                  <Text style={styles.groundText}>{GROUND_TEXT}</Text>
                   {optionRowEl}
                 </View>
               )}
-              <View style={styles.inScrollInput}>{inputField}</View>
             </View>
           </>
         )}
       </Animated.ScrollView>
 
-      {/* Pinned bottom bar (keyboard down): pills + wrap caption sit right above the
+      {/* Pinned bottom bar (keyboard down): caption + pills sit right above the
           Complete check-in button. */}
       {phase === 'chat' && !keyboardVisible && (
         <View style={[styles.chatBottomBar, { paddingBottom: insets.bottom + 10 }]}>
-          {showOptions && atWrap && <Text style={styles.groundText}>{GROUND_TEXT}</Text>}
+          {showOptions && <Text style={styles.groundText}>{GROUND_TEXT}</Text>}
           {showOptions && optionRowEl}
           {completeEl}
         </View>

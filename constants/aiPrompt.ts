@@ -87,7 +87,7 @@ export const MAX_CHAT_TURNS = 3;
  * deterministic (the caller decides the stage from the turn number).
  */
 export const STAGE_LISTEN =
-  `\n\nRIGHT NOW you are in the LISTEN stage: gently empathize with what they just shared in 1 to 2 sentences. Do NOT ask any question, do NOT suggest any actions, and do NOT mention or offer prayer or verses.`;
+  `\n\nRIGHT NOW you are in the LISTEN stage: gently empathize with what they just shared in 1 to 2 sentences, then STOP. Your reply MUST NOT contain a question of any kind (no question mark, no asking them to share more). Do NOT suggest any actions, and do NOT mention or offer prayer or verses.`;
 export const STAGE_SUGGEST =
   `\n\nRIGHT NOW you are in the SUGGEST stage: they have shared enough, so do NOT ask further about the situation or their emotions. Pick only ONE (at most TWO) small, concrete action that best fits THEIR situation — do NOT list several options or offer a menu. Choose from ideas like a short walk, a few deep breaths, a break, reaching out to someone they trust, tending a plant, or praying. End with a soft question inviting them to try it.`;
 export const STAGE_WRAP =
