@@ -95,6 +95,14 @@ export async function getSessions(): Promise<SessionRecord[]> {
   return (await loadBeliefStore()).sessions;
 }
 
+/** Delete a saved check-in by id. */
+export async function deleteSession(id: string): Promise<void> {
+  const store = await loadBeliefStore();
+  store.sessions = store.sessions.filter((s) => s.id !== id);
+  store.updatedAt = nowISO();
+  await saveBeliefStore(store);
+}
+
 /** Most recent saved check-in. */
 export async function getLatestSession(): Promise<SessionRecord | null> {
   return (await loadBeliefStore()).sessions[0] ?? null;

@@ -299,16 +299,9 @@ export default function HomeScreen() {
     setExpandedId((cur) => (cur === id ? null : cur));
   };
 
-  // Saved check-ins — the stacked list of cards at the bottom.
+  // Saved check-ins — the stacked list of cards at the bottom. Tapping a card
+  // opens its detail page (/session/[id]).
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
-  // Tapping a card opens its full session (chat + verse + prayer, in order).
-  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
-  // Within an expanded card, the verse + prayer details start collapsed.
-  const [showDetails, setShowDetails] = useState(false);
-  const toggleCard = (id: string) => {
-    setExpandedSessionId((prev) => (prev === id ? null : id));
-    setShowDetails(false);
-  };
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -461,79 +454,25 @@ export default function HomeScreen() {
         </TouchableWithoutFeedback>
 
         <View style={styles.cardListContent}>
-          {sessions.map((s) => {
-            const expanded = expandedSessionId === s.id;
-            return (
-              <TouchableOpacity
-                key={s.id}
-                activeOpacity={0.85}
-                style={styles.card}
-                onPress={() => toggleCard(s.id)}
-              >
-                <CardBackground id={s.id} />
-                <View style={styles.cardTopRow}>
-                  <View>
-                    <Text style={styles.cardDate}>{formatCardDate(s.date)}</Text>
-                    <Text style={styles.cardTime}>{formatCardTime(s.date)}</Text>
-                  </View>
-                  <Text style={styles.emotionLabel} numberOfLines={1}>
-                    {s.emotion}
-                  </Text>
+          {sessions.map((s) => (
+            <TouchableOpacity
+              key={s.id}
+              activeOpacity={0.85}
+              style={styles.card}
+              onPress={() => router.push(`/session/${s.id}`)}
+            >
+              <CardBackground id={s.id} />
+              <View style={styles.cardTopRow}>
+                <View>
+                  <Text style={styles.cardDate}>{formatCardDate(s.date)}</Text>
+                  <Text style={styles.cardTime}>{formatCardTime(s.date)}</Text>
                 </View>
-
-                {expanded && (() => {
-                  const tx = sessionTranscript(s);
-                  const userMsgs = tx.filter((m) => m.role === "user");
-                  const verseEntry = tx.find((m) => m.kind === "verse");
-                  const prayerEntry = tx.find((m) => m.kind === "prayer");
-                  const sep = verseEntry ? verseEntry.text.indexOf("  ") : -1;
-                  const verseRef = sep > 0 ? verseEntry!.text.slice(0, sep) : "";
-                  const verseBody = verseEntry ? (sep > 0 ? verseEntry.text.slice(sep + 2) : verseEntry.text) : "";
-                  return (
-                    <View style={styles.cardTranscript}>
-                      {userMsgs.map((m, i) => (
-                        <View key={i} style={styles.tUserRow}>
-                          <Text style={styles.tUserBubble}>{m.text}</Text>
-                        </View>
-                      ))}
-
-                      {showDetails && verseEntry && (
-                        <View style={styles.tVerseCard}>
-                          {!!verseRef && <Text style={styles.tVerseRef}>{verseRef}</Text>}
-                          <Text style={styles.tVerseText}>{verseBody}</Text>
-                        </View>
-                      )}
-                      {showDetails && prayerEntry && (
-                        <View style={styles.tPrayerCard}>
-                          <Text style={styles.tPrayer}>{prayerEntry.text}</Text>
-                        </View>
-                      )}
-
-                      {(verseEntry || prayerEntry) && (
-                        <View style={styles.txButtons}>
-                          <TouchableOpacity
-                            style={styles.dotsBtn}
-                            onPress={() => setShowDetails((v) => !v)}
-                            activeOpacity={0.8}
-                          >
-                            <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-                              <Path
-                                d={showDetails ? "M6 15 L12 9 L18 15" : "M6 9 L12 15 L18 9"}
-                                stroke="#FFFFFF"
-                                strokeWidth={2}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </Svg>
-                          </TouchableOpacity>
-                        </View>
-                      )}
-                    </View>
-                  );
-                })()}
-              </TouchableOpacity>
-            );
-          })}
+                <Text style={styles.emotionLabel} numberOfLines={1}>
+                  {s.emotion}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
         </View>
       </Animated.ScrollView>
 
