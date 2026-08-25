@@ -504,7 +504,9 @@ export default function HomeScreen() {
                         </View>
                       )}
                       {showDetails && prayerEntry && (
-                        <Text style={styles.tPrayer}>{prayerEntry.text}</Text>
+                        <View style={styles.tPrayerCard}>
+                          <Text style={styles.tPrayer}>{prayerEntry.text}</Text>
+                        </View>
                       )}
 
                       {(verseEntry || prayerEntry) && (
@@ -1040,12 +1042,17 @@ const styles = StyleSheet.create({
   },
   tVerseRef: { color: "#E0967D", fontSize: 15, fontFamily: "Jost_700Bold", marginBottom: 6 },
   tVerseText: { color: "#EFE7DC", fontSize: 15, lineHeight: 23, fontFamily: "Jost_400Regular" },
+  tPrayerCard: {
+    backgroundColor: "#1A1512",
+    borderRadius: 16,
+    padding: 16,
+    marginVertical: 10,
+  },
   tPrayer: {
     color: "#EFE7DC",
     fontSize: 16,
     lineHeight: 25,
     fontFamily: "Jost_400Regular_Italic",
-    marginVertical: 10,
   },
 });
 
