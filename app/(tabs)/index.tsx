@@ -1043,7 +1043,7 @@ const styles = StyleSheet.create({
   tVerseRef: { color: "#E0967D", fontSize: 15, fontFamily: "Jost_700Bold", marginBottom: 6 },
   tVerseText: { color: "#EFE7DC", fontSize: 15, lineHeight: 23, fontFamily: "Jost_400Regular" },
   tPrayerCard: {
-    backgroundColor: "#1A1512",
+    backgroundColor: "#2B2018",
     borderRadius: 16,
     padding: 16,
     marginVertical: 10,
