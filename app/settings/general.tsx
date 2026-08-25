@@ -72,11 +72,11 @@ function Arrow() {
 type Item = { slug: string; label: string; icon: () => React.ReactElement };
 
 const ITEMS: Item[] = [
+  { slug: "about", label: "About", icon: InfoIcon },
   { slug: "security", label: "Security & data", icon: LockIcon },
   { slug: "accessibility", label: "Accessibility", icon: AccessibilityIcon },
   { slug: "language", label: "Language", icon: GlobeIcon },
   { slug: "hotlines", label: "Mental health hotlines", icon: LifebuoyIcon },
-  { slug: "about", label: "About", icon: InfoIcon },
   { slug: "donate", label: "Donate", icon: DonateIcon },
 ];
 
