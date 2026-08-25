@@ -510,14 +510,18 @@ export default function HomeScreen() {
                       {(verseEntry || prayerEntry) && (
                         <View style={styles.txButtons}>
                           <TouchableOpacity
-                            style={[styles.dotsBtn, showDetails && styles.dotsBtnActive]}
+                            style={styles.dotsBtn}
                             onPress={() => setShowDetails((v) => !v)}
                             activeOpacity={0.8}
                           >
-                            <Svg width={26} height={10} viewBox="0 0 26 10">
-                              <Circle cx={5} cy={5} r={2} fill="#FFFFFF" />
-                              <Circle cx={13} cy={5} r={2} fill="#FFFFFF" />
-                              <Circle cx={21} cy={5} r={2} fill="#FFFFFF" />
+                            <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                              <Path
+                                d={showDetails ? "M6 15 L12 9 L18 15" : "M6 9 L12 15 L18 9"}
+                                stroke="#FFFFFF"
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
                             </Svg>
                           </TouchableOpacity>
                         </View>
@@ -993,9 +997,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.06)",
     justifyContent: "center",
     alignItems: "center",
-  },
-  dotsBtnActive: {
-    backgroundColor: "rgba(224,150,125,0.18)",
   },
 
   /* Session detail modal (unused after inline expansion, kept for styles) */
