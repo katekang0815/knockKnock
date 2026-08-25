@@ -297,10 +297,10 @@ export default function EmotionLogScreen() {
   const prayDisabled = prayerUsed;
   // Once both have been used after max turns, remove the row entirely.
   const bothOptionsUsed = verseUsed && prayerUsed;
-  // All categories use the Sunny flow: wrap up (with the button invite) right after
-  // the first user reply, so the pray/verse pills appear one turn in.
-  const isPositive = true;
-  const optionsFromTurn = 1;
+  // Positive/calm categories skip the SUGGEST stage and wrap up (with the button
+  // invite) right after the first user reply, so the pills appear one turn earlier.
+  const isPositive = category === 'Sunny' || category === 'Breezy';
+  const optionsFromTurn = isPositive ? 1 : 2;
   // Show the pray/verse pills once the AI has just given a wrap/suggest reply.
   const showOptions =
     phase === 'chat' &&
