@@ -33,7 +33,7 @@ HOW IT WORKS
 • Look back — your check-ins are saved as a quiet record of your week.
 
 MADE FOR
-Teens and young adults growing in their faith who want a simple, judgment-free space to reflect, pray, and feel a little less alone.
+Anyone growing in their faith — at any age — who wants a simple, judgment-free space to reflect, pray, and feel a little less alone.
 
 PRIVATE BY DESIGN
 No account. No sign-up. Your check-ins stay on your device. We don't sell your data, show ads, or track you.
@@ -46,7 +46,7 @@ Knock, and the door will be opened.
 
 ### Keywords (≤100 chars, comma-separated, no spaces; don't repeat words in the app name)
 ```
-christian,faith,bible,verse,devotion,emotions,mood,feelings,gratitude,journal,teen,god,reflection
+christian,faith,bible,verse,devotion,emotions,mood,feelings,gratitude,journal,god,reflection,peace
 ```
 
 ### URLs
