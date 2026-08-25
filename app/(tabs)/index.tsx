@@ -1027,9 +1027,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  tUserRow: { alignItems: "flex-end", marginVertical: 8 },
+  tUserRow: { alignItems: "stretch", marginVertical: 8 },
   tUserBubble: {
-    maxWidth: "82%",
     backgroundColor: "#2E2A26",
     color: "#FFFFFF",
     fontSize: 15,
