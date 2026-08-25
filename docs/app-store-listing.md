@@ -22,7 +22,7 @@ Feeling anxious, grateful, or somewhere in between? Pause, check in, and turn th
 
 ### Description (≤4000 chars)
 ```
-KnockKnock is a gentle prayer companion that meets you where you are — in whatever you're feeling right now.
+KnockKnock is a gentle prayer companion that meets you where you are - in whatever you're feeling right now.
 
 Some days are sunny. Some are stormy. KnockKnock helps you pause, notice how you feel, and turn that moment into prayer.
 
@@ -33,7 +33,7 @@ HOW IT WORKS
 • Look back — your check-ins are saved as a quiet record of your week.
 
 MADE FOR
-Anyone growing in their faith — at any age — who wants a simple, judgment-free space to reflect, pray, and feel a little less alone.
+Anyone growing in their faith - at any age - who wants a simple, judgment-free space to reflect, pray, and feel a little less alone.
 
 PRIVATE BY DESIGN
 No account. No sign-up. Your check-ins stay on your device. We don't sell your data, show ads, or track you.
