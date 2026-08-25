@@ -1029,15 +1029,10 @@ const styles = StyleSheet.create({
   },
   tUserRow: { alignItems: "stretch", marginVertical: 8 },
   tUserBubble: {
-    backgroundColor: "#2E2A26",
     color: "#FFFFFF",
-    fontSize: 15,
-    lineHeight: 22,
-    fontFamily: "Jost_400Regular",
-    borderRadius: 18,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    overflow: "hidden",
+    fontSize: 16,
+    lineHeight: 25,
+    fontFamily: "Jost_400Regular_Italic",
   },
   tAiText: {
     color: "#EFE7DC",
