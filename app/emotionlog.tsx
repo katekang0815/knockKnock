@@ -32,6 +32,8 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SHAPE_MAX = 180;
 const SHAPE_MIN = 40;
 const NEXT_BAR_H = 62; // bottom "next" pill bar height
+// Small caption shown above the pray/verse pills once the conversation is wrapping up.
+const GROUND_TEXT = 'Take a moment to ground yourself';
 
 // Animated major-emotion icon per category (same as the major-emotions screen).
 function emotionIcon(category: EmotionCategory, size: number) {
@@ -297,21 +299,17 @@ export default function EmotionLogScreen() {
   const prayDisabled = prayerUsed;
   // Once both have been used after max turns, remove the row entirely.
   const bothOptionsUsed = verseUsed && prayerUsed;
-  // Positive/calm categories skip the SUGGEST stage and wrap up (with the button
-  // invite) right after the first user reply, so the pills appear one turn earlier.
-  const isPositive = category === 'Sunny' || category === 'Breezy';
-  const optionsFromTurn = isPositive ? 1 : 2;
-  // Show the pray/verse pills once the AI has just given a wrap/suggest reply.
+  // All categories share one flow: LISTEN (empathize only) on the 1st reply, then
+  // WRAP from the 2nd reply on. The pray/verse pills appear right after the 1st reply.
+  const optionsFromTurn = 1;
   const showOptions =
     phase === 'chat' &&
     chatUserTurns >= optionsFromTurn &&
     lastMsg?.role === 'ai' &&
     !sending &&
     !bothOptionsUsed;
-  // The "wrap" layout (no input; pills + Complete grouped below the message) kicks
-  // in exactly when WRAP begins: the 1st reply for positive categories, the 2nd for
-  // negative ones — i.e. the same turn the pills appear.
-  const wrapActive = chatUserTurns >= optionsFromTurn;
+  // From the 2nd reply on we're wrapping up — show the small "ground yourself" caption.
+  const atWrap = chatUserTurns >= 2;
 
   // Start the AI chat when entering the chat phase — regardless of whether any
   // context tags were selected.
@@ -334,7 +332,7 @@ export default function EmotionLogScreen() {
       [],
       { emotion: emotion ?? '', category: category ?? '', doing, withWhom, where, sessionId },
       'opener',
-      'listen',
+      '',
     ).then((response) => {
       setChatMessages([{ role: 'ai', text: sanitizeAI(response) }]);
     });
@@ -391,11 +389,9 @@ export default function EmotionLogScreen() {
     setChatInput('');
     setSending(true);
 
-    // Deterministic arc (no SUGGEST step):
-    //  - Positive (Sunny, Breezy): WRAP from the first user reply.
-    //  - Negative (Stormy, Rain): LISTEN once, then WRAP from the second reply.
+    // All categories: LISTEN (empathize only) on the 1st reply, WRAP from the 2nd.
     const userMsgNumber = chatMessages.filter((m) => m.role === 'user').length + 1;
-    const stage: ChatStage = isPositive || userMsgNumber >= 2 ? 'wrap' : 'listen';
+    const stage: ChatStage = userMsgNumber >= 2 ? 'wrap' : 'listen';
 
     const response = await sendChatMessage(trimmed, chatMessages, chatContext, 'chat', stage);
     setChatMessages((prev) => [...prev, { role: 'ai', text: sanitizeAI(response) }]);
@@ -850,35 +846,27 @@ export default function EmotionLogScreen() {
                 );
               })}
 
-              {wrapActive ? (
-                // Wrap state: no input. Pills sit right below the message; the Complete
-                // button joins them while the keyboard is up, and drops to the bottom
-                // bar once it collapses.
+              {/* When the keyboard is up, the pills (and wrap caption) sit right
+                  above the input; the input is always available to reply. */}
+              {keyboardVisible && showOptions && (
                 <View style={styles.inScrollControls}>
-                  {showOptions && optionRowEl}
-                  {keyboardVisible && (
-                    <View style={showOptions ? styles.completeInBar : undefined}>{completeEl}</View>
-                  )}
+                  {atWrap && <Text style={styles.groundText}>{GROUND_TEXT}</Text>}
+                  {optionRowEl}
                 </View>
-              ) : (
-                // Normal turns: input sits right below the current AI conversation.
-                <View style={styles.inScrollInput}>{inputField}</View>
               )}
+              <View style={styles.inScrollInput}>{inputField}</View>
             </View>
           </>
         )}
       </Animated.ScrollView>
 
-      {/* Pinned bottom bar. Negative SUGGEST keeps pills here; Complete sits at the
-          bottom whenever the keyboard is down (in the wrap state too). */}
-      {phase === 'chat' && (
+      {/* Pinned bottom bar (keyboard down): pills + wrap caption sit right above the
+          Complete check-in button. */}
+      {phase === 'chat' && !keyboardVisible && (
         <View style={[styles.chatBottomBar, { paddingBottom: insets.bottom + 10 }]}>
-          {!wrapActive && showOptions && optionRowEl}
-          {!keyboardVisible && (
-            <View style={!wrapActive && showOptions ? styles.completeInBar : undefined}>
-              {completeEl}
-            </View>
-          )}
+          {showOptions && atWrap && <Text style={styles.groundText}>{GROUND_TEXT}</Text>}
+          {showOptions && optionRowEl}
+          {completeEl}
         </View>
       )}
 
@@ -1187,6 +1175,13 @@ const styles = StyleSheet.create({
   },
   inScrollControls: {
     marginTop: 20, // space between the message and the wrap-state pills/Complete
+  },
+  groundText: {
+    color: '#9A938B',
+    fontSize: 13,
+    fontFamily: 'Jost_400Regular',
+    textAlign: 'center',
+    marginBottom: 10,
   },
   bottomFade: {
     position: 'absolute',
