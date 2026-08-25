@@ -993,10 +993,9 @@ const styles = StyleSheet.create({
   cardTranscript: { marginTop: 16 },
   txButtons: { flexDirection: "row", marginTop: 8, marginBottom: 4 },
   dotsBtn: {
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    alignSelf: "flex-start",
     justifyContent: "center",
     alignItems: "center",
   },
