@@ -77,8 +77,18 @@ export default function SessionDetailScreen() {
   const menuLeft = Math.max(12, Math.min(anchor.x + anchor.w - MENU_W, SCREEN_W - MENU_W - 12));
 
   const transcript = session ? sessionTranscript(session) : [];
-  const chat = transcript.filter((m) => !m.kind); // AI + user conversation
-  const verse = transcript.find((m) => m.kind === "verse");
+  const verseIdx = transcript.findIndex((m) => m.kind === "verse");
+  const verse = verseIdx >= 0 ? transcript[verseIdx] : undefined;
+  // The reflection is the plain AI message that immediately follows the verse.
+  const reflectionIdx =
+    verseIdx >= 0 &&
+    transcript[verseIdx + 1] &&
+    transcript[verseIdx + 1].role === "ai" &&
+    !transcript[verseIdx + 1].kind
+      ? verseIdx + 1
+      : -1;
+  const reflection = reflectionIdx >= 0 ? transcript[reflectionIdx] : undefined;
+  const chat = transcript.filter((m, i) => !m.kind && i !== reflectionIdx); // AI + user conversation
   const prayer = transcript.find((m) => m.kind === "prayer");
   const chips = (session?.context ?? "")
     .split(",")
@@ -160,6 +170,7 @@ export default function SessionDetailScreen() {
           <View style={styles.box}>
             {!!verseRef && <Text style={styles.verseRef}>{verseRef}</Text>}
             <Text style={styles.userText}>{verseBody}</Text>
+            {reflection && <Text style={[styles.aiText, styles.reflectionGap]}>{reflection.text}</Text>}
           </View>
         )}
 
@@ -234,6 +245,7 @@ const styles = StyleSheet.create({
     fontFamily: "Jost_400Regular",
   },
   msgGap: { marginTop: 18 },
+  reflectionGap: { marginTop: 12 },
   menuCard: {
     position: "absolute",
     width: MENU_W,
