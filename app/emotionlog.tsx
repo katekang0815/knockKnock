@@ -844,9 +844,9 @@ export default function EmotionLogScreen() {
                 );
               })}
 
-              {/* Input box, then the caption + pills anchored right below it. This
-                  group stays put whether the keyboard is open or closed. */}
-              <View style={styles.inScrollInput}>{inputField}</View>
+              {/* Input box (hidden once they've replied twice / reached WRAP), then
+                  the caption + pills anchored right below it. */}
+              {chatUserTurns < 2 && <View style={styles.inScrollInput}>{inputField}</View>}
               {showOptions && (
                 <View style={styles.inScrollControls}>
                   <Text style={styles.groundText}>{GROUND_TEXT}</Text>
