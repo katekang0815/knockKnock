@@ -4,6 +4,7 @@ import {
   deleteNote,
   getNotes,
   saveNote,
+  updateNote,
   getQuickPrayerCount,
   incrementQuickPrayerCount,
   QUICK_PRAYER_DAILY_LIMIT,
@@ -239,18 +240,33 @@ export default function HomeScreen() {
   // How many quick prayers have been generated today (daily cap on AI cost).
   const [prayerCount, setPrayerCount] = useState(0);
   const prayerLimitReached = prayerCount >= QUICK_PRAYER_DAILY_LIMIT;
+  // When set, the note composer is editing an existing note instead of creating one.
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const closeNote = () => {
     setNoteOpen(false);
     setNoteText("");
     setNotePrayer(null);
     setPrayerLoading(false);
+    setEditingNoteId(null);
   };
   const openNote = async () => {
     setPrayerCount(await getQuickPrayerCount());
     setNoteOpen(true);
   };
+  const editNote = async (n: Note) => {
+    setListOpen(false);
+    setPrayerCount(await getQuickPrayerCount());
+    setEditingNoteId(n.id);
+    setNoteText(n.text);
+    setNotePrayer(null); // edit the text; keep any existing prayer via updateNote
+    setNoteOpen(true);
+  };
   const handleSaveNote = async () => {
-    await saveNote(noteText, notePrayer ?? undefined);
+    if (editingNoteId) {
+      await updateNote(editingNoteId, noteText, notePrayer ?? undefined);
+    } else {
+      await saveNote(noteText, notePrayer ?? undefined);
+    }
     closeNote();
   };
   // Quick prayer: the AI reads the current note text and writes a short prayer
@@ -628,8 +644,8 @@ export default function HomeScreen() {
                           <TouchableOpacity onPress={() => handleDeleteNote(n.id)} activeOpacity={0.7}>
                             <Text style={styles.noteDeleteText}>Delete</Text>
                           </TouchableOpacity>
-                          <TouchableOpacity onPress={() => setPendingDeleteId(null)} activeOpacity={0.7}>
-                            <Text style={styles.noteCancelText}>Cancel</Text>
+                          <TouchableOpacity onPress={() => editNote(n)} activeOpacity={0.7}>
+                            <Text style={styles.noteEditText}>Edit</Text>
                           </TouchableOpacity>
                         </View>
                       )}
@@ -876,10 +892,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: "Jost_600SemiBold",
   },
-  noteCancelText: {
-    color: "#9A9A9A",
+  noteEditText: {
+    color: "#E0967D",
     fontSize: 15,
-    fontFamily: "Jost_400Regular",
+    fontFamily: "Jost_600SemiBold",
   },
   cardListContent: {
     paddingHorizontal: 16,

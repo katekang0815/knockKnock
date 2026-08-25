@@ -31,6 +31,23 @@ export async function getNotes(): Promise<Note[]> {
   }
 }
 
+/** Update an existing note's text (and optional prayer); keeps its id and date. */
+export async function updateNote(id: string, text: string, prayer?: string): Promise<void> {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+  try {
+    const notes = await getNotes();
+    const next = notes.map((n) =>
+      n.id === id
+        ? { ...n, text: trimmed, ...(prayer && prayer.trim() ? { prayer: prayer.trim() } : {}) }
+        : n,
+    );
+    await AsyncStorage.setItem(NOTES_KEY, JSON.stringify(next));
+  } catch {
+    // best-effort
+  }
+}
+
 /** Delete a note by id. */
 export async function deleteNote(id: string): Promise<void> {
   try {
