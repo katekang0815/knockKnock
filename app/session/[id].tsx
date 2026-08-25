@@ -198,10 +198,6 @@ export default function SessionDetailScreen() {
         <TouchableWithoutFeedback onPress={() => setMenuOpen(false)}>
           <View style={{ flex: 1 }}>
             <View style={[styles.menuCard, { top: menuTop, left: menuLeft }]}>
-              <TouchableOpacity style={styles.menuItem} onPress={() => setMenuOpen(false)} activeOpacity={0.7}>
-                <Text style={styles.menuText}>Cancel</Text>
-              </TouchableOpacity>
-              <View style={styles.menuDivider} />
               <TouchableOpacity style={styles.menuItem} onPress={onDelete} activeOpacity={0.7}>
                 <Text style={[styles.menuText, styles.menuDelete]}>Delete</Text>
               </TouchableOpacity>
