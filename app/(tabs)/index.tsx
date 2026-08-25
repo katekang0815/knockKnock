@@ -87,6 +87,30 @@ function sessionTranscript(s: SessionRecord): ChatEntry[] {
   return out;
 }
 
+// Keep the conversation in its real order, but always place the verse (with the
+// reflection that follows it) before the prayer, at the end.
+function orderedTranscript(entries: ChatEntry[]): ChatEntry[] {
+  const verseGroup: ChatEntry[] = [];
+  const prayerGroup: ChatEntry[] = [];
+  const rest: ChatEntry[] = [];
+  for (let i = 0; i < entries.length; i++) {
+    const e = entries[i];
+    if (e.kind === "verse") {
+      verseGroup.push(e);
+      const next = entries[i + 1];
+      if (next && next.role === "ai" && !next.kind) {
+        verseGroup.push(next); // the reflection that pairs with this verse
+        i++;
+      }
+    } else if (e.kind === "prayer") {
+      prayerGroup.push(e);
+    } else {
+      rest.push(e);
+    }
+  }
+  return [...rest, ...verseGroup, ...prayerGroup];
+}
+
 // First sentence (or line) of a note, truncated — used as the list preview.
 function firstSentence(text: string): string {
   const line = text.trim().split("\n")[0];
@@ -477,7 +501,7 @@ export default function HomeScreen() {
 
                 {expanded && (
                   <View style={styles.cardTranscript}>
-                    {sessionTranscript(s).map((m, i) => {
+                    {orderedTranscript(sessionTranscript(s)).map((m, i) => {
                       if (m.kind === "verse") {
                         const sep = m.text.indexOf("  ");
                         const ref = sep > 0 ? m.text.slice(0, sep) : "";
