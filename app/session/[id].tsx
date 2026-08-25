@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
   menuDivider: { height: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.12)", marginHorizontal: 12 },
   verseRef: { color: "#E0967D", fontSize: 16, fontFamily: "Jost_700Bold", marginBottom: 6 },
   prayerHeader: { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 12 },
-  prayerLabel: { color: "#E0967D", fontSize: 15, fontFamily: "Jost_600SemiBold" },
+  prayerLabel: { color: "#E0967D", fontSize: 16, fontFamily: "Jost_700Bold" },
   prayerText: {
     color: "#F0E8DE",
     fontSize: 17,
