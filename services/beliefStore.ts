@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { BeliefStore, SessionRecord, BibleVerse } from '@/types/belief';
+import type { BeliefStore, SessionRecord, BibleVerse, ChatEntry } from '@/types/belief';
 
 const STORAGE_KEY = 'knockknock.belief.v1';
 const SCHEMA_VERSION = 2;
@@ -51,6 +51,20 @@ export interface NewCheckIn {
   issue: string;
   verse: BibleVerse | null;
   prayer?: string | null;
+  transcript?: ChatEntry[];
+}
+
+/** Keep only valid, non-empty transcript entries. */
+function cleanTranscript(t?: ChatEntry[]): ChatEntry[] | undefined {
+  if (!Array.isArray(t)) return undefined;
+  const entries = t
+    .filter((e) => e && (e.role === 'ai' || e.role === 'user') && typeof e.text === 'string' && e.text.trim())
+    .map((e) => {
+      const entry: ChatEntry = { role: e.role, text: e.text.trim() };
+      if (e.kind === 'prayer' || e.kind === 'verse') entry.kind = e.kind;
+      return entry;
+    });
+  return entries.length ? entries : undefined;
 }
 
 /** Save a check-in and prepend it to the rolling history. */
@@ -68,6 +82,7 @@ export async function recordSession(rec: NewCheckIn): Promise<SessionRecord> {
         ? { reference: rec.verse.reference.trim(), text: rec.verse.text.trim() }
         : null,
     prayer: rec.prayer?.trim() ? rec.prayer.trim() : null,
+    transcript: cleanTranscript(rec.transcript),
   };
   store.sessions = [record, ...store.sessions].slice(0, MAX_SESSIONS);
   store.updatedAt = record.date;

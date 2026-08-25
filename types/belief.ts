@@ -14,6 +14,13 @@ export interface BeliefStore {
   sessions: SessionRecord[];   // newest first — home cards + the AI's recent-days memory
 }
 
+/** One entry in the saved conversation transcript, in the order it appeared. */
+export interface ChatEntry {
+  role: 'ai' | 'user';
+  text: string;
+  kind?: 'prayer' | 'verse';   // tags the AI's verse card / prayer messages
+}
+
 /** A saved check-in. Powers the home-screen card and the AI's short-term memory. */
 export interface SessionRecord {
   id: string;
@@ -22,8 +29,9 @@ export interface SessionRecord {
   category: string;            // Sunny | Stormy | Calm | Breezy
   context: string | null;      // what / who / where
   issue: string;               // what they're facing, in their own words
-  verse: BibleVerse | null;    // the verse the AI shared, shown on the home card
-  prayer: string | null;       // the prayer the AI wrote, shown when there's no verse
+  verse: BibleVerse | null;    // the verse the AI shared (kept for the AI's memory)
+  prayer: string | null;       // the prayer the AI wrote (kept for the AI's memory)
+  transcript?: ChatEntry[];    // the full conversation, in order — shown when the card is tapped
 }
 
 /** A Bible verse shared during the check-in. */

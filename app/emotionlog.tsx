@@ -592,6 +592,7 @@ export default function EmotionLogScreen() {
           issue: userMsgs[0].text.slice(0, 200),
           verse,
           prayer,
+          transcript: chatMessages,
         });
       } catch (e) {
         // best-effort — recap is not critical to the check-in flow

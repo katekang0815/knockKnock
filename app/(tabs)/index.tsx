@@ -10,7 +10,7 @@ import {
   type Note,
 } from "@/services/notesStore";
 import { sendChatMessage } from "@/services/aiService";
-import type { SessionRecord } from "@/types/belief";
+import type { SessionRecord, ChatEntry } from "@/types/belief";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -74,6 +74,17 @@ function formatCardTime(iso: string): string {
   const ampm = h >= 12 ? "PM" : "AM";
   h = h % 12 || 12;
   return `${h}:${m.toString().padStart(2, "0")} ${ampm}`;
+}
+
+// The conversation to show when a card is tapped. Newer sessions store the full
+// transcript; older ones fall back to their saved issue / verse / prayer.
+function sessionTranscript(s: SessionRecord): ChatEntry[] {
+  if (s.transcript && s.transcript.length) return s.transcript;
+  const out: ChatEntry[] = [];
+  if (s.issue) out.push({ role: "user", text: s.issue });
+  if (s.verse) out.push({ role: "ai", text: `${s.verse.reference}  ${s.verse.text}`, kind: "verse" });
+  if (s.prayer) out.push({ role: "ai", text: s.prayer, kind: "prayer" });
+  return out;
 }
 
 // First sentence (or line) of a note, truncated — used as the list preview.
@@ -290,6 +301,8 @@ export default function HomeScreen() {
 
   // Saved check-ins — the stacked list of cards at the bottom.
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  // Tapping a card opens its full session (chat + verse + prayer, in order).
+  const [openSession, setOpenSession] = useState<SessionRecord | null>(null);
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -443,7 +456,7 @@ export default function HomeScreen() {
 
         <View style={styles.cardListContent}>
           {sessions.map((s) => (
-            <TouchableOpacity key={s.id} activeOpacity={1} style={styles.card}>
+            <TouchableOpacity key={s.id} activeOpacity={0.85} style={styles.card} onPress={() => setOpenSession(s)}>
               <CardBackground id={s.id} />
               <View style={styles.cardTopRow}>
                 <View>
@@ -454,14 +467,6 @@ export default function HomeScreen() {
                   {s.emotion}
                 </Text>
               </View>
-              {s.verse ? (
-                <Text style={styles.verseText}>
-                  <Text style={styles.verseRef}>{s.verse.reference}  </Text>
-                  {s.verse.text}
-                </Text>
-              ) : s.prayer ? (
-                <Text style={styles.verseText}>{s.prayer}</Text>
-              ) : null}
             </TouchableOpacity>
           ))}
         </View>
@@ -630,6 +635,68 @@ export default function HomeScreen() {
               </ScrollView>
             )}
           </View>
+        </View>
+      </Modal>
+
+      {/* Session detail — replays the whole conversation (chat + verse + prayer). */}
+      <Modal
+        visible={!!openSession}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setOpenSession(null)}
+        statusBarTranslucent
+      >
+        <View style={[styles.sessionBackdrop, { paddingTop: insets.top + 8 }]}>
+          <View style={styles.sessionHeader}>
+            <View style={{ flex: 1 }}>
+              {openSession && (
+                <>
+                  <Text style={styles.sessionDate}>{formatCardDate(openSession.date)}</Text>
+                  <Text style={styles.sessionEmotion}>{openSession.emotion}</Text>
+                </>
+              )}
+            </View>
+            <TouchableOpacity style={styles.sessionClose} onPress={() => setOpenSession(null)} activeOpacity={0.7}>
+              <Svg width={22} height={22} viewBox="0 0 24 24">
+                <Path d="M6 6 L18 18 M18 6 L6 18" stroke="#E0E0E0" strokeWidth={2} strokeLinecap="round" />
+              </Svg>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 30 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {openSession &&
+              sessionTranscript(openSession).map((m, i) => {
+                if (m.kind === "verse") {
+                  const sep = m.text.indexOf("  ");
+                  const ref = sep > 0 ? m.text.slice(0, sep) : "";
+                  const body = sep > 0 ? m.text.slice(sep + 2) : m.text;
+                  return (
+                    <View key={i} style={styles.tVerseCard}>
+                      {!!ref && <Text style={styles.tVerseRef}>{ref}</Text>}
+                      <Text style={styles.tVerseText}>{body}</Text>
+                    </View>
+                  );
+                }
+                if (m.kind === "prayer") {
+                  return (
+                    <Text key={i} style={styles.tPrayer}>{m.text}</Text>
+                  );
+                }
+                if (m.role === "user") {
+                  return (
+                    <View key={i} style={styles.tUserRow}>
+                      <Text style={styles.tUserBubble}>{m.text}</Text>
+                    </View>
+                  );
+                }
+                return (
+                  <Text key={i} style={styles.tAiText}>{m.text}</Text>
+                );
+              })}
+          </ScrollView>
         </View>
       </Modal>
     </View>
@@ -916,6 +983,61 @@ const styles = StyleSheet.create({
   },
   verseRef: {
     fontFamily: "Jost_700Bold",
+  },
+
+  /* Session detail modal */
+  sessionBackdrop: { flex: 1, backgroundColor: "#000000" },
+  sessionHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+  },
+  sessionDate: { color: "#FFFFFF", fontSize: 15, fontFamily: "Jost_600SemiBold" },
+  sessionEmotion: { color: "#E0967D", fontSize: 26, fontFamily: SERIF, fontStyle: "italic", marginTop: 2 },
+  sessionClose: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#1C1C1C",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  tUserRow: { alignItems: "flex-end", marginVertical: 8 },
+  tUserBubble: {
+    maxWidth: "82%",
+    backgroundColor: "#2E2A26",
+    color: "#FFFFFF",
+    fontSize: 15,
+    lineHeight: 22,
+    fontFamily: "Jost_400Regular",
+    borderRadius: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    overflow: "hidden",
+  },
+  tAiText: {
+    color: "#EFE7DC",
+    fontSize: 15,
+    lineHeight: 23,
+    fontFamily: "Jost_400Regular",
+    marginVertical: 8,
+    paddingRight: "10%",
+  },
+  tVerseCard: {
+    backgroundColor: "#1A1512",
+    borderRadius: 16,
+    padding: 16,
+    marginVertical: 10,
+  },
+  tVerseRef: { color: "#E0967D", fontSize: 15, fontFamily: "Jost_700Bold", marginBottom: 6 },
+  tVerseText: { color: "#EFE7DC", fontSize: 15, lineHeight: 23, fontFamily: "Jost_400Regular" },
+  tPrayer: {
+    color: "#EFE7DC",
+    fontSize: 16,
+    lineHeight: 25,
+    fontFamily: "Jost_400Regular_Italic",
+    marginVertical: 10,
   },
 });
 
