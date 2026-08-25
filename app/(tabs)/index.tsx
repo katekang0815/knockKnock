@@ -972,7 +972,7 @@ const styles = StyleSheet.create({
   },
   emotionLabel: {
     color: "#FF9A7B",
-    fontSize: 28,
+    fontSize: 24,
     fontFamily: SERIF,
     fontStyle: "italic",
     maxWidth: "55%",
