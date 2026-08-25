@@ -56,36 +56,56 @@ christian,faith,bible,verse,devotion,emotions,mood,feelings,gratitude,journal,go
 
 ---
 
-## 2) App Privacy questionnaire (App Store Connect → App Privacy)
+## 2) App Privacy questionnaire (App Store Connect → App Privacy)  ✅ SUBMITTED
 
 **"Do you or your third-party partners collect data from this app?"** → **Yes**
-(Chat text is sent to the Worker → Anthropic; a device ID is sent for rate-limiting.)
+(Feedback message + optional email are emailed to the owner; chat text is sent to the
+Worker → Anthropic; a random device ID is sent for rate-limiting.)
 
-Add exactly **two** data types:
+**Privacy Policy URL:** https://katekang0815.github.io/knockKnock/privacy-policy.html
 
-### Data type 1 — User Content → "Other User Content"
+Four data types declared — **all "Used for: App Functionality" only, none "Used for tracking":**
+
+### 1. Contact Info → "Email Address"
+(the optional email in the in-app feedback form, used only to reply)
+- Used for: **App Functionality**
+- Linked to identity? **No** (as submitted) — *note: email is personal data, so Apple's
+  stricter reading is "Yes/Linked"; can be edited to Linked to be exact*
+- Tracking? **No**
+
+### 2. User Content → "Customer Support"
+(the feedback message text)
+- Used for: **App Functionality**
+- Linked to identity? **No** (as submitted) — *same note as Email Address (rides with it)*
+- Tracking? **No**
+
+### 3. User Content → "Other User Content"
 (the messages typed + emotion/context, sent to the AI to generate a reply)
-- Used for: **App Functionality** (only)
-- Linked to the user's identity? **No** (no account, no name/email)
-- Used for tracking? **No**
+- Used for: **App Functionality**
+- Linked to identity? **No** (chat carries only the random device ID — no name/email)
+- Tracking? **No**
 
-### Data type 2 — Identifiers → "Device ID"
+### 4. Identifiers → "Device ID"
 (the random app-generated ID, sent only to enforce usage limits)
-- Used for: **App Functionality** (only)
-- Linked to the user's identity? **No**
-- Used for tracking? **No**
+- Used for: **App Functionality**
+- Linked to identity? **No** (random, not tied to an account or personal data)
+- Tracking? **No**
 
-**Everything else → Not Collected:** no name, email, phone, precise location, contacts,
-health data, financial info, browsing history, purchases, or analytics/advertising data.
+**Everything else → Not Collected:** no name, phone, precise/coarse location, contacts,
+health/fitness, financial info, browsing/search history, purchases, usage/analytics,
+diagnostics, or advertising data.
 
 **"Used for tracking" across the whole app?** → **No** (keeps you out of App Tracking
 Transparency — no tracking prompt needed).
 
 ### Notes / judgment calls
 - Chat is classified as **"Other User Content"** (free text), not "Health" — emotion
-  check-ins aren't Apple-"Health" data (that's Health-app/medical data).
-- Both types marked **"Not linked to identity"** since there are no accounts and no user
-  profiling. You *may* mark Device ID as "Linked" to be extra-conservative — not required.
+  check-ins aren't Apple-"Health" data (that's Health-app/medical data). This stays
+  consistent with the Age Rating answer **Medical/Treatment Information = None**.
+- Feedback message → **"Customer Support"**; the optional reply email → **"Email Address"**.
+- As submitted, all four are **"Not linked to identity"** (no accounts, no user profiling).
+  Email Address + Customer Support are the two that could/should be flipped to **"Linked"**
+  since an email is personal data tied to a real contact — accuracy tweak, low risk either way.
 - Keep these answers accurate: if you later add analytics, accounts, or a paywall, update this.
 
 ---
