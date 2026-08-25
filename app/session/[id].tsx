@@ -1,14 +1,15 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import {
-  Alert,
   Dimensions,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,7 +17,8 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from "react-nativ
 import { deleteSession, getSessions } from "@/services/beliefStore";
 import type { SessionRecord, ChatEntry } from "@/types/belief";
 
-const { height: SCREEN_H } = Dimensions.get("window");
+const { width: SCREEN_W } = Dimensions.get("window");
+const MENU_W = 160;
 const SERIF = Platform.select({ ios: "Georgia", default: "serif" });
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -56,19 +58,23 @@ export default function SessionDetailScreen() {
     }, [id]),
   );
 
+  // ••• popover, anchored just below the icon.
+  const menuRef = useRef<View>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [anchor, setAnchor] = useState({ x: 0, y: 0, w: 0, h: 0 });
   const onMenu = () => {
-    Alert.alert("Check-in", undefined, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          if (id) await deleteSession(id);
-          router.back();
-        },
-      },
-    ]);
+    menuRef.current?.measureInWindow((x, y, w, h) => {
+      setAnchor({ x, y, w, h });
+      setMenuOpen(true);
+    });
   };
+  const onDelete = async () => {
+    setMenuOpen(false);
+    if (id) await deleteSession(id);
+    router.back();
+  };
+  const menuTop = anchor.y + anchor.h + 6;
+  const menuLeft = Math.max(12, Math.min(anchor.x + anchor.w - MENU_W, SCREEN_W - MENU_W - 12));
 
   const transcript = session ? sessionTranscript(session) : [];
   const chat = transcript.filter((m) => !m.kind); // AI + user conversation
@@ -129,7 +135,7 @@ export default function SessionDetailScreen() {
               </View>
             ))}
           </View>
-          <TouchableOpacity onPress={onMenu} activeOpacity={0.7} hitSlop={10} style={styles.menuBtn}>
+          <TouchableOpacity ref={menuRef} onPress={onMenu} activeOpacity={0.7} hitSlop={10} style={styles.menuBtn}>
             <Svg width={26} height={10} viewBox="0 0 26 10">
               <Circle cx={5} cy={5} r={2} fill="#FFFFFF" />
               <Circle cx={13} cy={5} r={2} fill="#FFFFFF" />
@@ -142,7 +148,7 @@ export default function SessionDetailScreen() {
         {chat.length > 0 && (
           <View style={styles.box}>
             {chat.map((m, i) => (
-              <Text key={i} style={[m.role === "ai" ? styles.aiText : styles.userText, i > 0 && styles.msgGap]}>
+              <Text key={i} style={[m.role === "ai" ? styles.aiText : styles.userMsg, i > 0 && styles.msgGap]}>
                 {m.text}
               </Text>
             ))}
@@ -164,6 +170,23 @@ export default function SessionDetailScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* ••• popover, positioned right below the icon. */}
+      <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
+        <TouchableWithoutFeedback onPress={() => setMenuOpen(false)}>
+          <View style={{ flex: 1 }}>
+            <View style={[styles.menuCard, { top: menuTop, left: menuLeft }]}>
+              <TouchableOpacity style={styles.menuItem} onPress={() => setMenuOpen(false)} activeOpacity={0.7}>
+                <Text style={styles.menuText}>Cancel</Text>
+              </TouchableOpacity>
+              <View style={styles.menuDivider} />
+              <TouchableOpacity style={styles.menuItem} onPress={onDelete} activeOpacity={0.7}>
+                <Text style={[styles.menuText, styles.menuDelete]}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </View>
   );
 }
@@ -204,7 +227,30 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     fontFamily: "Jost_400Regular",
   },
+  userMsg: {
+    color: "#E6C79E", // matches the chat-flow user text (soft faded amber)
+    fontSize: 17,
+    lineHeight: 26,
+    fontFamily: "Jost_400Regular",
+  },
   msgGap: { marginTop: 18 },
+  menuCard: {
+    position: "absolute",
+    width: MENU_W,
+    backgroundColor: "#1E1C1A",
+    borderRadius: 14,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+  },
+  menuItem: { paddingVertical: 14, paddingHorizontal: 18 },
+  menuText: { color: "#FFFFFF", fontSize: 16, fontFamily: "Jost_400Regular" },
+  menuDelete: { color: "#E8614D" },
+  menuDivider: { height: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.12)", marginHorizontal: 12 },
   verseRef: { color: "#E0967D", fontSize: 16, fontFamily: "Jost_700Bold", marginBottom: 6 },
   prayerText: {
     color: "#F0E8DE",
