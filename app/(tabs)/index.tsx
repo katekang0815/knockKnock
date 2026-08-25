@@ -302,7 +302,7 @@ export default function HomeScreen() {
   // Saved check-ins — the stacked list of cards at the bottom.
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   // Tapping a card opens its full session (chat + verse + prayer, in order).
-  const [openSession, setOpenSession] = useState<SessionRecord | null>(null);
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -455,20 +455,57 @@ export default function HomeScreen() {
         </TouchableWithoutFeedback>
 
         <View style={styles.cardListContent}>
-          {sessions.map((s) => (
-            <TouchableOpacity key={s.id} activeOpacity={0.85} style={styles.card} onPress={() => setOpenSession(s)}>
-              <CardBackground id={s.id} />
-              <View style={styles.cardTopRow}>
-                <View>
-                  <Text style={styles.cardDate}>{formatCardDate(s.date)}</Text>
-                  <Text style={styles.cardTime}>{formatCardTime(s.date)}</Text>
+          {sessions.map((s) => {
+            const expanded = expandedSessionId === s.id;
+            return (
+              <TouchableOpacity
+                key={s.id}
+                activeOpacity={0.85}
+                style={styles.card}
+                onPress={() => setExpandedSessionId((prev) => (prev === s.id ? null : s.id))}
+              >
+                <CardBackground id={s.id} />
+                <View style={styles.cardTopRow}>
+                  <View>
+                    <Text style={styles.cardDate}>{formatCardDate(s.date)}</Text>
+                    <Text style={styles.cardTime}>{formatCardTime(s.date)}</Text>
+                  </View>
+                  <Text style={styles.emotionLabel} numberOfLines={1}>
+                    {s.emotion}
+                  </Text>
                 </View>
-                <Text style={styles.emotionLabel} numberOfLines={1}>
-                  {s.emotion}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+
+                {expanded && (
+                  <View style={styles.cardTranscript}>
+                    {sessionTranscript(s).map((m, i) => {
+                      if (m.kind === "verse") {
+                        const sep = m.text.indexOf("  ");
+                        const ref = sep > 0 ? m.text.slice(0, sep) : "";
+                        const body = sep > 0 ? m.text.slice(sep + 2) : m.text;
+                        return (
+                          <View key={i} style={styles.tVerseCard}>
+                            {!!ref && <Text style={styles.tVerseRef}>{ref}</Text>}
+                            <Text style={styles.tVerseText}>{body}</Text>
+                          </View>
+                        );
+                      }
+                      if (m.kind === "prayer") {
+                        return <Text key={i} style={styles.tPrayer}>{m.text}</Text>;
+                      }
+                      if (m.role === "user") {
+                        return (
+                          <View key={i} style={styles.tUserRow}>
+                            <Text style={styles.tUserBubble}>{m.text}</Text>
+                          </View>
+                        );
+                      }
+                      return <Text key={i} style={styles.tAiText}>{m.text}</Text>;
+                    })}
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </Animated.ScrollView>
 
@@ -638,67 +675,6 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      {/* Session detail — replays the whole conversation (chat + verse + prayer). */}
-      <Modal
-        visible={!!openSession}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setOpenSession(null)}
-        statusBarTranslucent
-      >
-        <View style={[styles.sessionBackdrop, { paddingTop: insets.top + 8 }]}>
-          <View style={styles.sessionHeader}>
-            <View style={{ flex: 1 }}>
-              {openSession && (
-                <>
-                  <Text style={styles.sessionDate}>{formatCardDate(openSession.date)}</Text>
-                  <Text style={styles.sessionEmotion}>{openSession.emotion}</Text>
-                </>
-              )}
-            </View>
-            <TouchableOpacity style={styles.sessionClose} onPress={() => setOpenSession(null)} activeOpacity={0.7}>
-              <Svg width={22} height={22} viewBox="0 0 24 24">
-                <Path d="M6 6 L18 18 M18 6 L6 18" stroke="#E0E0E0" strokeWidth={2} strokeLinecap="round" />
-              </Svg>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 30 }}
-            showsVerticalScrollIndicator={false}
-          >
-            {openSession &&
-              sessionTranscript(openSession).map((m, i) => {
-                if (m.kind === "verse") {
-                  const sep = m.text.indexOf("  ");
-                  const ref = sep > 0 ? m.text.slice(0, sep) : "";
-                  const body = sep > 0 ? m.text.slice(sep + 2) : m.text;
-                  return (
-                    <View key={i} style={styles.tVerseCard}>
-                      {!!ref && <Text style={styles.tVerseRef}>{ref}</Text>}
-                      <Text style={styles.tVerseText}>{body}</Text>
-                    </View>
-                  );
-                }
-                if (m.kind === "prayer") {
-                  return (
-                    <Text key={i} style={styles.tPrayer}>{m.text}</Text>
-                  );
-                }
-                if (m.role === "user") {
-                  return (
-                    <View key={i} style={styles.tUserRow}>
-                      <Text style={styles.tUserBubble}>{m.text}</Text>
-                    </View>
-                  );
-                }
-                return (
-                  <Text key={i} style={styles.tAiText}>{m.text}</Text>
-                );
-              })}
-          </ScrollView>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -946,8 +922,8 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     overflow: "hidden",
     paddingHorizontal: 24,
-    paddingVertical: 19,
-    minHeight: 100,
+    paddingVertical: 18,
+    minHeight: 75,
   },
   cardTopRow: {
     flexDirection: "row",
@@ -985,7 +961,10 @@ const styles = StyleSheet.create({
     fontFamily: "Jost_700Bold",
   },
 
-  /* Session detail modal */
+  /* Inline expanded transcript inside a card */
+  cardTranscript: { marginTop: 16 },
+
+  /* Session detail modal (unused after inline expansion, kept for styles) */
   sessionBackdrop: { flex: 1, backgroundColor: "#000000" },
   sessionHeader: {
     flexDirection: "row",
