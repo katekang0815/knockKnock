@@ -54,6 +54,22 @@ christian,faith,bible,verse,devotion,emotions,mood,feelings,gratitude,journal,go
 - **Privacy Policy URL:** https://katekang0815.github.io/knockKnock/privacy-policy.html
 - **Marketing URL:** (optional - leave blank)
 
+### Screenshots (iPhone only - app is `supportsTablet: false` as of Build 10)
+Captured at **1290 × 2796** (device screenshots). Upload into the **iPhone 6.9" Display**
+slot in App Store Connect (that slot accepts 1320×2868 OR 1290×2796). Apple auto-scales
+them for smaller sizes, so no separate 6.5" set is needed. Do NOT drop them in the 6.5"
+slot - it only accepts 1242×2688 / 1284×2778 and will reject 1290×2796.
+
+Final order (6 shots):
+1. Brand - heart + door + sparkles
+2. Home - saved check-ins (Chill / Proud + Psalm 23:2)
+3. Emotion wheel - "How are you today?"
+4. Context - "I'm feeling Discouraged" + What are you doing / Who are you with
+5. AI chat - "Almost submit ready" + Look for verses / Tap to pray (use the clean-status-bar version)
+6. Quick note - Quick Prayer popup
+
+Note: keep status bars clean (no active call / third-party app icons like DoorDash).
+
 ---
 
 ## 2) App Privacy questionnaire (App Store Connect → App Privacy)  ✅ SUBMITTED
@@ -112,7 +128,7 @@ Transparency - no tracking prompt needed).
 
 ## 3) Pre-submission checklist
 - [ ] Paste subtitle / promo / description / keywords (above)
-- [ ] Add iPhone 6.5" screenshots (1242 × 2688 px), at least 1–3
+- [ ] Add iPhone screenshots (1290 × 2796) into the **6.9" Display** slot - the 6 shots above
 - [ ] Complete App Privacy questionnaire (above)
 - [ ] Complete Age Rating questionnaire
 - [ ] Set Worker `PER_DEVICE_DAILY_CHECKINS` back to **5** and `wrangler deploy`
