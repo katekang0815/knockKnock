@@ -87,8 +87,9 @@ function sessionTranscript(s: SessionRecord): ChatEntry[] {
   return out;
 }
 
-// Keep the conversation in its real order, but always place the verse (with the
-// reflection that follows it) before the prayer, at the end.
+// Keep the conversation in its real order, but always place the verse before the
+// prayer at the end. The reflection that follows a verse is dropped; a missing
+// verse or prayer is simply skipped.
 function orderedTranscript(entries: ChatEntry[]): ChatEntry[] {
   const verseGroup: ChatEntry[] = [];
   const prayerGroup: ChatEntry[] = [];
@@ -99,8 +100,7 @@ function orderedTranscript(entries: ChatEntry[]): ChatEntry[] {
       verseGroup.push(e);
       const next = entries[i + 1];
       if (next && next.role === "ai" && !next.kind) {
-        verseGroup.push(next); // the reflection that pairs with this verse
-        i++;
+        i++; // skip the reflection that pairs with this verse
       }
     } else if (e.kind === "prayer") {
       prayerGroup.push(e);
