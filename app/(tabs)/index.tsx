@@ -87,22 +87,6 @@ function sessionTranscript(s: SessionRecord): ChatEntry[] {
   return out;
 }
 
-// Show only what the user said, then the verse, then the prayer. All of the AI's
-// conversational replies (opener, replies, and the verse reflection) are dropped;
-// a missing verse or prayer is simply skipped.
-function orderedTranscript(entries: ChatEntry[]): ChatEntry[] {
-  const userMsgs: ChatEntry[] = [];
-  const verseGroup: ChatEntry[] = [];
-  const prayerGroup: ChatEntry[] = [];
-  for (const e of entries) {
-    if (e.kind === "verse") verseGroup.push(e);
-    else if (e.kind === "prayer") prayerGroup.push(e);
-    else if (e.role === "user") userMsgs.push(e);
-    // AI plain-text replies (opener / chat / reflection) are intentionally omitted
-  }
-  return [...userMsgs, ...verseGroup, ...prayerGroup];
-}
-
 // First sentence (or line) of a note, truncated — used as the list preview.
 function firstSentence(text: string): string {
   const line = text.trim().split("\n")[0];
@@ -319,6 +303,14 @@ export default function HomeScreen() {
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   // Tapping a card opens its full session (chat + verse + prayer, in order).
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
+  // Within an expanded card, the verse/prayer sections start collapsed.
+  const [showVerse, setShowVerse] = useState(false);
+  const [showPrayer, setShowPrayer] = useState(false);
+  const toggleCard = (id: string) => {
+    setExpandedSessionId((prev) => (prev === id ? null : id));
+    setShowVerse(false);
+    setShowPrayer(false);
+  };
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -478,7 +470,7 @@ export default function HomeScreen() {
                 key={s.id}
                 activeOpacity={0.85}
                 style={styles.card}
-                onPress={() => setExpandedSessionId((prev) => (prev === s.id ? null : s.id))}
+                onPress={() => toggleCard(s.id)}
               >
                 <CardBackground id={s.id} />
                 <View style={styles.cardTopRow}>
@@ -491,34 +483,57 @@ export default function HomeScreen() {
                   </Text>
                 </View>
 
-                {expanded && (
-                  <View style={styles.cardTranscript}>
-                    {orderedTranscript(sessionTranscript(s)).map((m, i) => {
-                      if (m.kind === "verse") {
-                        const sep = m.text.indexOf("  ");
-                        const ref = sep > 0 ? m.text.slice(0, sep) : "";
-                        const body = sep > 0 ? m.text.slice(sep + 2) : m.text;
-                        return (
-                          <View key={i} style={styles.tVerseCard}>
-                            {!!ref && <Text style={styles.tVerseRef}>{ref}</Text>}
-                            <Text style={styles.tVerseText}>{body}</Text>
-                          </View>
-                        );
-                      }
-                      if (m.kind === "prayer") {
-                        return <Text key={i} style={styles.tPrayer}>{m.text}</Text>;
-                      }
-                      if (m.role === "user") {
-                        return (
-                          <View key={i} style={styles.tUserRow}>
-                            <Text style={styles.tUserBubble}>{m.text}</Text>
-                          </View>
-                        );
-                      }
-                      return <Text key={i} style={styles.tAiText}>{m.text}</Text>;
-                    })}
-                  </View>
-                )}
+                {expanded && (() => {
+                  const tx = sessionTranscript(s);
+                  const userMsgs = tx.filter((m) => m.role === "user");
+                  const verseEntry = tx.find((m) => m.kind === "verse");
+                  const prayerEntry = tx.find((m) => m.kind === "prayer");
+                  const sep = verseEntry ? verseEntry.text.indexOf("  ") : -1;
+                  const verseRef = sep > 0 ? verseEntry!.text.slice(0, sep) : "";
+                  const verseBody = verseEntry ? (sep > 0 ? verseEntry.text.slice(sep + 2) : verseEntry.text) : "";
+                  return (
+                    <View style={styles.cardTranscript}>
+                      {userMsgs.map((m, i) => (
+                        <View key={i} style={styles.tUserRow}>
+                          <Text style={styles.tUserBubble}>{m.text}</Text>
+                        </View>
+                      ))}
+
+                      {(verseEntry || prayerEntry) && (
+                        <View style={styles.txButtons}>
+                          {verseEntry && (
+                            <TouchableOpacity
+                              style={[styles.txBtn, showVerse && styles.txBtnActive]}
+                              onPress={() => setShowVerse((v) => !v)}
+                              activeOpacity={0.8}
+                            >
+                              <Text style={styles.txBtnText}>Verse</Text>
+                            </TouchableOpacity>
+                          )}
+                          {prayerEntry && (
+                            <TouchableOpacity
+                              style={[styles.txBtn, showPrayer && styles.txBtnActive]}
+                              onPress={() => setShowPrayer((v) => !v)}
+                              activeOpacity={0.8}
+                            >
+                              <Text style={styles.txBtnText}>Prayer</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      )}
+
+                      {showVerse && verseEntry && (
+                        <View style={styles.tVerseCard}>
+                          {!!verseRef && <Text style={styles.tVerseRef}>{verseRef}</Text>}
+                          <Text style={styles.tVerseText}>{verseBody}</Text>
+                        </View>
+                      )}
+                      {showPrayer && prayerEntry && (
+                        <Text style={styles.tPrayer}>{prayerEntry.text}</Text>
+                      )}
+                    </View>
+                  );
+                })()}
               </TouchableOpacity>
             );
           })}
@@ -979,6 +994,20 @@ const styles = StyleSheet.create({
 
   /* Inline expanded transcript inside a card */
   cardTranscript: { marginTop: 16 },
+  txButtons: { flexDirection: "row", gap: 10, marginTop: 4, marginBottom: 4 },
+  txBtn: {
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.14)",
+  },
+  txBtnActive: {
+    backgroundColor: "rgba(224,150,125,0.18)",
+    borderColor: "#E0967D",
+  },
+  txBtnText: { color: "#FFFFFF", fontSize: 14, fontFamily: "Jost_600SemiBold" },
 
   /* Session detail modal (unused after inline expansion, kept for styles) */
   sessionBackdrop: { flex: 1, backgroundColor: "#000000" },
