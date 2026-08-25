@@ -946,8 +946,8 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     overflow: "hidden",
     paddingHorizontal: 24,
-    paddingVertical: 18,
-    minHeight: 75,
+    paddingVertical: 20,
+    minHeight: 100,
   },
   cardTopRow: {
     flexDirection: "row",
