@@ -1020,7 +1020,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   tUserRow: {
-    backgroundColor: "#2E2A26",
+    backgroundColor: "transparent",
     borderRadius: 16,
     padding: 16,
     marginVertical: 8,
