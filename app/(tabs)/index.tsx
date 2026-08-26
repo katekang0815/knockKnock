@@ -277,10 +277,14 @@ export default function HomeScreen() {
     if (prayerCount >= QUICK_PRAYER_DAILY_LIMIT) return; // daily cap reached
     setPrayerLoading(true);
     try {
+      // (b) Front-load the most recent check-in's emotional state as the current
+      // context; (a) the prompt tells the AI to draw on the recent check-ins
+      // (auto-attached as the recap by sendChatMessage) plus this note.
+      const latest = sessions[0];
       const prayer = await sendChatMessage(
-        `The user wrote this personal note: "${text}". Based on what they wrote, write a short, warm, personal first-person prayer (2 to 4 sentences) bringing it to God. No preamble — just the prayer.`,
+        `The user wrote this personal note: "${text}". Drawing on their recent check-ins (their recent emotional state and what they've been facing) together with this note, write a short, warm, personal first-person prayer (2 to 4 sentences) that brings where they are right now to God. No preamble, just the prayer.`,
         [],
-        { emotion: "", category: "" },
+        { emotion: latest?.emotion ?? "", category: latest?.category ?? "" },
         "prayer",
       );
       setNotePrayer(prayer.trim());
