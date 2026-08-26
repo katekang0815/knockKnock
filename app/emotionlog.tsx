@@ -583,7 +583,13 @@ export default function EmotionLogScreen() {
           emotion: emotion ?? '',
           category: category ?? '',
           context: contextSummary || null,
-          issue: userMsgs[0].text.slice(0, 200),
+          // First two user messages, so the AI's memory captures more of the situation.
+          issue: userMsgs
+            .slice(0, 2)
+            .map((m) => m.text.trim())
+            .filter(Boolean)
+            .join(' | ')
+            .slice(0, 300),
           verse,
           prayer,
           transcript: chatMessages,

@@ -87,7 +87,7 @@ function buildRecapBlock(recaps: SessionRecord[]): string {
     const label = relativeDay(s.date);
     const when = label ? `${label}: ` : '';
     const ctx = s.context ? ` (${s.context})` : '';
-    const issue = s.issue ? ` - ${s.issue.slice(0, 120)}` : '';
+    const issue = s.issue ? ` - ${s.issue.slice(0, 240)}` : '';
     block += `- ${when}${s.emotion}${ctx}${issue}\n`;
   }
   return block;

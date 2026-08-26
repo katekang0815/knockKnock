@@ -108,7 +108,7 @@ function buildRecapBlock(recaps: Recap[]): string {
     const label = s.when || (Number.isNaN(d.getTime()) ? "" : WEEKDAYS[d.getDay()]);
     const when = label ? `${label}: ` : "";
     const ctx = s.context ? ` (${s.context})` : "";
-    const issue = s.issue ? ` - ${String(s.issue).slice(0, 120)}` : "";
+    const issue = s.issue ? ` - ${String(s.issue).slice(0, 240)}` : "";
     block += `- ${when}${s.emotion}${ctx}${issue}\n`;
   }
   return block;
