@@ -80,6 +80,7 @@ interface Recap {
   emotion: string;
   context?: string | null;
   issue?: string;
+  when?: string; // relative label from the app (e.g. "earlier today", "yesterday")
 }
 interface Ctx {
   emotion?: string;
@@ -100,13 +101,15 @@ function buildRecapBlock(recaps: Recap[]): string {
   let block =
     `\n\n## Recent check-ins (past week)\n` +
     `Use these to notice ongoing situations and how the person has been feeling across recent days. ` +
+    `Each item is labeled with when it happened (e.g. "earlier today", "yesterday"); refer to timing naturally and NEVER name a weekday for something that happened today. ` +
     `Acknowledge when something has been weighing on them for a while, and offer a fresh, relevant Bible verse and (when fitting) a prayer. Do not recite this list mechanically.\n`;
   for (const s of recaps) {
     const d = new Date(s.date);
-    const day = Number.isNaN(d.getTime()) ? "" : WEEKDAYS[d.getDay()] + ": ";
+    const label = s.when || (Number.isNaN(d.getTime()) ? "" : WEEKDAYS[d.getDay()]);
+    const when = label ? `${label}: ` : "";
     const ctx = s.context ? ` (${s.context})` : "";
     const issue = s.issue ? ` - ${String(s.issue).slice(0, 120)}` : "";
-    block += `- ${day}${s.emotion}${ctx}${issue}\n`;
+    block += `- ${when}${s.emotion}${ctx}${issue}\n`;
   }
   return block;
 }

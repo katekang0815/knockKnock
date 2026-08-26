@@ -14,6 +14,19 @@ import type { SessionRecord } from '@/types/belief';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+// A natural, relative label for when a check-in happened, in the user's local
+// time — so the AI says "earlier today" instead of naming today's weekday.
+function relativeDay(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((startOfDay(new Date()) - startOfDay(d)) / 86400000);
+  if (days <= 0) return 'earlier today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days} days ago`;
+  return WEEKDAYS[d.getDay()];
+}
+
 export interface ChatMessage {
   role: 'user' | 'ai';
   text: string;
@@ -71,11 +84,11 @@ function buildRecapBlock(recaps: SessionRecord[]): string {
     `Use these to notice ongoing situations and how the person has been feeling across recent days. ` +
     `Acknowledge when something has been weighing on them for a while, and offer a fresh, relevant Bible verse and (when fitting) a prayer. Do not recite this list mechanically.\n`;
   for (const s of recaps) {
-    const d = new Date(s.date);
-    const day = Number.isNaN(d.getTime()) ? '' : WEEKDAYS[d.getDay()] + ': ';
+    const label = relativeDay(s.date);
+    const when = label ? `${label}: ` : '';
     const ctx = s.context ? ` (${s.context})` : '';
-    const issue = s.issue ? ` — ${s.issue.slice(0, 120)}` : '';
-    block += `- ${day}${s.emotion}${ctx}${issue}\n`;
+    const issue = s.issue ? ` - ${s.issue.slice(0, 120)}` : '';
+    block += `- ${when}${s.emotion}${ctx}${issue}\n`;
   }
   return block;
 }
@@ -178,7 +191,14 @@ export async function sendChatMessage(
       const response = await fetch(PROXY_URL, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ messages, context, recap: recaps, stage, kind, userTurns }),
+        body: JSON.stringify({
+          messages,
+          context,
+          recap: recaps.map((s) => ({ ...s, when: relativeDay(s.date) })),
+          stage,
+          kind,
+          userTurns,
+        }),
         signal: controller.signal,
       });
       clearTimeout(timeout);
