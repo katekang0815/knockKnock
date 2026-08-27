@@ -736,6 +736,17 @@ export default function EmotionLogScreen() {
           </Text>
         </View>
 
+        {/* Add / change emotion — back to the emotion dial */}
+        {phase === 'context' && (
+          <TouchableOpacity style={styles.addEmotionBtn} onPress={() => router.back()} activeOpacity={0.8}>
+            <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+              <Path d="M12 5 L12 19 M5 12 L19 12" stroke="#FFFFFF" strokeWidth={1.8} strokeLinecap="round" />
+              <Path d="M12 3.5 A8.5 8.5 0 1 0 12 20.5 A8.5 8.5 0 1 0 12 3.5 Z" stroke="#FFFFFF" strokeWidth={1.4} opacity={0.5} />
+            </Svg>
+            <Text style={styles.addEmotionText}>Add Emotion</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Context phase — full always-open tag lists */}
         {phase === 'context' && (
           <>
@@ -957,8 +968,20 @@ const styles = StyleSheet.create({
   textContainer: {
     alignItems: 'center',
     marginTop: 16,
-    marginBottom: 32,
+    marginBottom: 20,
   },
+  addEmotionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    gap: 7,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 999,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    marginBottom: 28,
+  },
+  addEmotionText: { color: '#FFFFFF', fontSize: 15, fontFamily: 'Jost_600SemiBold' },
   feelingText: {
     color: '#FFFFFF',
     fontSize: 28,
