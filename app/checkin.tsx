@@ -18,6 +18,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { takePendingEmotion } from '@/services/checkinDraft';
 import BouncingOrb from '@/components/BouncingOrb';
 import VibratingOrb from '@/components/VibratingOrb';
 import RollingOrb from '@/components/RollingOrb';
@@ -272,7 +273,17 @@ export default function CheckInScreen() {
   });
 
   const navToLog = (emotion: string) => {
-    router.push({ pathname: '/emotionlog', params: { emotion, category } });
+    // If we came here via "Add Emotion", combine with the stashed first emotion
+    // (keeping the first emotion's category as the primary).
+    const pending = takePendingEmotion();
+    if (pending) {
+      router.push({
+        pathname: '/emotionlog',
+        params: { emotion: pending.emotion, emotion2: emotion, category: pending.category },
+      });
+    } else {
+      router.push({ pathname: '/emotionlog', params: { emotion, category } });
+    }
   };
 
   // Tap a sub-emotion pill → pop it (grow & back over ~1s), then open its log.

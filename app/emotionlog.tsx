@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet, Platform, Dimensions, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, StyleSheet, Platform, Dimensions, KeyboardAvoidingView, Keyboard, Modal } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
@@ -26,6 +26,7 @@ import {
   pickFallback,
 } from '@/services/verses';
 import { generateId } from '@/services/deviceId';
+import { setPendingEmotion } from '@/services/checkinDraft';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -211,7 +212,12 @@ function TagSection({ title, options, selected, onSelect, onAdd, onDelete, accen
 
 export default function EmotionLogScreen() {
   const insets = useSafeAreaInsets();
-  const { emotion, category } = useLocalSearchParams<{ emotion: string; category: string }>();
+  const { emotion, emotion2, category } = useLocalSearchParams<{ emotion: string; emotion2?: string; category: string }>();
+  // Up to two sub-emotions (kept in state so they can be removed); the first drives
+  // the category (icon, verse pool, tone).
+  const [emotions, setEmotions] = useState<string[]>(() => [emotion, emotion2].filter(Boolean) as string[]);
+  const [removeOpen, setRemoveOpen] = useState(false);
+  const emotionLabel = emotions.join(' & ');
 
   const categoryKey = category as EmotionCategory;
 
@@ -323,12 +329,12 @@ export default function EmotionLogScreen() {
     if (withWhom) parts.push(withWhom === 'By Myself' ? 'by themselves' : `with ${withWhom.toLowerCase()}`);
     if (where) parts.push(`at ${where.toLowerCase()}`);
     const ctx = parts.length ? ' ' + parts.join(' ') : '';
-    const openingPrompt = `The user just checked in feeling ${emotion?.toLowerCase()}${ctx}. Generate a warm, contextual opening message that acknowledges how they're feeling and asks a gentle follow-up question.`;
+    const openingPrompt = `The user just checked in feeling ${emotionLabel.toLowerCase()}${ctx}. Generate a warm, contextual opening message that acknowledges how they're feeling and asks a gentle follow-up question.`;
 
     sendChatMessage(
       openingPrompt,
       [],
-      { emotion: emotion ?? '', category: category ?? '', doing, withWhom, where, sessionId },
+      { emotion: emotionLabel, category: category ?? '', doing, withWhom, where, sessionId },
       'opener',
       '',
     ).then((response) => {
@@ -371,7 +377,7 @@ export default function EmotionLogScreen() {
   };
 
   const chatContext = {
-    emotion: emotion ?? '',
+    emotion: emotionLabel,
     category: category ?? '',
     doing: selectedDoing[0],
     withWhom: selectedWith[0],
@@ -580,7 +586,7 @@ export default function EmotionLogScreen() {
           }
         }
         await recordSession({
-          emotion: emotion ?? '',
+          emotion: emotionLabel,
           category: category ?? '',
           context: contextSummary || null,
           // First two user messages, so the AI's memory captures more of the situation.
@@ -732,13 +738,31 @@ export default function EmotionLogScreen() {
         <View style={styles.textContainer}>
           <Text style={styles.feelingText}>I{`'`}m feeling</Text>
           <Text style={[styles.emotionWord, { color: HOME_ACCENT }]}>
-            {emotion}
+            {emotions[0]}
+            {emotions[1] ? (
+              <Text>
+                <Text style={styles.emotionAmp}> & </Text>
+                {emotions[1]}
+              </Text>
+            ) : null}
           </Text>
         </View>
 
-        {/* Add / change emotion — back to the emotion dial */}
+        {/* Add a second emotion (back to the dial), or - once two are chosen -
+            open the remove sheet to free a slot. */}
         {phase === 'context' && (
-          <TouchableOpacity style={styles.addEmotionBtn} onPress={() => router.back()} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.addEmotionBtn}
+            onPress={() => {
+              if (emotions.length >= 2) {
+                setRemoveOpen(true);
+                return;
+              }
+              setPendingEmotion({ emotion: emotions[0] ?? emotion ?? '', category: category ?? '' });
+              router.back();
+            }}
+            activeOpacity={0.8}
+          >
             <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
               <Path d="M12 5 L12 19 M5 12 L19 12" stroke="#FFFFFF" strokeWidth={1.8} strokeLinecap="round" />
               <Path d="M12 3.5 A8.5 8.5 0 1 0 12 20.5 A8.5 8.5 0 1 0 12 3.5 Z" stroke="#FFFFFF" strokeWidth={1.4} opacity={0.5} />
@@ -915,6 +939,30 @@ export default function EmotionLogScreen() {
           </View>
         </>
       )}
+
+      {/* Remove-emotion sheet — slides up when Add Emotion is tapped at 2 emotions. */}
+      <Modal visible={removeOpen} transparent animationType="slide" onRequestClose={() => setRemoveOpen(false)}>
+        <TouchableOpacity style={styles.removeBackdrop} activeOpacity={1} onPress={() => setRemoveOpen(false)}>
+          <TouchableOpacity activeOpacity={1} style={[styles.removeSheet, { paddingBottom: insets.bottom + 20 }]}>
+            <Text style={styles.removeTitle}>Remove an emotion to add another</Text>
+            {emotions.map((e) => (
+              <View key={e} style={styles.removeRow}>
+                <Text style={styles.removeEmotion}>{e}</Text>
+                <TouchableOpacity
+                  style={styles.removeBtn}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setEmotions((prev) => prev.filter((x) => x !== e));
+                    setRemoveOpen(false);
+                  }}
+                >
+                  <Text style={styles.removeBtnText}>Remove</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -982,6 +1030,27 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   addEmotionText: { color: '#FFFFFF', fontSize: 15, fontFamily: 'Jost_600SemiBold' },
+  emotionAmp: { color: '#857C74' },
+  removeBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  removeSheet: {
+    backgroundColor: '#161616',
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    paddingHorizontal: 24,
+    paddingTop: 22,
+  },
+  removeTitle: { color: '#9A938B', fontSize: 14, fontFamily: 'Jost_400Regular', marginBottom: 14 },
+  removeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  removeEmotion: { color: '#FFFFFF', fontSize: 22, fontFamily: Platform.select({ ios: 'Georgia', default: 'serif' }), fontWeight: '600' },
+  removeBtn: { backgroundColor: '#FFFFFF', borderRadius: 999, paddingVertical: 9, paddingHorizontal: 20 },
+  removeBtnText: { color: '#111111', fontSize: 15, fontFamily: 'Jost_600SemiBold' },
   feelingText: {
     color: '#FFFFFF',
     fontSize: 28,
