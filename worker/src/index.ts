@@ -25,7 +25,7 @@ export interface Env {
 // ---- Tunable limits -------------------------------------------------------
 
 const ALLOWED_MODEL = "claude-haiku-4-5-20251001";
-const MAX_OUTPUT_TOKENS = 300; // hard ceiling regardless of kind
+const MAX_OUTPUT_TOKENS = 400; // hard ceiling regardless of kind (headroom for Korean)
 const MAX_BODY_CHARS = 24000; // reject oversized assembled requests
 const PER_DEVICE_DAILY_CHECKINS = 100; // TESTING value — set back to 5 before launch
 const GLOBAL_DAILY_CALL_CAP = 1600; // hard: ~$5/day at ~$0.003/call — tune here
@@ -36,6 +36,9 @@ const FEEDBACK_TO = "yehsunkang@gmail.com"; // where in-app feedback is emailed
 // ---- Prompt (source of truth for production) ------------------------------
 
 const SYSTEM_PROMPT = `You are a warm, empathetic spiritual companion in the knockKnock app, a prayer builder for a broad audience aged 13 and older, helping them reflect on their emotions and build personalized prayers within a Christian faith context. Because the audience includes teens and young adults, keep everything appropriate and safe for them.
+
+## Language
+If the user writes in Korean, respond ENTIRELY in natural Korean. For any other language (including English), respond in English. Only the reply language changes; all other rules still apply.
 
 ## How to respond
 - Talk like a warm, caring older sister, human and genuine, never clinical or scripted. Acknowledge the user's emotion first.
@@ -135,12 +138,12 @@ function buildSystemPrompt(
 
 // Light prompt for reflection-only calls: the app has already chosen and shown a
 // curated verse; the model writes just a short, personal reflection for it.
-const REFLECTION_PROMPT = `You are a warm, caring spiritual companion in the KnockKnock app. A Bible verse has just been shared with the user. Write ONLY a short, personal reflection (1 to 2 sentences) that gently connects the verse to what the user is feeling right now. Do NOT include the verse text or its reference, no preamble, no lists, no quotation marks around it. Keep it warm, human, and specific to them. Never use an em dash (—); use a plain hyphen (-) instead. If the user has expressed self-harm or crisis, gently encourage them to reach out to a trusted person or the 988 Suicide & Crisis Lifeline.`;
+const REFLECTION_PROMPT = `You are a warm, caring spiritual companion in the KnockKnock app. A Bible verse has just been shared with the user. Write ONLY a short, personal reflection (1 to 2 sentences) that gently connects the verse to what the user is feeling right now. Do NOT include the verse text or its reference, no preamble, no lists, no quotation marks around it. Keep it warm, human, and specific to them. If the user writes in Korean, write the reflection in Korean; otherwise write it in English. Never use an em dash (—); use a plain hyphen (-) instead. If the user has expressed self-harm or crisis, gently encourage them to reach out to a trusted person or the 988 Suicide & Crisis Lifeline.`;
 
 // Constrained selection: the app supplies candidate references; the model picks
 // the best-fitting one and writes a reflection. The app renders the exact verse
 // text itself (from the chosen reference), so accuracy stays app-controlled.
-const PICK_PROMPT = `You are a warm, caring spiritual companion in the KnockKnock app. You will be given the user's context and a list of candidate Bible verse references. Choose the ONE reference that best fits what the user is feeling right now, then reply in EXACTLY two lines:\nLine 1: the chosen reference, copied EXACTLY from the list, and nothing else.\nLine 2: a warm, personal 1 to 2 sentence reflection connecting that verse to what they are going through - no verse text, no preamble.\nNever use an em dash (—); use a plain hyphen (-) instead.\nOnly choose from the provided references. If the user has expressed self-harm or crisis, gently encourage them to reach out to a trusted person or the 988 Suicide & Crisis Lifeline.`;
+const PICK_PROMPT = `You are a warm, caring spiritual companion in the KnockKnock app. You will be given the user's context and a list of candidate Bible verse references. Choose the ONE reference that best fits what the user is feeling right now, then reply in EXACTLY two lines:\nLine 1: the chosen reference, copied EXACTLY from the list, and nothing else.\nLine 2: a warm, personal 1 to 2 sentence reflection connecting that verse to what they are going through - no verse text, no preamble.\nKeep Line 1 (the reference) exactly as given in English; write Line 2 (the reflection) in Korean if the user writes in Korean, otherwise in English.\nNever use an em dash (—); use a plain hyphen (-) instead.\nOnly choose from the provided references. If the user has expressed self-harm or crisis, gently encourage them to reach out to a trusted person or the 988 Suicide & Crisis Lifeline.`;
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -283,14 +286,17 @@ export default {
     }
 
     // Assemble the Anthropic request (prompt + tunables owned here).
+    // Caps sized so Korean replies (more tokens per sentence) aren't truncated.
     const maxTokens = Math.min(
       kind === "verse"
-        ? 280
+        ? 360
         : kind === "reflection"
-          ? 100
+          ? 200
           : kind === "versePick"
-            ? 140
-            : 150,
+            ? 220
+            : kind === "prayer"
+              ? 320
+              : 260,
       MAX_OUTPUT_TOKENS,
     );
     // Reflection / versePick calls use a light prompt (the app owns the verse
