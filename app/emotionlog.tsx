@@ -1015,7 +1015,7 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: -34, // pulls the feeling text + Add Emotion block up ~50px
     marginBottom: 20,
   },
   addEmotionBtn: {
