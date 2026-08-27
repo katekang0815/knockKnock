@@ -99,9 +99,10 @@ function stageDirective(stage: string): string {
 function buildRecapBlock(recaps: Recap[]): string {
   if (!Array.isArray(recaps) || recaps.length === 0) return "";
   let block =
-    `\n\n## Recent check-ins (past week)\n` +
+    `\n\n## Recent check-ins & notes (past week)\n` +
     `Use these to notice ongoing situations and how the person has been feeling across recent days. ` +
     `Each item is labeled with when it happened (e.g. "earlier today", "yesterday"); refer to timing naturally and NEVER name a weekday for something that happened today. ` +
+    `Lines labeled "Note" are short personal notes the person wrote themselves. ` +
     `Acknowledge when something has been weighing on them for a while, and offer a fresh, relevant Bible verse and (when fitting) a prayer. Do not recite this list mechanically.\n`;
   for (const s of recaps) {
     const d = new Date(s.date);

@@ -9,6 +9,7 @@ import {
   STAGE_WRAP,
 } from '@/constants/aiPrompt';
 import { getRecentSessions } from '@/services/beliefStore';
+import { getNotes } from '@/services/notesStore';
 import { getDeviceId } from '@/services/deviceId';
 import type { SessionRecord } from '@/types/belief';
 
@@ -80,8 +81,9 @@ function buildRecapBlock(recaps: SessionRecord[]): string {
   if (recaps.length === 0) return '';
 
   let block =
-    `\n\n## Recent check-ins (past week)\n` +
+    `\n\n## Recent check-ins & notes (past week)\n` +
     `Use these to notice ongoing situations and how the person has been feeling across recent days. ` +
+    `Lines labeled "Note" are short personal notes the person wrote themselves. ` +
     `Acknowledge when something has been weighing on them for a while, and offer a fresh, relevant Bible verse and (when fitting) a prayer. Do not recite this list mechanically.\n`;
   for (const s of recaps) {
     const label = relativeDay(s.date);
@@ -168,10 +170,36 @@ export async function sendChatMessage(
   const userTurns = history.filter((m) => m.role === 'user').length;
   const messages = buildMessages(userMessage, history);
 
-  // Recent check-ins (past week, capped) — situational memory for the prompt.
+  // Situational memory for the prompt (past week): recent check-ins + recent quick
+  // notes, merged newest-first and capped. Notes are marked with emotion "Note".
   let recaps: SessionRecord[] = [];
   try {
-    recaps = (await getRecentSessions(7)).slice(0, 10);
+    const checkins = (await getRecentSessions(7)).slice(0, 10);
+    let noteItems: SessionRecord[] = [];
+    try {
+      const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      noteItems = (await getNotes())
+        .filter((n) => {
+          const t = Date.parse(n.date);
+          return Number.isNaN(t) ? false : t >= cutoff;
+        })
+        .slice(0, 5)
+        .map((n) => ({
+          id: n.id,
+          date: n.date,
+          emotion: 'Note',
+          category: '',
+          context: null,
+          issue: n.text,
+          verse: null,
+          prayer: null,
+        }));
+    } catch {
+      // notes read failed — check-ins only
+    }
+    recaps = [...checkins, ...noteItems]
+      .sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0))
+      .slice(0, 12);
   } catch {
     // No memory yet, or read failed — proceed context-only.
   }
