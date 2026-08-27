@@ -1030,7 +1030,7 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   addEmotionText: { color: '#FFFFFF', fontSize: 15, fontFamily: 'Jost_600SemiBold' },
-  emotionAmp: { color: '#857C74' },
+  emotionAmp: { color: '#857C74', opacity: 0.5 },
   removeBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   removeSheet: {
     backgroundColor: '#161616',
