@@ -301,7 +301,7 @@ export default {
     );
     // Reflection / versePick calls use a light prompt (the app owns the verse
     // pool and text) — no full system prompt / recap needed, just tone + safety.
-    const system =
+    let system =
       kind === "reflection"
         ? REFLECTION_PROMPT
         : kind === "versePick"
@@ -311,6 +311,12 @@ export default {
               buildRecapBlock(body.recap || []),
               body.stage || "",
             );
+    // The opening message is always English, regardless of the memory's language
+    // (the reply switches to Korean only once the user writes in Korean).
+    if (kind === "opener") {
+      system +=
+        `\n\nLANGUAGE OVERRIDE FOR THIS MESSAGE: Write this opening message in ENGLISH, regardless of the language of the recent check-ins or notes above. This override applies only to this opening message.`;
+    }
     const forwardBody = {
       model: ALLOWED_MODEL,
       max_tokens: maxTokens,
