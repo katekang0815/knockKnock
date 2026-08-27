@@ -433,34 +433,28 @@ export default function EmotionLogScreen() {
       const refList = candidates.map((v) => v.ref).join(', ');
 
       let aiVerse: ReturnType<typeof findVerse> = null;
-      let aiReflection = '';
       try {
         const raw = await sendChatMessage(
-          `The user selected the emotion "${emotion}". Candidate Bible verse references: ${refList}. Choose the ONE that best fits, then reply in exactly two lines — line 1: the reference copied exactly; line 2: a warm 1 to 2 sentence reflection (no verse text, no preamble).`,
+          `The user selected the emotion "${emotion}". Candidate Bible verse references: ${refList}. Choose the ONE that best fits and reply with ONLY that reference, copied exactly from the list, and nothing else.`,
           chatMessages,
           chatContext,
           'versePick',
         );
         const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
         aiVerse = findVerse(categoryKey, lines[0] ?? '');
-        aiReflection = sanitizeAI(lines.slice(1).join(' '));
       } catch {
-        // network/AI failure → app picks below, verse alone
+        // network/AI failure → app picks below
       }
 
-      // Use the AI's pick if valid; otherwise the app picks (and drop the
-      // reflection, since it was written for a different verse).
       const chosen = aiVerse ?? pickFallback(candidates);
-      const reflection = aiVerse ? aiReflection : '';
 
       if (chosen) {
         await commitUsed(categoryKey, chosen.ref);
         const verseMsg = `${chosen.ref}  ${chosen.text}`;
-        setChatMessages((prev) => {
-          const next = [...prev, { role: 'ai' as const, text: verseMsg, kind: 'verse' as const }];
-          if (reflection) next.push({ role: 'ai' as const, text: reflection });
-          return next;
-        });
+        setChatMessages((prev) => [
+          ...prev,
+          { role: 'ai' as const, text: verseMsg, kind: 'verse' as const },
+        ]);
         setVerseUsed(true);
         setSending(false);
         return;
@@ -487,22 +481,17 @@ export default function EmotionLogScreen() {
     }
 
     const raw = await sendChatMessage(
-      "The user tapped the verses button. Reply in two parts. PART 1: the Bible verse — its reference (e.g. Ecclesiastes 3:11) and the full verse text, kept together with NO blank line between them. Then ONE blank line. PART 2: a warm 1 to 2 sentence reflection connecting the verse to what they're feeling. Add nothing else." +
+      "The user tapped the verses button. Reply with ONLY the Bible verse - its reference (e.g. Ecclesiastes 3:11) and the full verse text, kept together with NO blank line between them. Add nothing else: no reflection, no commentary." +
         avoidClause,
       chatMessages,
       chatContext,
       'verse', // larger token budget + bypasses the turn limit (handled server-side)
     );
-    // PART 1 (reference + verse text) stays in the boxed card; PART 2 (reflection),
-    // separated by a blank line or ### marker, becomes a plain message below.
-    const parts = raw.includes('###') ? raw.split(/#{3,}/) : raw.split(/\n\s*\n/);
-    const verseText = sanitizeAI(parts[0] ?? raw);
-    const reflection = parts.length > 1 ? sanitizeAI(parts.slice(1).join(' ')) : '';
-    setChatMessages((prev) => {
-      const next = [...prev, { role: 'ai' as const, text: verseText, kind: 'verse' as const }];
-      if (reflection) next.push({ role: 'ai' as const, text: reflection });
-      return next;
-    });
+    const verseText = sanitizeAI(raw);
+    setChatMessages((prev) => [
+      ...prev,
+      { role: 'ai' as const, text: verseText, kind: 'verse' as const },
+    ]);
     setVerseUsed(true);
     setSending(false);
   };
