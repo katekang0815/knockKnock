@@ -297,7 +297,7 @@ export default {
           : kind === "versePick"
             ? 220
             : kind === "prayer"
-              ? 320
+              ? 240
               : 260,
       MAX_OUTPUT_TOKENS,
     );
