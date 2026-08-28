@@ -116,9 +116,9 @@ const PILL_BAR_FOOTPRINT = 70;
 // Matches the quick-note popup gradient (charcoal → warm brown).
 const CARD_GRADIENT: [string, string] = ["#232222", "#402614"];
 const CARD_RADIUS = 28;
-// Emotion-label color on the card. Negative categories (Stormy, Rain) use the deep
-// green from the provided swatch; the rest keep the warm coral (styles.emotionLabel).
-const NEGATIVE_EMOTION_COLOR = "#006940";
+// Emotion-label color on the card. Negative categories (Stormy, Rain) use this
+// custom color; the rest keep the warm coral (styles.emotionLabel).
+const NEGATIVE_EMOTION_COLOR = "#B69264";
 const NEGATIVE_CATEGORIES = ["Stormy", "Rain"];
 
 // Rounded-rectangle gradient fill, drawn at the card's actual pixel size so the
