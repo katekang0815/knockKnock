@@ -47,7 +47,7 @@ const API_URL = 'https://api.anthropic.com/v1/messages';
 // API key and enforces rate limits) instead of hitting Anthropic directly.
 const PROXY_URL = process.env.EXPO_PUBLIC_AI_PROXY_URL;
 const MODEL = 'claude-haiku-4-5-20251001';
-const API_TIMEOUT = 15000; // 15 seconds
+const API_TIMEOUT = 30000; // 30 seconds (prayers can be longer, esp. in Korean)
 
 // Shown when the proxy rate-limits the request (per-device or global daily cap).
 const RATE_LIMIT_RESPONSE =
