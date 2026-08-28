@@ -167,14 +167,14 @@ export async function sendChatMessage(
   const enforceTurnLimit = kind === 'chat' || kind === 'opener';
   const maxTokens =
     kind === 'verse'
-      ? 360
+      ? 280
       : kind === 'reflection'
-        ? 200
+        ? 100
         : kind === 'versePick'
-          ? 220
+          ? 140
           : kind === 'prayer'
             ? 240
-            : 260;
+            : 150;
   const userTurns = history.filter((m) => m.role === 'user').length;
   const messages = buildMessages(userMessage, history);
 
