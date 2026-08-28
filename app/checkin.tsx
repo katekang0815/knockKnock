@@ -18,11 +18,11 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { takePendingEmotion } from '@/services/checkinDraft';
 import BouncingOrb from '@/components/BouncingOrb';
 import VibratingOrb from '@/components/VibratingOrb';
 import RollingOrb from '@/components/RollingOrb';
 import { EMOTION_DATA, EmotionCategory } from '@/constants/emotions';
+import { takePendingEmotion } from '@/services/checkinDraft';
 
 const { width, height: SCREEN_H } = Dimensions.get('window');
 
@@ -273,8 +273,8 @@ export default function CheckInScreen() {
   });
 
   const navToLog = (emotion: string) => {
-    // If we came here via "Add Emotion", combine with the stashed first emotion
-    // (keeping the first emotion's category as the primary).
+    // If the user came back here via "Add Emotion", the earlier emotion is pending;
+    // reopen the log with both (keeping the FIRST emotion's category as primary).
     const pending = takePendingEmotion();
     if (pending) {
       router.push({

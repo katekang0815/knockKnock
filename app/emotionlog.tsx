@@ -10,7 +10,7 @@ import Animated, {
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Svg, { Path, Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
+import Svg, { Path, Defs, LinearGradient, Stop, Rect, Circle } from 'react-native-svg';
 import { HomeStar, HOME_ACCENT } from '@/components/EmotionShape';
 import BouncingOrb from '@/components/BouncingOrb';
 import VibratingOrb from '@/components/VibratingOrb';
@@ -210,16 +210,48 @@ function TagSection({ title, options, selected, onSelect, onAdd, onDelete, accen
   );
 }
 
+// Small ⊕ glyph for the "Add Emotion" button.
+function PlusCircleIcon({ size = 18, color = '#FFFFFF' }: { size?: number; color?: string }) {
+  const c = size / 2;
+  const r = c - 1;
+  const arm = size * 0.26;
+  return (
+    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <Circle cx={c} cy={c} r={r} stroke={color} strokeWidth={1.4} fill="none" />
+      <Path d={`M ${c - arm} ${c} H ${c + arm}`} stroke={color} strokeWidth={1.4} strokeLinecap="round" />
+      <Path d={`M ${c} ${c - arm} V ${c + arm}`} stroke={color} strokeWidth={1.4} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 export default function EmotionLogScreen() {
   const insets = useSafeAreaInsets();
-  const { emotion, emotion2, category } = useLocalSearchParams<{ emotion: string; emotion2?: string; category: string }>();
-  // Up to two sub-emotions (kept in state so they can be removed); the first drives
-  // the category (icon, verse pool, tone).
-  const [emotions, setEmotions] = useState<string[]>(() => [emotion, emotion2].filter(Boolean) as string[]);
-  const [removeOpen, setRemoveOpen] = useState(false);
-  const emotionLabel = emotions.join(' & ');
+  const { emotion, emotion2, category } = useLocalSearchParams<{
+    emotion: string;
+    emotion2?: string;
+    category: string;
+  }>();
 
   const categoryKey = category as EmotionCategory;
+
+  // One or two selected emotions. The first drives the category (icon/verse pool);
+  // the second is an added label. Combined as "A & B" for display, AI, and storage.
+  const [emotions, setEmotions] = useState<string[]>(() =>
+    [emotion, emotion2].filter(Boolean) as string[],
+  );
+  const emotionLabel = emotions.join(' & ');
+  const [removeOpen, setRemoveOpen] = useState(false);
+
+  // "Add Emotion": under the max, stash the current emotion and return to the dial
+  // to pick a second; at the max (2), open the remove sheet to free a slot.
+  const onAddEmotion = () => {
+    if (emotions.length >= 2) {
+      setRemoveOpen(true);
+    } else {
+      setPendingEmotion({ emotion: emotions[0], category: category ?? '' });
+      router.back();
+    }
+  };
 
   const scrollViewRef = useRef<Animated.ScrollView>(null);
   const scrollY = useSharedValue(0);
@@ -433,28 +465,34 @@ export default function EmotionLogScreen() {
       const refList = candidates.map((v) => v.ref).join(', ');
 
       let aiVerse: ReturnType<typeof findVerse> = null;
+      let aiReflection = '';
       try {
         const raw = await sendChatMessage(
-          `The user selected the emotion "${emotion}". Candidate Bible verse references: ${refList}. Choose the ONE that best fits and reply with ONLY that reference, copied exactly from the list, and nothing else.`,
+          `The user selected the emotion "${emotionLabel}". Candidate Bible verse references: ${refList}. Choose the ONE that best fits, then reply in exactly two lines — line 1: the reference copied exactly; line 2: a warm 1 to 2 sentence reflection (no verse text, no preamble).`,
           chatMessages,
           chatContext,
           'versePick',
         );
         const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
         aiVerse = findVerse(categoryKey, lines[0] ?? '');
+        aiReflection = sanitizeAI(lines.slice(1).join(' '));
       } catch {
-        // network/AI failure → app picks below
+        // network/AI failure → app picks below, verse alone
       }
 
+      // Use the AI's pick if valid; otherwise the app picks (and drop the
+      // reflection, since it was written for a different verse).
       const chosen = aiVerse ?? pickFallback(candidates);
+      const reflection = aiVerse ? aiReflection : '';
 
       if (chosen) {
         await commitUsed(categoryKey, chosen.ref);
         const verseMsg = `${chosen.ref}  ${chosen.text}`;
-        setChatMessages((prev) => [
-          ...prev,
-          { role: 'ai' as const, text: verseMsg, kind: 'verse' as const },
-        ]);
+        setChatMessages((prev) => {
+          const next = [...prev, { role: 'ai' as const, text: verseMsg, kind: 'verse' as const }];
+          if (reflection) next.push({ role: 'ai' as const, text: reflection });
+          return next;
+        });
         setVerseUsed(true);
         setSending(false);
         return;
@@ -481,17 +519,22 @@ export default function EmotionLogScreen() {
     }
 
     const raw = await sendChatMessage(
-      "The user tapped the verses button. Reply with ONLY the Bible verse - its reference (e.g. Ecclesiastes 3:11) and the full verse text, kept together with NO blank line between them. Add nothing else: no reflection, no commentary." +
+      "The user tapped the verses button. Reply in two parts. PART 1: the Bible verse — its reference (e.g. Ecclesiastes 3:11) and the full verse text, kept together with NO blank line between them. Then ONE blank line. PART 2: a warm 1 to 2 sentence reflection connecting the verse to what they're feeling. Add nothing else." +
         avoidClause,
       chatMessages,
       chatContext,
       'verse', // larger token budget + bypasses the turn limit (handled server-side)
     );
-    const verseText = sanitizeAI(raw);
-    setChatMessages((prev) => [
-      ...prev,
-      { role: 'ai' as const, text: verseText, kind: 'verse' as const },
-    ]);
+    // PART 1 (reference + verse text) stays in the boxed card; PART 2 (reflection),
+    // separated by a blank line or ### marker, becomes a plain message below.
+    const parts = raw.includes('###') ? raw.split(/#{3,}/) : raw.split(/\n\s*\n/);
+    const verseText = sanitizeAI(parts[0] ?? raw);
+    const reflection = parts.length > 1 ? sanitizeAI(parts.slice(1).join(' ')) : '';
+    setChatMessages((prev) => {
+      const next = [...prev, { role: 'ai' as const, text: verseText, kind: 'verse' as const }];
+      if (reflection) next.push({ role: 'ai' as const, text: reflection });
+      return next;
+    });
     setVerseUsed(true);
     setSending(false);
   };
@@ -723,42 +766,25 @@ export default function EmotionLogScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* I'm feeling text */}
+        {/* Selected emotion(s) + Add Emotion */}
         <View style={styles.textContainer}>
-          <Text style={styles.feelingText}>I{`'`}m feeling</Text>
-          <Text style={[styles.emotionWord, { color: HOME_ACCENT }]}>
-            {emotions[0]}
+          <Text style={styles.emotionWord}>
+            <Text style={{ color: HOME_ACCENT }}>{emotions[0]}</Text>
             {emotions[1] ? (
               <Text>
                 <Text style={styles.emotionAmp}> & </Text>
-                {emotions[1]}
+                <Text style={{ color: HOME_ACCENT }}>{emotions[1]}</Text>
               </Text>
             ) : null}
           </Text>
-        </View>
 
-        {/* Add a second emotion (back to the dial), or - once two are chosen -
-            open the remove sheet to free a slot. */}
-        {phase === 'context' && (
-          <TouchableOpacity
-            style={styles.addEmotionBtn}
-            onPress={() => {
-              if (emotions.length >= 2) {
-                setRemoveOpen(true);
-                return;
-              }
-              setPendingEmotion({ emotion: emotions[0] ?? emotion ?? '', category: category ?? '' });
-              router.back();
-            }}
-            activeOpacity={0.8}
-          >
-            <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-              <Path d="M12 5 L12 19 M5 12 L19 12" stroke="#FFFFFF" strokeWidth={1.8} strokeLinecap="round" />
-              <Path d="M12 3.5 A8.5 8.5 0 1 0 12 20.5 A8.5 8.5 0 1 0 12 3.5 Z" stroke="#FFFFFF" strokeWidth={1.4} opacity={0.5} />
-            </Svg>
-            <Text style={styles.addEmotionText}>Add Emotion</Text>
-          </TouchableOpacity>
-        )}
+          {phase === 'context' && (
+            <TouchableOpacity style={styles.addEmotionBtn} onPress={onAddEmotion} activeOpacity={0.8}>
+              <PlusCircleIcon size={18} color="#FFFFFF" />
+              <Text style={styles.addEmotionText}>Add Emotion</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Context phase — full always-open tag lists */}
         {phase === 'context' && (
@@ -929,17 +955,27 @@ export default function EmotionLogScreen() {
         </>
       )}
 
-      {/* Remove-emotion sheet — slides up when Add Emotion is tapped at 2 emotions. */}
-      <Modal visible={removeOpen} transparent animationType="slide" onRequestClose={() => setRemoveOpen(false)}>
-        <TouchableOpacity style={styles.removeBackdrop} activeOpacity={1} onPress={() => setRemoveOpen(false)}>
-          <TouchableOpacity activeOpacity={1} style={[styles.removeSheet, { paddingBottom: insets.bottom + 20 }]}>
+      {/* Remove-an-emotion sheet (shown when tapping Add Emotion at the max of 2). */}
+      <Modal
+        visible={removeOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setRemoveOpen(false)}
+      >
+        <View style={styles.removeBackdrop}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setRemoveOpen(false)}
+          />
+          <View style={[styles.removeSheet, { paddingBottom: insets.bottom + 28 }]}>
             <Text style={styles.removeTitle}>Remove an emotion to add another</Text>
             {emotions.map((e) => (
               <View key={e} style={styles.removeRow}>
                 <Text style={styles.removeEmotion}>{e}</Text>
                 <TouchableOpacity
                   style={styles.removeBtn}
-                  activeOpacity={0.8}
+                  activeOpacity={0.85}
                   onPress={() => {
                     setEmotions((prev) => prev.filter((x) => x !== e));
                     setRemoveOpen(false);
@@ -949,8 +985,8 @@ export default function EmotionLogScreen() {
                 </TouchableOpacity>
               </View>
             ))}
-          </TouchableOpacity>
-        </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </KeyboardAvoidingView>
   );
@@ -1004,55 +1040,77 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     alignItems: 'center',
-    marginTop: -34, // pulls the feeling text + Add Emotion block up ~50px
-    marginBottom: 20,
+    marginTop: 8,
+    marginBottom: 28,
+  },
+  emotionWord: {
+    fontSize: 34,
+    fontFamily: Platform.select({ ios: 'Georgia', default: 'serif' }),
+    fontStyle: 'italic',
+    letterSpacing: 1,
+    textAlign: 'center',
+  },
+  emotionAmp: {
+    color: '#857C74',
+    opacity: 0.5,
   },
   addEmotionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'center',
-    gap: 7,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 999,
-    paddingVertical: 9,
-    paddingHorizontal: 16,
-    marginBottom: 28,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    paddingVertical: 11,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    marginTop: 20,
+    gap: 8,
   },
-  addEmotionText: { color: '#FFFFFF', fontSize: 15, fontFamily: 'Jost_600SemiBold' },
-  emotionAmp: { color: '#857C74', opacity: 0.5 },
-  removeBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  addEmotionText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: 'Jost_600SemiBold',
+  },
+  removeBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
   removeSheet: {
-    backgroundColor: '#161616',
+    backgroundColor: '#161310',
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
     paddingHorizontal: 24,
-    paddingTop: 22,
+    paddingTop: 24,
   },
-  removeTitle: { color: '#9A938B', fontSize: 14, fontFamily: 'Jost_400Regular', marginBottom: 14 },
+  removeTitle: {
+    color: '#9A8F86',
+    fontSize: 14,
+    fontFamily: 'Jost_400Regular',
+    marginBottom: 10,
+  },
   removeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
+    paddingVertical: 18,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
-  removeEmotion: { color: '#FFFFFF', fontSize: 22, fontFamily: Platform.select({ ios: 'Georgia', default: 'serif' }), fontWeight: '600' },
-  removeBtn: { backgroundColor: '#FFFFFF', borderRadius: 999, paddingVertical: 9, paddingHorizontal: 20 },
-  removeBtnText: { color: '#111111', fontSize: 15, fontFamily: 'Jost_600SemiBold' },
-  feelingText: {
+  removeEmotion: {
     color: '#FFFFFF',
-    fontSize: 28,
-    fontFamily: Platform.select({ ios: 'Georgia', default: 'serif' }),
-    fontStyle: 'italic',
-    letterSpacing: 1,
+    fontSize: 24,
+    fontFamily: 'Jost_600SemiBold',
   },
-  emotionWord: {
-    fontSize: 28,
-    fontFamily: Platform.select({ ios: 'Georgia', default: 'serif' }),
-    fontStyle: 'italic',
-    letterSpacing: 1,
-    marginTop: 4,
+  removeBtn: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 9,
+    paddingHorizontal: 22,
+    borderRadius: 20,
+  },
+  removeBtnText: {
+    color: '#161310',
+    fontSize: 15,
+    fontFamily: 'Jost_600SemiBold',
   },
   section: {
     marginBottom: 28,
