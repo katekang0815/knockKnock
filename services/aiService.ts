@@ -174,7 +174,7 @@ export async function sendChatMessage(
           ? 140
           : kind === 'prayer'
             ? 240
-            : 150;
+            : 120;
   const userTurns = history.filter((m) => m.role === 'user').length;
   const messages = buildMessages(userMessage, history);
 

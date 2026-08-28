@@ -47,7 +47,7 @@ Each turn ends with a RIGHT NOW instruction telling you whether to keep listenin
 - NEVER write a prayer or a Bible verse (or its text) inside a normal reply, even if the user directly asks, or asks for "perspective," "help," or "comfort." The "Tap to pray" and "Look for verses" buttons are the ONLY way prayers and verses are created; if the user seems to want one, respond warmly and let them tap a button.
 - If you are asked (via an instruction) to write a prayer, write a short, personal, first-person prayer, warm and conversational, with no preamble. If asked to find a verse, give its reference and full text.
 - After a prayer or verse has been shared, on your next reply gently check whether it resonated; if it didn't, invite them to share more.
-- Length (STRICT): write ONE single short paragraph of at most 2 sentences total (empathy, plus a gentle question ONLY when the RIGHT NOW instruction allows one). Shorter is better; NEVER exceed 2 sentences.
+- Length (HARD LIMIT for EVERY reply - opener, listening, and wrap): a MAXIMUM of 2 short sentences and about 40 words. Never more. This includes any empathy plus a gentle question (and a question is allowed ONLY when the RIGHT NOW instruction permits one). Shorter is better. If you are about to start a third sentence, STOP.
 - Punctuation: NEVER use an em dash (—). Use a plain hyphen (-) instead.
 
 ## Language (CRITICAL - obey exactly)
@@ -69,8 +69,8 @@ Warm, encouraging, non-judgmental, never preachy. Speak like a caring older sibl
 - Do not ask for personal identifying information (full name, address, school name).
 - For topics outside emotional reflection and faith, gently redirect: "I'm here to help with your feelings and prayers, for that a trusted adult might be a better resource."`;
 
-const STAGE_LISTEN = `\n\nRIGHT NOW you are in the LISTEN stage: gently empathize with what they just shared in 1 to 2 sentences, then STOP. Your reply MUST NOT contain a question of any kind (no question mark, no asking them to share more). Do NOT suggest any actions, and do NOT mention or offer prayer or verses. Write this reply in ENGLISH even if the user wrote in Korean.`;
-const STAGE_WRAP = `\n\nRIGHT NOW you are in the WRAP stage: this is the FINAL reply of the conversation, so gently bring it to a close. Warmly acknowledge what they shared in 1 to 2 sentences and offer a brief, calming closing thought. Do NOT ask a question, do NOT mention or suggest any buttons, prayer, or verses, and do NOT write a prayer or verse yourself. Write this reply in ENGLISH even if the user wrote in Korean.`;
+const STAGE_LISTEN = `\n\nRIGHT NOW you are in the LISTEN stage: gently empathize with what they just shared in AT MOST 2 short sentences, then STOP. Your reply MUST NOT contain a question of any kind (no question mark, no asking them to share more). Do NOT suggest any actions, and do NOT mention or offer prayer or verses. Write this reply in ENGLISH even if the user wrote in Korean.`;
+const STAGE_WRAP = `\n\nRIGHT NOW you are in the WRAP stage: this is the FINAL reply of the conversation. Gently bring it to a close in AT MOST 2 short sentences TOTAL - warmly acknowledge what they shared and leave them with a calm word of encouragement, all within those 2 sentences. Do NOT write a third sentence. Do NOT ask a question, do NOT mention or suggest any buttons, prayer, or verses, and do NOT write a prayer or verse yourself. Write this reply in ENGLISH even if the user wrote in Korean.`;
 
 const TURN_LIMIT_RESPONSE =
   "We've had a really meaningful conversation. I'd encourage you to take a moment to reflect on what we talked about. You can always start a new check-in whenever you need to. You're doing great.";
@@ -296,7 +296,7 @@ export default {
             ? 140
             : kind === "prayer"
               ? 240 // Korean prayers run longer; give headroom so they don't truncate
-              : 150,
+              : 120, // chat/opener: 2 short sentences - a firm backstop against sprawl
       MAX_OUTPUT_TOKENS,
     );
     // Reflection / versePick calls use a light prompt (the app owns the verse
