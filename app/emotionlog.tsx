@@ -445,11 +445,24 @@ export default function EmotionLogScreen() {
     (kind === 'prayer' ? setPrayerUsed : setVerseUsed)(true);
     setSending(false);
   };
-  const onPray = () =>
+  const onPray = () => {
+    // The prayer follows THIS conversation's language, decided here (not by the AI)
+    // so the recent-check-ins memory - which may hold past Korean prayers - can't
+    // sway it. Korean only if the user actually typed Korean in this chat.
+    const typed = chatMessages
+      .filter((m) => m.role === 'user')
+      .map((m) => m.text)
+      .join(' ');
+    const isKorean = /[가-힣㄰-㆏]/.test(typed);
+    const langDirective = isKorean
+      ? ' Write this prayer in Korean, as a formal prayer (존댓말 / 기도문 형식), referring to God as 하나님, never 당신.'
+      : ' Write this prayer in English.';
     askAI(
-      "The user tapped the pray button. Write a short, personal, first-person prayer for what they're going through right now — warm and conversational, 2 to 4 sentences, with no preamble or commentary.",
+      "The user tapped the pray button. Write a short, personal, first-person prayer for what they're going through right now — warm and conversational, 2 to 4 sentences, with no preamble or commentary." +
+        langDirective,
       'prayer',
     );
+  };
 
   // The verse comes back as two parts (verse, then reflection) separated by a
   // blank line — shown as a boxed verse card plus a separate reflection message.
@@ -780,7 +793,7 @@ export default function EmotionLogScreen() {
 
           {phase === 'context' && (
             <TouchableOpacity style={styles.addEmotionBtn} onPress={onAddEmotion} activeOpacity={0.8}>
-              <PlusCircleIcon size={17} color={HOME_ACCENT} />
+              <PlusCircleIcon size={18} color="#FFFFFF" />
               <Text style={styles.addEmotionText}>Add Emotion</Text>
             </TouchableOpacity>
           )}
@@ -1058,18 +1071,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'center',
-    backgroundColor: '#1A1A1A', // same surface as the tag chips
+    backgroundColor: 'rgba(255,255,255,0.07)',
     paddingVertical: 11,
-    paddingHorizontal: 18,
-    borderRadius: 22,
-    marginTop: 18,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    marginTop: 20,
     gap: 8,
   },
   addEmotionText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: 'Jost_600SemiBold',
-    letterSpacing: 0.3,
   },
   removeBackdrop: {
     flex: 1,
