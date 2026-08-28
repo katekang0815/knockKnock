@@ -281,8 +281,16 @@ export default function HomeScreen() {
       // context; (a) the prompt tells the AI to draw on the recent check-ins
       // (auto-attached as the recap by sendChatMessage) plus this note.
       const latest = sessions[0];
+      // The quick-note prayer follows the NOTE's language: Korean if the user wrote
+      // the note in Korean, English otherwise. (The note lives inside an English
+      // instruction, so we detect it here and tell the AI explicitly.)
+      const isKorean = /[가-힣㄰-㆏]/.test(text);
+      const langDirective = isKorean
+        ? " Write this prayer in Korean, as a formal prayer (존댓말 / 기도문 형식), referring to God as 하나님, never 당신."
+        : " Write this prayer in English.";
       const prayer = await sendChatMessage(
-        `The user wrote this personal note: "${text}". Drawing on their recent check-ins (their recent emotional state and what they've been facing) together with this note, write a short, warm, personal first-person prayer (2 to 4 sentences) that brings where they are right now to God. No preamble, just the prayer.`,
+        `The user wrote this personal note: "${text}". Drawing on their recent check-ins (their recent emotional state and what they've been facing) together with this note, write a short, warm, personal first-person prayer (2 to 4 sentences) that brings where they are right now to God. No preamble, just the prayer.` +
+          langDirective,
         [],
         { emotion: latest?.emotion ?? "", category: latest?.category ?? "" },
         "prayer",
