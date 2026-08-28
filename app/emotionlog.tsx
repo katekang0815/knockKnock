@@ -780,7 +780,7 @@ export default function EmotionLogScreen() {
 
           {phase === 'context' && (
             <TouchableOpacity style={styles.addEmotionBtn} onPress={onAddEmotion} activeOpacity={0.8}>
-              <PlusCircleIcon size={18} color="#FFFFFF" />
+              <PlusCircleIcon size={17} color={HOME_ACCENT} />
               <Text style={styles.addEmotionText}>Add Emotion</Text>
             </TouchableOpacity>
           )}
@@ -1058,17 +1058,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'center',
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: '#1A1A1A', // same surface as the tag chips
     paddingVertical: 11,
-    paddingHorizontal: 20,
-    borderRadius: 24,
-    marginTop: 20,
+    paddingHorizontal: 18,
+    borderRadius: 22,
+    marginTop: 18,
     gap: 8,
   },
   addEmotionText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: 'Jost_600SemiBold',
+    letterSpacing: 0.3,
   },
   removeBackdrop: {
     flex: 1,
