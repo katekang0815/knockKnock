@@ -118,7 +118,7 @@ const CARD_GRADIENT: [string, string] = ["#232222", "#402614"];
 const CARD_RADIUS = 28;
 // Emotion-label color on the card. Negative categories (Stormy, Rain) use this
 // custom color; the rest keep the warm coral (styles.emotionLabel).
-const NEGATIVE_EMOTION_COLOR = "#EFB141";
+const NEGATIVE_EMOTION_COLOR = "#FADF72";
 const NEGATIVE_CATEGORIES = ["Stormy", "Rain"];
 
 // Rounded-rectangle gradient fill, drawn at the card's actual pixel size so the
