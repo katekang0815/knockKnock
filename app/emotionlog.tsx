@@ -532,7 +532,7 @@ export default function EmotionLogScreen() {
     }
 
     const raw = await sendChatMessage(
-      "The user tapped the verses button. Reply in two parts. PART 1: the Bible verse — its reference (e.g. Ecclesiastes 3:11) and the full verse text, kept together with NO blank line between them. Then ONE blank line. PART 2: a warm 1 to 2 sentence reflection connecting the verse to what they're feeling. Add nothing else." +
+      "The user tapped the verses button. Reply in two parts. PART 1: the Bible verse — its reference (e.g. Ecclesiastes 3:11) and the full verse text, kept together with NO blank line between them. Quote the verse using PUBLIC-DOMAIN wording (the World English Bible / WEB), never a copyrighted translation like NIV, ESV, NLT, NASB, or The Message. Then ONE blank line. PART 2: a warm 1 to 2 sentence reflection connecting the verse to what they're feeling. Add nothing else." +
         avoidClause,
       chatMessages,
       chatContext,
