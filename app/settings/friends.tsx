@@ -7,9 +7,10 @@ import Svg, { Path } from "react-native-svg";
 
 const SERIF = Platform.select({ ios: "Georgia", default: "serif" });
 
-// Friend invite. TODO: swap INVITE_URL for the App Store link once the app is live.
-const INVITE_URL = "https://katekang0815.github.io/knockKnock/";
-const INVITE_MESSAGE = `Join me on KnockKnock — a daily prayer & reflection space. 🙏\n${INVITE_URL}`;
+// Friend invite. App Store product page (by Apple ID) - opens straight to "Get".
+// This link 404s until the app is approved & released, then works permanently.
+const INVITE_URL = "https://apps.apple.com/app/id6802480385";
+const INVITE_MESSAGE = `Join me on KnockKnock - a daily prayer & reflection space. 🙏\n${INVITE_URL}`;
 
 export default function FriendsScreen() {
   const insets = useSafeAreaInsets();
