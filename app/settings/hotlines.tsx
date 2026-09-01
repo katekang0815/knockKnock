@@ -23,25 +23,13 @@ const SECTIONS: { title: string; cards: Seg[][] }[] = [
     ],
   },
   {
-    title: "Mental health resources for the music industry",
-    cards: [
-      [
-        "US residents can call ",
-        { text: "1-855-BLINE99", url: "tel:18552546399" },
-        " or text ",
-        { text: "254-639", url: "sms:254639" },
-        " for 24/7 support from Backline's trained crisis counselors.",
-      ],
-    ],
-  },
-  {
     title: "For crisis counselors specializing in LGBTQ+ community",
     cards: [
       ["Call the Trevor Project crisis hotline at ", { text: "1-800-488-7386", url: "tel:18004887386" }],
     ],
   },
   {
-    title: "For crisis counselors specializing in Sexual Assault",
+    title: "For domestic violence support",
     cards: [
       ["Call the National Domestic Violence Hotline at ", { text: "1-800-799-7233", url: "tel:18007997233" }],
     ],
