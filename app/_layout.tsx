@@ -38,7 +38,6 @@ export default function RootLayout() {
         <Stack.Screen name="emotionlog" options={{ headerShown: false }} />
         <Stack.Screen name="session/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="settings/index" options={{ headerShown: false }} />
-        <Stack.Screen name="settings/general" options={{ headerShown: false }} />
         <Stack.Screen name="settings/friends" options={{ headerShown: false }} />
         <Stack.Screen name="settings/profile" options={{ headerShown: false }} />
         <Stack.Screen name="settings/notifications" options={{ headerShown: false }} />

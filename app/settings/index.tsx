@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Circle, Path } from "react-native-svg";
+import Svg, { Circle, Path, Rect } from "react-native-svg";
 import {
   getDisplayName,
   getPhotoUri,
@@ -55,11 +55,29 @@ function FeedbackIcon() {
     </Svg>
   );
 }
-function HexIcon() {
+function InfoIcon() {
   return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-      <Path d="M12 2 L20.5 7 L20.5 17 L12 22 L3.5 17 L3.5 7 Z" stroke="#FFFFFF" strokeWidth={1.5} strokeLinejoin="round" />
-      <Path d="M12 7 L16.3 9.5 L16.3 14.5 L12 17 L7.7 14.5 L7.7 9.5 Z" stroke="#FFFFFF" strokeWidth={1.4} strokeLinejoin="round" />
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={8.2} stroke={STROKE} strokeWidth={SW} />
+      <Path d="M12 11 L12 16.5" stroke={STROKE} strokeWidth={SW} strokeLinecap="round" />
+      <Circle cx={12} cy={7.8} r={0.5} fill={STROKE} stroke={STROKE} strokeWidth={1} />
+    </Svg>
+  );
+}
+function LockIcon() {
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      <Rect x={5} y={10.5} width={14} height={9.5} rx={2} stroke={STROKE} strokeWidth={SW} />
+      <Path d="M8 10.5 L8 8 C8 5.8 9.8 4 12 4 C14.2 4 16 5.8 16 8 L16 10.5" stroke={STROKE} strokeWidth={SW} strokeLinecap="round" />
+    </Svg>
+  );
+}
+function LifebuoyIcon() {
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={8.2} stroke={STROKE} strokeWidth={SW} />
+      <Circle cx={12} cy={12} r={3.3} stroke={STROKE} strokeWidth={SW} />
+      <Path d="M14.4 9.6 L18 6 M9.6 9.6 L6 6 M14.4 14.4 L18 18 M9.6 14.4 L6 18" stroke={STROKE} strokeWidth={SW} strokeLinecap="round" />
     </Svg>
   );
 }
@@ -201,6 +219,17 @@ export default function SettingsHubScreen() {
           <TouchableOpacity
             style={styles.row}
             activeOpacity={0.6}
+            onPress={() => router.push("/settings/about")}
+          >
+            <View style={styles.rowIcon}>
+              <InfoIcon />
+            </View>
+            <Text style={styles.rowLabel}>About</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.row}
+            activeOpacity={0.6}
             onPress={() => router.push("/settings/notifications")}
           >
             <View style={styles.rowIcon}>
@@ -230,12 +259,23 @@ export default function SettingsHubScreen() {
           <TouchableOpacity
             style={styles.row}
             activeOpacity={0.6}
-            onPress={() => router.push("/settings/general")}
+            onPress={() => router.push("/settings/security")}
           >
             <View style={styles.rowIcon}>
-              <HexIcon />
+              <LockIcon />
             </View>
-            <Text style={styles.rowLabel}>Settings</Text>
+            <Text style={styles.rowLabel}>Security &amp; data</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.row}
+            activeOpacity={0.6}
+            onPress={() => router.push("/settings/hotlines")}
+          >
+            <View style={styles.rowIcon}>
+              <LifebuoyIcon />
+            </View>
+            <Text style={styles.rowLabel}>Mental health hotlines</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
