@@ -230,6 +230,17 @@ export default function SettingsHubScreen() {
           <TouchableOpacity
             style={styles.row}
             activeOpacity={0.6}
+            onPress={() => router.push("/settings/hotlines")}
+          >
+            <View style={styles.rowIcon}>
+              <LifebuoyIcon />
+            </View>
+            <Text style={styles.rowLabel}>Mental health hotlines</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.row}
+            activeOpacity={0.6}
             onPress={() => router.push("/settings/notifications")}
           >
             <View style={styles.rowIcon}>
@@ -265,17 +276,6 @@ export default function SettingsHubScreen() {
               <LockIcon />
             </View>
             <Text style={styles.rowLabel}>Security &amp; data</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.row}
-            activeOpacity={0.6}
-            onPress={() => router.push("/settings/hotlines")}
-          >
-            <View style={styles.rowIcon}>
-              <LifebuoyIcon />
-            </View>
-            <Text style={styles.rowLabel}>Mental health hotlines</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
