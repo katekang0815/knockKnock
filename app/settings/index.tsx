@@ -151,9 +151,6 @@ export default function SettingsHubScreen() {
   const changePhoto = () => chooseAction("photo");
   const openNameEdit = () => chooseAction("name");
 
-  // Donation banner (Hide only dismisses for now; returns on reload).
-  const [bannerHidden, setBannerHidden] = useState(false);
-
   const menuTop = anchor.y + anchor.h + 6;
   const menuLeft = Math.max(12, Math.min(anchor.x + anchor.w - MENU_W, SCREEN_W - MENU_W - 12));
 
@@ -162,7 +159,7 @@ export default function SettingsHubScreen() {
       <ScrollView
         contentContainerStyle={{
           paddingTop: insets.top + 8,
-          paddingBottom: insets.bottom + (bannerHidden ? 40 : 190),
+          paddingBottom: insets.bottom + 40,
         }}
         showsVerticalScrollIndicator={false}
       >
@@ -242,36 +239,6 @@ export default function SettingsHubScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-
-      {/* Donation banner pinned to the bottom (dismissible). */}
-      {!bannerHidden && (
-        <View style={[styles.banner, { paddingBottom: insets.bottom + 14 }]}>
-          <View style={styles.bannerRow}>
-            <View style={styles.bannerLeft}>
-              <Text style={styles.bannerText}>
-                Support our mission — KnockKnock is made possible by donations
-              </Text>
-              <View style={styles.bannerActions}>
-                <TouchableOpacity
-                  style={styles.bannerDonate}
-                  activeOpacity={0.85}
-                  onPress={() => router.push("/settings/donate")}
-                >
-                  <Text style={styles.bannerDonateText}>Donate</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setBannerHidden(true)} activeOpacity={0.7} hitSlop={10}>
-                  <Text style={styles.bannerHide}>Hide</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            <Image
-              source={require("@/assets/images/donate-gift.png")}
-              style={styles.bannerArt}
-              resizeMode="contain"
-            />
-          </View>
-        </View>
-      )}
 
       {/* Edit menu — small popover anchored to the pencil. */}
       <Modal
@@ -440,24 +407,4 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   nameSaveText: { color: "#FFFFFF", fontSize: 16, fontFamily: "Jost_600SemiBold" },
-
-  /* Donation banner */
-  banner: {
-    position: "absolute",
-    left: 12,
-    right: 12,
-    bottom: 12,
-    backgroundColor: "#1A1A1A",
-    borderRadius: 22,
-    paddingHorizontal: 18,
-    paddingTop: 18,
-  },
-  bannerRow: { flexDirection: "row", alignItems: "center" },
-  bannerLeft: { flex: 1, paddingRight: 10 },
-  bannerText: { color: "#FFFFFF", fontSize: 16, lineHeight: 22, fontFamily: "Jost_400Regular" },
-  bannerActions: { flexDirection: "row", alignItems: "center", marginTop: 16 },
-  bannerDonate: { backgroundColor: "#FFFFFF", borderRadius: 20, paddingVertical: 9, paddingHorizontal: 22 },
-  bannerDonateText: { color: "#111111", fontSize: 15, fontFamily: "Jost_600SemiBold" },
-  bannerHide: { color: "#9A938B", fontSize: 15, fontFamily: "Jost_400Regular", marginLeft: 20 },
-  bannerArt: { width: 96, height: 96 },
 });

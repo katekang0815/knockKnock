@@ -43,11 +43,9 @@ export default function RootLayout() {
         <Stack.Screen name="settings/profile" options={{ headerShown: false }} />
         <Stack.Screen name="settings/notifications" options={{ headerShown: false }} />
         <Stack.Screen name="settings/security" options={{ headerShown: false }} />
-        <Stack.Screen name="settings/accessibility" options={{ headerShown: false }} />
         <Stack.Screen name="settings/hotlines" options={{ headerShown: false }} />
         <Stack.Screen name="settings/feedback" options={{ headerShown: false }} />
         <Stack.Screen name="settings/about" options={{ headerShown: false }} />
-        <Stack.Screen name="settings/donate" options={{ headerShown: false }} />
         <Stack.Screen name="settings/[slug]" options={{ headerShown: false }} />
         <Stack.Screen
           name="(tabs)"

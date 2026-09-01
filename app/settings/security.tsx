@@ -37,13 +37,6 @@ function FaceIdIcon() {
     </Svg>
   );
 }
-function CloudIcon() {
-  return (
-    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-      <Path d="M7 18 A4 4 0 0 1 7 10 A5 5 0 0 1 16.5 10.5 A3.5 3.5 0 0 1 16.5 18 Z" stroke={STROKE} strokeWidth={SW} strokeLinejoin="round" />
-    </Svg>
-  );
-}
 function DownIcon() {
   return (
     <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
@@ -62,13 +55,9 @@ function Arrow() {
 export default function SecurityScreen() {
   const insets = useSafeAreaInsets();
   const [faceId, setFaceId] = useState(false);
-  const [icloud, setICloud] = useState(false);
-  const [backup, setBackup] = useState(false);
 
   useEffect(() => {
     getFlag(SEC_KEYS.faceId).then(setFaceId);
-    getFlag(SEC_KEYS.icloud).then(setICloud);
-    getFlag(SEC_KEYS.backup).then(setBackup);
   }, []);
 
   const onFaceId = async (val: boolean) => {
@@ -92,15 +81,6 @@ export default function SecurityScreen() {
     if (!res.success) return;
     setFaceId(true);
     await setFlag(SEC_KEYS.faceId, true);
-  };
-
-  const onICloud = async (val: boolean) => {
-    setICloud(val);
-    await setFlag(SEC_KEYS.icloud, val);
-  };
-  const onBackup = async (val: boolean) => {
-    setBackup(val);
-    await setFlag(SEC_KEYS.backup, val);
   };
 
   const onDownload = async () => {
@@ -134,8 +114,6 @@ export default function SecurityScreen() {
           onPress: async () => {
             await deleteAllData();
             setFaceId(false);
-            setICloud(false);
-            setBackup(false);
             Alert.alert("Deleted", "Your data has been removed from this device.");
           },
         },
@@ -171,22 +149,6 @@ export default function SecurityScreen() {
 
         {/* Data */}
         <Text style={[styles.section, { marginTop: 34 }]}>Data</Text>
-        <View style={styles.row}>
-          <CloudIcon />
-          <View style={styles.rowTextCol}>
-            <Text style={styles.rowLabelPlain}>iCloud Sync</Text>
-            <Text style={styles.rowSub}>Sync your data across devices</Text>
-          </View>
-          <Switch value={icloud} onValueChange={onICloud} trackColor={{ true: "#34C759", false: "#3A3A3C" }} thumbColor="#FFFFFF" ios_backgroundColor="#3A3A3C" />
-        </View>
-        <View style={styles.row}>
-          <DownIcon />
-          <View style={styles.rowTextCol}>
-            <Text style={styles.rowLabelPlain}>Local backups</Text>
-            <Text style={styles.rowSub}>Keep a backup on this device</Text>
-          </View>
-          <Switch value={backup} onValueChange={onBackup} trackColor={{ true: "#34C759", false: "#3A3A3C" }} thumbColor="#FFFFFF" ios_backgroundColor="#3A3A3C" />
-        </View>
         <TouchableOpacity style={styles.row} onPress={onDownload} activeOpacity={0.6}>
           <DownIcon />
           <Text style={styles.rowLabel}>Download my data</Text>

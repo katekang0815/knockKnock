@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 
@@ -14,23 +14,6 @@ function LockIcon() {
     <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
       <Rect x={5} y={10.5} width={14} height={9.5} rx={2} stroke={STROKE} strokeWidth={SW} />
       <Path d="M8 10.5 L8 8 C8 5.8 9.8 4 12 4 C14.2 4 16 5.8 16 8 L16 10.5" stroke={STROKE} strokeWidth={SW} strokeLinecap="round" />
-    </Svg>
-  );
-}
-function AccessibilityIcon() {
-  return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-      <Circle cx={12} cy={4.6} r={1.6} stroke={STROKE} strokeWidth={SW} />
-      <Path d="M4.5 8.5 C7 9.7 9.4 10.2 12 10.2 C14.6 10.2 17 9.7 19.5 8.5" stroke={STROKE} strokeWidth={SW} strokeLinecap="round" />
-      <Path d="M12 10.2 L12 15 M12 15 L9 21 M12 15 L15 21" stroke={STROKE} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
-}
-function GlobeIcon() {
-  return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-      <Circle cx={12} cy={12} r={8.2} stroke={STROKE} strokeWidth={SW} />
-      <Path d="M3.8 12 L20.2 12 M12 3.8 C14.2 6 15.3 9 15.3 12 C15.3 15 14.2 18 12 20.2 C9.8 18 8.7 15 8.7 12 C8.7 9 9.8 6 12 3.8 Z" stroke={STROKE} strokeWidth={SW} strokeLinejoin="round" />
     </Svg>
   );
 }
@@ -52,15 +35,6 @@ function InfoIcon() {
     </Svg>
   );
 }
-function DonateIcon() {
-  return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-      <Circle cx={12} cy={12} r={8.2} stroke={STROKE} strokeWidth={SW} />
-      <Path d="M12 7 L12 17 M14.4 9 C14.4 8 13.4 7.4 12 7.4 C10.6 7.4 9.6 8.1 9.6 9.2 C9.6 11.8 14.4 10.6 14.4 13.4 C14.4 14.6 13.3 15.3 12 15.3 C10.6 15.3 9.5 14.7 9.5 13.6" stroke={STROKE} strokeWidth={SW} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
-}
-
 function Arrow() {
   return (
     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
@@ -74,10 +48,7 @@ type Item = { slug: string; label: string; icon: () => React.ReactElement };
 const ITEMS: Item[] = [
   { slug: "about", label: "About", icon: InfoIcon },
   { slug: "security", label: "Security & data", icon: LockIcon },
-  { slug: "accessibility", label: "Accessibility", icon: AccessibilityIcon },
-  { slug: "language", label: "Language", icon: GlobeIcon },
   { slug: "hotlines", label: "Mental health hotlines", icon: LifebuoyIcon },
-  { slug: "donate", label: "Donate", icon: DonateIcon },
 ];
 
 export default function GeneralSettingsScreen() {
@@ -109,17 +80,9 @@ export default function GeneralSettingsScreen() {
                 onPress={() =>
                   item.slug === "security"
                     ? router.push("/settings/security")
-                    : item.slug === "accessibility"
-                    ? router.push("/settings/accessibility")
-                    : item.slug === "language"
-                    ? Linking.openSettings()
                     : item.slug === "hotlines"
                     ? router.push("/settings/hotlines")
-                    : item.slug === "about"
-                    ? router.push("/settings/about")
-                    : item.slug === "donate"
-                    ? router.push("/settings/donate")
-                    : router.push({ pathname: "/settings/[slug]", params: { slug: item.slug, title: item.label } })
+                    : router.push("/settings/about")
                 }
               >
                 <View style={styles.rowIcon}>
