@@ -1,6 +1,6 @@
 # Knock Knock
 
-A Christian prayer app that turns how you feel into an honest conversation with God.
+### A Christian prayer app that turns how you feel into an honest conversation with God.
 -
 The name comes from Matthew 7:7 - "knock, and the door will be opened to you" - and Revelation 3:20, "I stand at the door and knock." Every check-in is a small knock: an invitation to show up honestly and be met with grace.
 
