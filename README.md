@@ -18,11 +18,8 @@ Knock Knock is a mobile application designed to support young adults in building
 ### Tech Stack
 
 ```
-- React Native
-- Expo
-- TypeScript
-- Supabase
-- PostgreSQL
-- AI API integration
-- Figma
+- Frontend: React Native (Expo, SDK 54) · TypeScript · Reanimated · SVG
+- Backend: Cloudflare Workers (serverless AI proxy) · Anthropic Claude API · KV (rate limits)
+- Data: on-device only (AsyncStorage) - no accounts, no server DB
+- Delivery: EAS Build + OTA (EAS Update)
 ```
