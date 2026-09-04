@@ -3,10 +3,6 @@
 A Christian prayer app that turns how you feel into an honest conversation with God.
 The name comes from Matthew 7:7 - "knock, and the door will be opened to you" - and Revelation 3:20, "I stand at the door and knock." Every check-in is a small knock: an invitation to show up honestly and be met with grace.
 
-## About the project
-
-Knock Knock is a Christian prayer app that turns a daily emotional check-in into a short, gentle conversation - with God at the center. Instead of rating your day one to ten, it asks how you are arriving, then helps you name the specific feeling underneath, talk it through, and turn that moment into a personal prayer and a fitting passage of Scripture.
-
 ## Purpose
 Many people struggle to name what they are feeling - and struggle even more to bring it honestly to God. Knock Knock closes that gap. It gives anyone, from teens to older adults, a calm, private, judgment-free space to check in with their emotions and reflect through a caring AI conversation, then receive a personalized prayer and an encouraging Bible verse for exactly where they are. The goal is to make daily prayer feel less like an obligation and more like an honest, ongoing conversation - one small knock at a time.
 
