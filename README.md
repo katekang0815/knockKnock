@@ -9,11 +9,8 @@ Many people struggle to name what they are feeling - and struggle even more to b
 
 ### Screen Pages
 
-- **Home Page**
+<img width="832" height="998" alt="Screenshot 2026-09-04 at 8 33 53 PM" src="https://github.com/user-attachments/assets/cadabb61-1efe-41e6-a46f-0721cf162697" />
 
-- **Emotion Check-In Page**
-
-- **Emotion Log/ AI chat**
 
 ### Tech Stack
 
