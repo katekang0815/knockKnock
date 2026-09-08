@@ -11,6 +11,7 @@ import {
   type Note,
 } from "@/services/notesStore";
 import { sendChatMessage } from "@/services/aiService";
+import { generateId } from "@/services/deviceId";
 import type { SessionRecord, ChatEntry } from "@/types/belief";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -292,7 +293,10 @@ export default function HomeScreen() {
         `The user wrote this personal note: "${text}". Drawing on their recent check-ins (their recent emotional state and what they've been facing) together with this note, write a short, warm, personal first-person prayer (2 to 4 sentences) that brings where they are right now to God. No preamble, just the prayer.` +
           langDirective,
         [],
-        { emotion: latest?.emotion ?? "", category: latest?.category ?? "" },
+        // Unique sessionId per quick prayer so each generation counts as its own
+        // slot against the server's daily per-device cap (previously all quick
+        // prayers shared one "nosession" bucket, so only the first counted).
+        { emotion: latest?.emotion ?? "", category: latest?.category ?? "", sessionId: generateId() },
         "prayer",
       );
       setNotePrayer(prayer.trim());
