@@ -27,10 +27,11 @@ export interface Env {
 const ALLOWED_MODEL = "claude-haiku-4-5-20251001";
 const MAX_OUTPUT_TOKENS = 300; // hard ceiling regardless of kind
 const MAX_BODY_CHARS = 24000; // reject oversized assembled requests
-const PER_DEVICE_DAILY_CHECKINS = 100; // TESTING value — set back to 5 before launch
-const GLOBAL_DAILY_CALL_CAP = 1600; // hard: ~$5/day at ~$0.003/call — tune here
+const PER_DEVICE_DAILY_CHECKINS = 3; // free-tier daily session budget per device
+const GLOBAL_DAILY_CALL_CAP = 1000; // hard: ~$150/mo ceiling at ~$0.005/call — tune here
 const MAX_CHAT_TURNS = 3; // chat/opener turns before the wrap-up message
 const COUNTER_TTL_SECONDS = 172800; // keep day counters ~2 days
+const CAP_HIT_TTL_SECONDS = 7776000; // 90 days — rolling window for repeat-cap-hit tracking
 const FEEDBACK_TO = "yehsunkang@gmail.com"; // where in-app feedback is emailed
 
 // ---- Prompt (source of truth for production) ------------------------------
@@ -247,6 +248,15 @@ export default {
     if (!deviceId) return json(400, { error: "missing_device_id" });
     const sessionId = request.headers.get("x-session-id") || "nosession";
 
+    // Unique-device tracking (permanent key, value = first-seen timestamp): the
+    // real "have they ever used the AI" signal, independent of App Store
+    // download counts or the opt-in analytics gaps. Check with:
+    //   npx wrangler kv key list --binding=RL --prefix="everSeen:"
+    const everSeenKey = `everSeen:${deviceId}`;
+    if (!(await env.RL.get(everSeenKey))) {
+      await env.RL.put(everSeenKey, String(Date.now()));
+    }
+
     let body: any;
     try {
       body = await request.json();
@@ -278,8 +288,18 @@ export default {
     if (!(await env.RL.get(seenKey))) {
       const dKey = `checkins:${deviceId}:${day}`;
       const dCount = parseInt((await env.RL.get(dKey)) || "0", 10);
-      if (dCount >= PER_DEVICE_DAILY_CHECKINS)
+      if (dCount >= PER_DEVICE_DAILY_CHECKINS) {
+        // Record the denial itself (separate, longer-lived counter than the
+        // 2-day rate-limit key) so repeat-capped devices are visible over a
+        // rolling 90-day window - a real signal for paid-tier demand. Check:
+        //   npx wrangler kv key list --binding=RL --prefix="capHits:"
+        const hitKey = `capHits:${deviceId}`;
+        const hits = parseInt((await env.RL.get(hitKey)) || "0", 10);
+        await env.RL.put(hitKey, String(hits + 1), {
+          expirationTtl: CAP_HIT_TTL_SECONDS,
+        });
         return json(429, { error: "device_cap" });
+      }
       await env.RL.put(dKey, String(dCount + 1), {
         expirationTtl: COUNTER_TTL_SECONDS,
       });
