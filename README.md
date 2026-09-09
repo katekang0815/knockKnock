@@ -2,6 +2,8 @@
 
 Knock Knock is a personal Christian prayer app built around emotional check-ins, for a general audience aged 13+ who want to grow in their faith. The name comes from Revelation 3:20, "I stand at the door and knock." Every check-in is a gentle opening toward God, inviting Him into the moment the user is experiencing.
 
+[View on the App Store](https://apps.apple.com/app/id6802480385)
+
 ## Tech Stack
 
 - **Frontend:** React Native (Expo) · TypeScript · Reanimated · SVG
