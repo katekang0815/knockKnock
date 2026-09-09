@@ -1,22 +1,20 @@
 # Knock Knock
 
-####  A Christian prayer app that turns how you feel into an honest conversation with God.
-The name comes from Matthew 7:7 - "knock, and the door will be opened to you" - and Revelation 3:20, "I stand at the door and knock." Every check-in is a small knock: an invitation to show up honestly and be met with grace.
+> Knock Knock is a personal Christian prayer app built around emotional check-ins, for a general audience aged 13+ who want to grow in their faith. The name comes from Revelation 3:20, "I stand at the door and knock." Every check-in is a gentle opening toward God, inviting Him into the moment the user is experiencing.
 
-## Purpose
-Many people struggle to name what they are feeling - and struggle even more to bring it honestly to God. Knock Knock closes that gap. It gives anyone, from teens to older adults, a calm, private, judgment-free space to check in with their emotions and reflect through a caring AI conversation, then receive a personalized prayer and an encouraging Bible verse for exactly where they are. The goal is to make daily prayer feel less like an obligation and more like an honest, ongoing conversation - one small knock at a time.
+## Tech Stack
 
+- **Frontend:** React Native (Expo, SDK 54) · TypeScript · Reanimated · SVG
+- **Backend:** Cloudflare Workers (serverless AI proxy) · Anthropic Claude API · KV (rate limits)
+- **Data:** on-device only (AsyncStorage) - no accounts, no server DB
+- **Delivery:** EAS Build + OTA (EAS Update)
 
-### Screen Pages
+## Key Features
 
-<img width="832" height="998" alt="Screenshot 2026-09-04 at 8 33 53 PM" src="https://github.com/user-attachments/assets/cadabb61-1efe-41e6-a46f-0721cf162697" />
+- **The conversation layer** - staged system prompts and a rolling memory, so the model tracks each user's context over time.
+- **The backend** - a Cloudflare Workers proxy that keeps credentials server-side and rate-limits per device, so inference cost stays around a dollar per user per month.
+- **The client** - a gesture-driven 60fps UI with OTA updates through EAS, so I could ship fixes without waiting on App Review.
 
+## Screens
 
-### Tech Stack
-
-```
-- Frontend: React Native (Expo, SDK 54) · TypeScript · Reanimated · SVG
-- Backend: Cloudflare Workers (serverless AI proxy) · Anthropic Claude API · KV (rate limits)
-- Data: on-device only (AsyncStorage) - no accounts, no server DB
-- Delivery: EAS Build + OTA (EAS Update)
-```
+<img width="832" height="998" alt="Screenshot 2026-09-04 at 8 33 53 PM" src="https://github.com/user-attachments/assets/cadabb61-1efe-41e6-a46f-0721cf162697" />
