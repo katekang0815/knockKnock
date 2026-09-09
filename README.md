@@ -4,7 +4,7 @@ Knock Knock is a personal Christian prayer app built around emotional check-ins,
 
 ## Tech Stack
 
-- **Frontend:** React Native (Expo, SDK 54) · TypeScript · Reanimated · SVG
+- **Frontend:** React Native (Expo) · TypeScript · Reanimated · SVG
 - **Backend:** Cloudflare Workers (serverless AI proxy) · Anthropic Claude API · KV (rate limits)
 - **Data:** on-device only (AsyncStorage) - no accounts, no server DB
 - **Delivery:** EAS Build + OTA (EAS Update)
