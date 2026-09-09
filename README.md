@@ -1,29 +1,22 @@
 # Knock Knock
 
-A mobile prayer companion that helps users build a daily habit of reflection through emotional check-ins, guided prayer, and faith-based conversation.
+####  A Christian prayer app that turns how you feel into an honest conversation with God.
+The name comes from Matthew 7:7 - "knock, and the door will be opened to you" - and Revelation 3:20, "I stand at the door and knock." Every check-in is a small knock: an invitation to show up honestly and be met with grace.
 
-## About the project
+## Purpose
+Many people struggle to name what they are feeling - and struggle even more to bring it honestly to God. Knock Knock closes that gap. It gives anyone, from teens to older adults, a calm, private, judgment-free space to check in with their emotions and reflect through a caring AI conversation, then receive a personalized prayer and an encouraging Bible verse for exactly where they are. The goal is to make daily prayer feel less like an obligation and more like an honest, ongoing conversation - one small knock at a time.
 
-Knock Knock is a mobile application designed to support young adults in building a consistent prayer habit in a gentle and approachable way. The product begins with emotional awareness, helping users name how they feel before guiding them into reflection, making prayer feel more personal, interactive, and accessible. It creates a structured experience that helps users flow into meaningful conversation and prayer.
-
-![Preview Screens](images/preview-screens.png)
 
 ### Screen Pages
 
-- **Home Page**
+<img width="832" height="998" alt="Screenshot 2026-09-04 at 8 33 53 PM" src="https://github.com/user-attachments/assets/cadabb61-1efe-41e6-a46f-0721cf162697" />
 
-- **Emotion Check-In Page**
-
-- **Emotion Log/ AI chat**
 
 ### Tech Stack
 
 ```
-- React Native
-- Expo
-- TypeScript
-- Supabase
-- PostgreSQL
-- AI API integration
-- Figma
+- Frontend: React Native (Expo, SDK 54) · TypeScript · Reanimated · SVG
+- Backend: Cloudflare Workers (serverless AI proxy) · Anthropic Claude API · KV (rate limits)
+- Data: on-device only (AsyncStorage) - no accounts, no server DB
+- Delivery: EAS Build + OTA (EAS Update)
 ```
