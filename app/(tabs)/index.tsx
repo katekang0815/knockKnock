@@ -12,6 +12,7 @@ import {
 } from "@/services/notesStore";
 import { sendChatMessage } from "@/services/aiService";
 import { generateId } from "@/services/deviceId";
+import { isKorean } from "@/utils/textUtils";
 import type { SessionRecord, ChatEntry } from "@/types/belief";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -285,8 +286,7 @@ export default function HomeScreen() {
       // The quick-note prayer follows the NOTE's language: Korean if the user wrote
       // the note in Korean, English otherwise. (The note lives inside an English
       // instruction, so we detect it here and tell the AI explicitly.)
-      const isKorean = /[가-힣㄰-㆏]/.test(text);
-      const langDirective = isKorean
+      const langDirective = isKorean(text)
         ? " Write this prayer in Korean, as a formal prayer (존댓말 / 기도문 형식), referring to God as 하나님, never 당신."
         : " Write this prayer in English.";
       const prayer = await sendChatMessage(

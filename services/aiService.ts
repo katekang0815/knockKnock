@@ -17,7 +17,7 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 // A natural, relative label for when a check-in happened, in the user's local
 // time — so the AI says "earlier today" instead of naming today's weekday.
-function relativeDay(iso: string): string {
+export function relativeDay(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();

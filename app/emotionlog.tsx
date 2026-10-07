@@ -27,6 +27,7 @@ import {
 } from '@/services/verses';
 import { generateId } from '@/services/deviceId';
 import { setPendingEmotion } from '@/services/checkinDraft';
+import { sanitizeAI, isKorean } from '@/utils/textUtils';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -93,16 +94,6 @@ async function saveTagList(key: string, list: string[]): Promise<void> {
     // best-effort; tag list is not critical
   }
 }
-
-// Clean the AI text: no em/en dashes or spaced hyphens, no asterisks, no emoji.
-const sanitizeAI = (s: string) =>
-  s
-    .replace(/\s*[—–]\s*/g, ', ')
-    .replace(/ - /g, ', ')
-    .replace(/\*/g, '')
-    .replace(/[\p{Extended_Pictographic}️‍]/gu, '')
-    .replace(/[ \t]{2,}/g, ' ')
-    .trim();
 
 interface TagSectionProps {
   title: string;
@@ -453,8 +444,7 @@ export default function EmotionLogScreen() {
       .filter((m) => m.role === 'user')
       .map((m) => m.text)
       .join(' ');
-    const isKorean = /[가-힣㄰-㆏]/.test(typed);
-    const langDirective = isKorean
+    const langDirective = isKorean(typed)
       ? ' Write this prayer in Korean, as a formal prayer (존댓말 / 기도문 형식), referring to God as 하나님, never 당신.'
       : ' Write this prayer in English.';
     askAI(
